@@ -1,0 +1,29 @@
+# deps
+node_modules/
+.pnp
+.pnp.*
+
+# build
+.next/
+out/
+dist/
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# docker volumes (local dev)
+pgdata/
+
+# test output
+coverage/
