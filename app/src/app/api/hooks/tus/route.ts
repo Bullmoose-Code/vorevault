@@ -37,8 +37,8 @@ function reject(status: number, body: string) {
   });
 }
 
-function accept() {
-  return NextResponse.json({ HTTPResponse: { StatusCode: 200 } });
+function accept(extra?: Record<string, unknown>) {
+  return NextResponse.json({ HTTPResponse: { StatusCode: 200 }, ...extra });
 }
 
 function readSessionCookie(headers: HookHeaderMap | undefined): string | null {
@@ -75,9 +75,11 @@ async function preCreate(body: HookBody) {
   const free = await freeBytes(UPLOADS_DIR);
   if (free < MIN_FREE_BYTES) return reject(507, "disk full");
 
-  const tusId = body.Event.Upload.ID ?? randomUUID();
+  // tusd calls pre-create BEFORE assigning an upload ID, so Upload.ID is often
+  // empty. We generate our own and tell tusd to use it via ChangeFileInfo.
+  const tusId = body.Event.Upload.ID || randomUUID();
   await registerUploadSession(tusId, user.id);
-  return accept();
+  return accept({ ChangeFileInfo: { ID: tusId } });
 }
 
 async function postFinish(body: HookBody) {
