@@ -3,9 +3,9 @@
 Update this file whenever reality changes. If it's out of date, fix it immediately.
 
 ## Current state
-- **Version:** 0.2.0 (Plan 2 — Discord auth + sessions + role gating)
+- **Version:** 0.3.0 (Plan 3 — uploads via tusd)
 - **Last deploy:** 2026-04-15
-- **Status:** Auth live. `/` is gated; logged-in users see a placeholder home greeting them by Discord username.
+- **Status:** Logged-in users can drag-and-drop files at `/upload` (resumable). Files land in `/data/uploads/` with thumbnails in `/data/thumbs/`.
 
 ## Public endpoint
 - **URL:** https://vault.bullmoosefn.com
@@ -40,7 +40,16 @@ Update this file whenever reality changes. If it's out of date, fix it immediate
 |----------|----------------------|------------------|----------------------------------|
 | app      | built locally        | 3000             | Next.js UI + API routes          |
 | postgres | postgres:16-alpine   | 5432             | Primary DB (volume `./pgdata/`)  |
+| tusd     | tusproject/tusd:v2   | 8080             | Resumable uploads (tus protocol) |
 | caddy    | caddy:2-alpine       | 80 (host-exposed)| Reverse proxy, security headers  |
+
+## Data layout (host: `/tank/data/vorevault/` ↔ container: `/data/`)
+| Subdir       | Owner         | Mode | Purpose                                                    |
+|--------------|---------------|------|------------------------------------------------------------|
+| uploads/     | 100000:100000 | 0775 | Final canonical files: `uploads/<file-uuid>/<original-name>` |
+| thumbs/      | 100000:100000 | 0775 | JPEG thumbnails: `thumbs/<file-uuid>.jpg`                  |
+| transcoded/  | 100000:100000 | 0775 | (Plan 6) Tdarr-transcoded files                            |
+| tusd-tmp/    | 100000:100000 | 0775 | tusd's resumable-upload working dir; cleared on post-finish |
 
 ## Environment variables (`/opt/stacks/vorevault/.env`)
 See `.env.example` in repo for the full list with descriptions. Never commit real values.
@@ -100,6 +109,7 @@ pct exec 250 -- journalctl -u cloudflared-bullmoosefn -f
 - LXC 105 outbound port 22 to GitHub is blocked. Working around via SSH-over-443 (`ssh.github.com:443`) configured in `/root/.ssh/config`.
 - LXC 104 snapshots fail (`snapshot feature is not available`) due to bind-mount + LVM-thin combination. Use rollback via re-mount instead if needed.
 - **Stale ARP after LXC 105 rebuild/reboot:** Something on `192.168.2.x` (MAC `94:9f:3e:8c:78:dc`) was previously assigned `192.168.2.105`. After LXC 105 reboots, both `pve` and LXC 250 may keep the stale MAC in their ARP tables, breaking TCP to LXC 105 even though ICMP works. Fix: `ip neigh del 192.168.2.105 dev <iface>; ping -c1 192.168.2.105` on each affected host. Long-term fix: identify the conflicting device and re-IP it, or set a static ARP for 192.168.2.105 on `pve` and `LXC 250`.
+- **Orphan tusd uploads:** Abandoned mid-flight uploads leave files in `/data/tusd-tmp/` and rows in `upload_sessions` (with `file_id IS NULL`). No auto-cleanup yet. Manual: `find /tank/data/vorevault/tusd-tmp -mtime +1 -delete` and `DELETE FROM upload_sessions WHERE file_id IS NULL AND created_at < now() - interval '1 day'`.
 
 ## Running tests
 Tests need Docker (testcontainers spins up Postgres). Run them inside LXC 105:
