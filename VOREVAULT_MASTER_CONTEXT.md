@@ -3,9 +3,9 @@
 Update this file whenever reality changes. If it's out of date, fix it immediately.
 
 ## Current state
-- **Version:** 0.6.0 (Plan 6 — background video transcoding)
-- **Last deploy:** 2026-04-15
-- **Status:** Full group-pool sharing with polished playback. Non-web-friendly videos auto-transcode to h264 mp4 in the background.
+- **Version:** 1.0.0 (Plan 7 — ops polish: admin, cleanup, backups, monitoring)
+- **Last deploy:** 2026-04-16
+- **Status:** Production-ready. Full group-pool sharing with admin panel, auto-cleanup, nightly backups, Uptime Kuma monitoring.
 
 ## Public endpoint
 - **URL:** https://vault.bullmoosefn.com
@@ -109,15 +109,22 @@ pct exec 250 -- journalctl -u cloudflared-bullmoosefn -f
 - Non-video files marked `skipped` immediately on upload (post-finish hook)
 - **NOT using Tdarr** (LXC 104) for VoreVault — direct ffmpeg is simpler. Tdarr remains for the Jellyfin media library.
 
+## Cleanup
+- Cleanup worker runs inside `app` container (started via `instrumentation.ts`, runs every hour, 5-min delay after boot)
+- Hard-deletes files where `deleted_at` > 7 days: removes from `/data/uploads/`, `/data/transcoded/`, `/data/thumbs/`, then `DELETE FROM files`
+- Purges orphan `upload_sessions` rows (file_id IS NULL, older than 1 day)
+- Admin can force hard-delete any file immediately via `/api/admin/hard-delete`
+
 ## Backups
-- *TBD in Plan 7 — Postgres nightly pg_dump + LXC 105 Proxmox backup job + ZFS snapshot of `tank/data/vorevault`.*
+- **Postgres:** nightly pg_dump at 3 AM UTC → `/data/backups/postgres/vorevault_YYYYMMDD_HHMMSS.dump` (14-day rolling retention). Cron on LXC 105.
+- **LXC 105:** included in Proxmox vzdump job (Sundays 05:00 → BackupTank, alongside VM 101).
+- **ZFS dataset:** `tank/data/vorevault` — snapshot manually with `zfs snapshot tank/data/vorevault@$(date +%Y%m%d)` or inherit pool snapshot policy.
 
 ## Known issues / workarounds
 - LXC 105 cannot use the gateway `192.168.2.1` for DNS — it does not respond to DNS queries from this container. Configured `1.1.1.1` instead. (Other LXCs may have the same issue — investigate if you spin up new ones.)
 - LXC 105 outbound port 22 to GitHub is blocked. Working around via SSH-over-443 (`ssh.github.com:443`) configured in `/root/.ssh/config`.
 - LXC 104 snapshots fail (`snapshot feature is not available`) due to bind-mount + LVM-thin combination. Use rollback via re-mount instead if needed.
-- **Stale ARP after LXC 105 rebuild/reboot:** Something on `192.168.2.x` (MAC `94:9f:3e:8c:78:dc`) was previously assigned `192.168.2.105`. After LXC 105 reboots, both `pve` and LXC 250 may keep the stale MAC in their ARP tables, breaking TCP to LXC 105 even though ICMP works. Fix: `ip neigh del 192.168.2.105 dev <iface>; ping -c1 192.168.2.105` on each affected host. Long-term fix: identify the conflicting device and re-IP it, or set a static ARP for 192.168.2.105 on `pve` and `LXC 250`.
-- **Orphan tusd uploads:** Abandoned mid-flight uploads leave files in `/data/tusd-tmp/` and rows in `upload_sessions` (with `file_id IS NULL`). No auto-cleanup yet. Manual: `find /tank/data/vorevault/tusd-tmp -mtime +1 -delete` and `DELETE FROM upload_sessions WHERE file_id IS NULL AND created_at < now() - interval '1 day'`.
+- **ARP flapping (FIXED):** A rogue device (MAC `94:9f:3e:8c:78:dc`) was hijacking ARP for 192.168.2.105, causing intermittent 502s. Fixed with permanent static ARP entries on `pve` (`/etc/network/interfaces.d/vorevault-arp`) and LXC 250 (`/etc/network/interfaces.d/vorevault-arp`). If the issue recurs: `ip neigh show 192.168.2.105` on both hosts should show `PERMANENT`.
 
 ## Running tests
 Tests need Docker (testcontainers spins up Postgres). Run them inside LXC 105:
