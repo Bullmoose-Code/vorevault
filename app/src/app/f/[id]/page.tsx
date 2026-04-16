@@ -82,7 +82,7 @@ export default async function FilePage({ params }: Props) {
           {file.duration_sec != null && (
             <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Duration</td><td>{formatDuration(file.duration_sec)}</td></tr>
           )}
-          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Uploaded</td><td>{new Date(file.created_at).toLocaleString()}</td></tr>
+          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Uploaded</td><td>{new Date(file.created_at).toLocaleString("en-US", { timeZone: "America/New_York" })}</td></tr>
         </tbody>
       </table>
 
