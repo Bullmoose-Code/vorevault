@@ -121,3 +121,17 @@ export async function getFileWithUploader(id: string): Promise<FileWithUploader 
   );
   return rows[0] ?? null;
 }
+
+export async function getExpiredDeletedFiles(daysOld: number): Promise<FileRow[]> {
+  const { rows } = await pool.query<FileRow>(
+    `SELECT * FROM files
+     WHERE deleted_at IS NOT NULL
+       AND deleted_at < now() - ($1 || ' days')::interval`,
+    [daysOld],
+  );
+  return rows;
+}
+
+export async function hardDeleteFile(id: string): Promise<void> {
+  await pool.query(`DELETE FROM files WHERE id = $1`, [id]);
+}

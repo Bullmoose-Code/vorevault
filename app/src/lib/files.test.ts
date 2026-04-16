@@ -189,4 +189,42 @@ describe("files DB module", () => {
     expect(updated?.transcode_status).toBe("skipped");
     expect(updated?.transcoded_path).toBe("/a");
   });
+
+  it("getExpiredDeletedFiles returns files deleted more than N days ago", async () => {
+    const { insertFile, softDeleteFile, getExpiredDeletedFiles } = await import("./files");
+    const userId = await makeUser();
+    const f = await insertFile({
+      uploaderId: userId, originalName: "old.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/old",
+    });
+    await softDeleteFile(f.id);
+    await pg.pool.query(`UPDATE files SET deleted_at = now() - interval '8 days' WHERE id = $1`, [f.id]);
+    const expired = await getExpiredDeletedFiles(7);
+    expect(expired.length).toBe(1);
+    expect(expired[0].id).toBe(f.id);
+  });
+
+  it("getExpiredDeletedFiles excludes recently deleted files", async () => {
+    const { insertFile, softDeleteFile, getExpiredDeletedFiles } = await import("./files");
+    const userId = await makeUser();
+    const f = await insertFile({
+      uploaderId: userId, originalName: "recent.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/recent",
+    });
+    await softDeleteFile(f.id);
+    const expired = await getExpiredDeletedFiles(7);
+    expect(expired.length).toBe(0);
+  });
+
+  it("hardDeleteFile removes the row entirely", async () => {
+    const { insertFile, hardDeleteFile } = await import("./files");
+    const userId = await makeUser();
+    const f = await insertFile({
+      uploaderId: userId, originalName: "x.png", mimeType: "image/png",
+      sizeBytes: 1, storagePath: "/x",
+    });
+    await hardDeleteFile(f.id);
+    const { rows } = await pg.pool.query(`SELECT * FROM files WHERE id = $1`, [f.id]);
+    expect(rows.length).toBe(0);
+  });
 });
