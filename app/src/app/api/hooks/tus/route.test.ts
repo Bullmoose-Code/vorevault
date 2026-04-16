@@ -40,9 +40,9 @@ vi.mock("@/lib/thumbnails", () => ({
   generateThumbnail: (...a: unknown[]) => generateThumbnail(...a),
 }));
 
-const fileTypeFromFile = vi.fn();
-vi.mock("file-type", () => ({
-  fileTypeFromFile: (...a: unknown[]) => fileTypeFromFile(...a),
+const execFileMock = vi.fn();
+vi.mock("node:child_process", () => ({
+  execFile: (...a: unknown[]) => execFileMock(...a),
 }));
 
 const renameMock = vi.fn();
@@ -68,7 +68,7 @@ beforeEach(() => {
   finalizeUploadSession.mockReset();
   insertFile.mockReset();
   generateThumbnail.mockReset();
-  fileTypeFromFile.mockReset();
+  execFileMock.mockReset();
   renameMock.mockReset();
   mkdirMock.mockReset();
   statMock.mockReset();
@@ -144,7 +144,7 @@ describe("POST /api/hooks/tus pre-create", () => {
 describe("POST /api/hooks/tus post-finish", () => {
   it("moves file, sniffs MIME, inserts files row, generates thumb, finalizes session", async () => {
     getUploadSession.mockResolvedValueOnce({ tus_id: "tus-1", user_id: "u1", file_id: null });
-    fileTypeFromFile.mockResolvedValueOnce({ mime: "video/mp4", ext: "mp4" });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
     insertFile.mockResolvedValueOnce({ id: "file-uuid" });
     generateThumbnail.mockResolvedValueOnce({ width: 1920, height: 1080, durationSec: 5 });
 

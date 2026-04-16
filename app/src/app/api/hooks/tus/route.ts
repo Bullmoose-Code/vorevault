@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rename } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { fileTypeFromFile } from "file-type";
+import { execFile } from "node:child_process";
 import { getSessionUser } from "@/lib/sessions";
 import {
   freeBytes, ensureDir, canonicalUploadPath, canonicalThumbPath,
@@ -51,6 +51,15 @@ function readSessionCookie(headers: HookHeaderMap | undefined): string | null {
   return null;
 }
 
+function detectMime(filePath: string): Promise<string> {
+  return new Promise((resolve) => {
+    execFile("file", ["--brief", "--mime-type", filePath], (err, stdout) => {
+      if (err) resolve("application/octet-stream");
+      else resolve(stdout.trim() || "application/octet-stream");
+    });
+  });
+}
+
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as HookBody;
   // tusd v2 puts the hook type in the body's `Type` field. The `Hook-Name`
@@ -93,8 +102,7 @@ async function postFinish(body: HookBody) {
   const size = body.Event.Upload.Size ?? 0;
   if (!tmpPath) return accept();
 
-  const detected = await fileTypeFromFile(tmpPath);
-  const mimeType = detected?.mime ?? "application/octet-stream";
+  const mimeType = await detectMime(tmpPath);
 
   const fileId = randomUUID();
   const dst = canonicalUploadPath(fileId, originalName);
