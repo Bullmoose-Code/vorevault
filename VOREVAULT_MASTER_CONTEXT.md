@@ -3,9 +3,9 @@
 Update this file whenever reality changes. If it's out of date, fix it immediately.
 
 ## Current state
-- **Version:** 0.1.0 (Plan 1 — infra foundation)
+- **Version:** 0.2.0 (Plan 2 — Discord auth + sessions + role gating)
 - **Last deploy:** 2026-04-15
-- **Status:** Placeholder site live at https://vault.bullmoosefn.com; no features yet.
+- **Status:** Auth live. `/` is gated; logged-in users see a placeholder home greeting them by Discord username.
 
 ## Public endpoint
 - **URL:** https://vault.bullmoosefn.com
@@ -50,16 +50,21 @@ Currently populated:
 - `POSTGRES_PASSWORD` = random 32-char (generated 2026-04-15)
 - `SESSION_SECRET` = random 32-byte base64 (generated 2026-04-15)
 - `APP_PUBLIC_URL` = `https://vault.bullmoosefn.com`
-
-Empty (populated in Plan 2):
-- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID`, `DISCORD_REQUIRED_ROLE_ID`
+- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_GUILD_ID`, `DISCORD_REQUIRED_ROLE_ID`, `DISCORD_REDIRECT_URI` — all set on LXC 105 (.env, chmod 600)
 
 ## External IDs
 - **GitHub repo:** `Bullmoose-Code/vorevault` (private)
 - **bullmoosefn-tunnel ID:** `387e2e20-1bfc-4473-8775-6e8fe018c734`
-- **Discord app ID:** *(populated in Plan 2)*
-- **Discord guild ID:** *(populated in Plan 2)*
-- **Discord required role ID:** *(populated in Plan 2)*
+- **Discord app / client ID:** `931632754582495265` (shared with the Bullmoose `pls-bot` app — same Discord application, different OAuth redirect URI)
+- **Discord guild ID:** `934160898828931143` (Bullmoose server)
+- **Discord required role ID:** `1494136690309070868` (`VoreVault` role)
+- **Discord client secret:** stored in `/opt/stacks/vorevault/.env` on LXC 105 only — never committed
+- **Discord OAuth redirect URI registered:** `https://vault.bullmoosefn.com/api/auth/discord/callback`
+
+### Auth model
+- Sessions: server-side rows in `sessions` table; cookie `vv_session` is the session UUID (HttpOnly/Secure/SameSite=Lax, 24h TTL)
+- Middleware (`app/src/middleware.ts`) gates everything except `/login`, `/api/auth/*`, `/api/health` based on cookie *presence*; routes re-validate the cookie against the DB via `getCurrentUser()`
+- Role check happens at OAuth callback; revocation = `DELETE FROM sessions WHERE id = ...` or set `users.is_banned = true` (banned users can't get a valid session even with a valid cookie)
 
 ## Common ops commands
 
@@ -94,6 +99,21 @@ pct exec 250 -- journalctl -u cloudflared-bullmoosefn -f
 - LXC 105 cannot use the gateway `192.168.2.1` for DNS — it does not respond to DNS queries from this container. Configured `1.1.1.1` instead. (Other LXCs may have the same issue — investigate if you spin up new ones.)
 - LXC 105 outbound port 22 to GitHub is blocked. Working around via SSH-over-443 (`ssh.github.com:443`) configured in `/root/.ssh/config`.
 - LXC 104 snapshots fail (`snapshot feature is not available`) due to bind-mount + LVM-thin combination. Use rollback via re-mount instead if needed.
+- **Stale ARP after LXC 105 rebuild/reboot:** Something on `192.168.2.x` (MAC `94:9f:3e:8c:78:dc`) was previously assigned `192.168.2.105`. After LXC 105 reboots, both `pve` and LXC 250 may keep the stale MAC in their ARP tables, breaking TCP to LXC 105 even though ICMP works. Fix: `ip neigh del 192.168.2.105 dev <iface>; ping -c1 192.168.2.105` on each affected host. Long-term fix: identify the conflicting device and re-IP it, or set a static ARP for 192.168.2.105 on `pve` and `LXC 250`.
+
+## Running tests
+Tests need Docker (testcontainers spins up Postgres). Run them inside LXC 105:
+```bash
+pct exec 105 -- bash -c 'cd /opt/stacks/vorevault/app && npm install --no-fund --no-audit && npm test'
+```
+Node 22 is installed in LXC 105 alongside Docker for this purpose. The `pve` host deliberately has no Docker / no Node.
 
 ## Adding a new friend
-- *TBD in Plan 2 once auth is live — will be "add them to Bullmoose Discord + grant the VoreVault role".*
+1. Make sure they're in the Bullmoose Discord server (guild ID `934160898828931143`).
+2. Grant them the `VoreVault` role (ID `1494136690309070868`).
+3. Send them https://vault.bullmoosefn.com — first login auto-creates their `users` row.
+
+## Revoking access
+- Remove the `VoreVault` role in Discord, OR
+- `UPDATE users SET is_banned = true WHERE discord_id = '...'` (immediate; their cookie still exists but `getSessionUser()` returns null), OR
+- `DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE discord_id = '...')` (forces re-login on next request)
