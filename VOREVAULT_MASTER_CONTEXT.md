@@ -3,9 +3,9 @@
 Update this file whenever reality changes. If it's out of date, fix it immediately.
 
 ## Current state
-- **Version:** 0.5.0 (Plan 5 — public share links)
+- **Version:** 0.6.0 (Plan 6 — background video transcoding)
 - **Last deploy:** 2026-04-15
-- **Status:** Full group-pool sharing with optional public links. Upload, browse, view/play, download, delete, share via unlisted URL.
+- **Status:** Full group-pool sharing with polished playback. Non-web-friendly videos auto-transcode to h264 mp4 in the background.
 
 ## Public endpoint
 - **URL:** https://vault.bullmoosefn.com
@@ -100,6 +100,14 @@ curl -s https://vault.bullmoosefn.com/api/health
 pct exec 250 -- systemctl status cloudflared-bullmoosefn
 pct exec 250 -- journalctl -u cloudflared-bullmoosefn -f
 ```
+
+## Transcoding
+- Background worker runs inside the `app` container (started via `instrumentation.ts` on boot)
+- Polls every 30s for `files WHERE transcode_status = 'pending' AND mime_type LIKE 'video/%'`
+- Probes with ffprobe: if already h264+aac in mp4 → `skipped`; otherwise → transcode to `/data/transcoded/<uuid>.mp4` → `done`
+- On failure → `failed` (original file still available for download)
+- Non-video files marked `skipped` immediately on upload (post-finish hook)
+- **NOT using Tdarr** (LXC 104) for VoreVault — direct ffmpeg is simpler. Tdarr remains for the Jellyfin media library.
 
 ## Backups
 - *TBD in Plan 7 — Postgres nightly pg_dump + LXC 105 Proxmox backup job + ZFS snapshot of `tank/data/vorevault`.*
