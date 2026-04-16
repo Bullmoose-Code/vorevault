@@ -3,9 +3,9 @@
 Update this file whenever reality changes. If it's out of date, fix it immediately.
 
 ## Current state
-- **Version:** 0.3.0 (Plan 3 — uploads via tusd)
+- **Version:** 0.4.0 (Plan 4 — viewing, streaming, delete)
 - **Last deploy:** 2026-04-15
-- **Status:** Logged-in users can drag-and-drop files at `/upload` (resumable). Files land in `/data/uploads/` with thumbnails in `/data/thumbs/`.
+- **Status:** Full group-pool file sharing app: upload, browse grid, view/play inline, download, delete (soft, owner/admin only). Timestamps in ET.
 
 ## Public endpoint
 - **URL:** https://vault.bullmoosefn.com
