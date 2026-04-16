@@ -4,6 +4,7 @@ services:
       context: ./app
       dockerfile: Dockerfile
     restart: unless-stopped
+    user: "0:0"
     env_file: .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -35,6 +36,7 @@ services:
   tusd:
     image: tusproject/tusd:v2
     restart: unless-stopped
+    user: "0:0"
     command:
       - "-upload-dir=/data/tusd-tmp"
       - "-behind-proxy"
