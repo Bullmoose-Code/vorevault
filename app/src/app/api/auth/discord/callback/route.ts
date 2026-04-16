@@ -27,8 +27,28 @@ export async function GET(req: NextRequest) {
   if (!code || !stateInUrl) return badRequest("missing code or state");
   if (!stateInCookie || stateInCookie !== stateInUrl) return badRequest("state mismatch");
 
-  const accessToken = await exchangeCodeForToken(code);
-  const member = await fetchGuildMember(accessToken);
+  let accessToken: string;
+  try {
+    accessToken = await exchangeCodeForToken(code);
+  } catch (e) {
+    console.error("Discord token exchange failed:", e);
+    return new NextResponse(
+      "Failed to reach Discord. Please try again.",
+      { status: 503 },
+    );
+  }
+
+  let member: Awaited<ReturnType<typeof fetchGuildMember>>;
+  try {
+    member = await fetchGuildMember(accessToken);
+  } catch (e) {
+    console.error("Discord guild member fetch failed:", e);
+    return new NextResponse(
+      "Failed to reach Discord. Please try again.",
+      { status: 503 },
+    );
+  }
+
   if (!member) return forbidden("You must be a member of the Bullmoose Discord server.");
   if (!member.hasRequiredRole) {
     return forbidden("You don't have the required Discord role.");
