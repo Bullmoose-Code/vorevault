@@ -1,6 +1,8 @@
 import { redirect, notFound } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getFileWithUploader } from "@/lib/files";
+import { getActiveShareLink } from "@/lib/share-links";
+import { loadEnv } from "@/lib/env";
 import { FileActions } from "./FileActions";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,9 @@ export default async function FilePage({ params }: Props) {
   if (!file) notFound();
 
   const isOwnerOrAdmin = file.uploader_id === user.id || user.is_admin;
+  const env = loadEnv();
+  const activeLink = await getActiveShareLink(file.id);
+  const shareUrl = activeLink ? `${env.APP_PUBLIC_URL}/p/${activeLink.token}` : null;
   const isVideo = file.mime_type.startsWith("video/");
   const isAudio = file.mime_type.startsWith("audio/");
   const isImage = file.mime_type.startsWith("image/");
@@ -86,7 +91,7 @@ export default async function FilePage({ params }: Props) {
         </tbody>
       </table>
 
-      <FileActions fileId={file.id} isOwnerOrAdmin={isOwnerOrAdmin} />
+      <FileActions fileId={file.id} isOwnerOrAdmin={isOwnerOrAdmin} initialShareUrl={shareUrl} />
     </main>
   );
 }
