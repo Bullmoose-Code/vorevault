@@ -10,7 +10,7 @@ import {
 import {
   registerUploadSession, getUploadSession, finalizeUploadSession,
 } from "@/lib/upload-sessions";
-import { insertFile } from "@/lib/files";
+import { insertFile, updateTranscodeStatus } from "@/lib/files";
 import { generateThumbnail } from "@/lib/thumbnails";
 
 export const dynamic = "force-dynamic";
@@ -129,5 +129,8 @@ async function postFinish(body: HookBody) {
     height: meta?.height ?? null,
   });
   await finalizeUploadSession(tusId, inserted.id);
+  if (!mimeType.startsWith("video/")) {
+    await updateTranscodeStatus(inserted.id, "skipped", dst);
+  }
   return accept();
 }
