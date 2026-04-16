@@ -15,9 +15,9 @@
         -Server
     }
 
-    # Resumable uploads handled by tusd
-    handle_path /files/* {
-        reverse_proxy tusd:1080 {
+    # Resumable uploads handled by tusd (preserve /files/ prefix; tusd -base-path matches)
+    handle /files/* {
+        reverse_proxy tusd:8080 {
             flush_interval -1
         }
     }
