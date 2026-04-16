@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health", "/api/hooks", "/files"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health", "/api/hooks", "/files", "/p", "/api/public"];
 const SESSION_COOKIE = "vv_session";
 
 export function middleware(req: NextRequest) {
