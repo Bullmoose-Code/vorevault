@@ -18,6 +18,7 @@
     # Resumable uploads handled by tusd (preserve /files/ prefix; tusd -base-path matches)
     handle /files/* {
         reverse_proxy tusd:8080 {
+            header_up X-Forwarded-Proto https
             flush_interval -1
         }
     }
