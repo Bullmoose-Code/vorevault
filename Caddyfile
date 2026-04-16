@@ -1,3 +1,10 @@
+{
+    # Allow large uploads (matches tusd -max-size=10 GiB)
+    servers {
+        max_header_size 64KB
+    }
+}
+
 :80 {
     encode zstd gzip
 
@@ -8,5 +15,19 @@
         -Server
     }
 
-    reverse_proxy app:3000
+    # Resumable uploads handled by tusd
+    handle_path /files/* {
+        reverse_proxy tusd:1080 {
+            flush_interval -1
+        }
+    }
+
+    # Everything else → Next.js
+    handle {
+        reverse_proxy app:3000
+    }
+
+    request_body {
+        max_size 11GB
+    }
 }
