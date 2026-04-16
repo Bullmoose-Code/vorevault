@@ -74,6 +74,32 @@ export default async function FilePage({ params }: Props) {
         </div>
       )}
 
+      {file.transcode_status === "pending" && file.mime_type.startsWith("video/") && (
+        <div style={{
+          marginTop: "1rem",
+          padding: "0.75rem 1rem",
+          background: "#2a2a3e",
+          borderRadius: 6,
+          color: "#f0ad4e",
+          fontSize: "0.9rem",
+        }}>
+          Processing video for optimized playback... Original is playable in the meantime.
+        </div>
+      )}
+
+      {file.transcode_status === "failed" && (
+        <div style={{
+          marginTop: "1rem",
+          padding: "0.75rem 1rem",
+          background: "#2a1a1a",
+          borderRadius: 6,
+          color: "#d9534f",
+          fontSize: "0.9rem",
+        }}>
+          Transcoding failed. The original file is available for download.
+        </div>
+      )}
+
       <h2 style={{ marginTop: "1.5rem" }}>{file.original_name}</h2>
 
       <table style={{ marginTop: "0.5rem", borderCollapse: "collapse", fontSize: "0.9rem" }}>
@@ -87,6 +113,7 @@ export default async function FilePage({ params }: Props) {
           {file.duration_sec != null && (
             <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Duration</td><td>{formatDuration(file.duration_sec)}</td></tr>
           )}
+          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Transcode</td><td>{file.transcode_status}</td></tr>
           <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Uploaded</td><td>{new Date(file.created_at).toLocaleString("en-US", { timeZone: "America/New_York" })}</td></tr>
         </tbody>
       </table>
