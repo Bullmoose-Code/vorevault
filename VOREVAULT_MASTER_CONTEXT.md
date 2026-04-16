@@ -3,9 +3,9 @@
 Update this file whenever reality changes. If it's out of date, fix it immediately.
 
 ## Current state
-- **Version:** 0.4.0 (Plan 4 — viewing, streaming, delete)
+- **Version:** 0.5.0 (Plan 5 — public share links)
 - **Last deploy:** 2026-04-15
-- **Status:** Full group-pool file sharing app: upload, browse grid, view/play inline, download, delete (soft, owner/admin only). Timestamps in ET.
+- **Status:** Full group-pool sharing with optional public links. Upload, browse, view/play, download, delete, share via unlisted URL.
 
 ## Public endpoint
 - **URL:** https://vault.bullmoosefn.com
