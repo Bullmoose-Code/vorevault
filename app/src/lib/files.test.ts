@@ -133,4 +133,60 @@ describe("files DB module", () => {
     await softDeleteFile(f.id);
     expect(await getFileWithUploader(f.id)).toBeNull();
   });
+
+  it("getNextPendingTranscode returns oldest pending video file", async () => {
+    const { insertFile, getNextPendingTranscode } = await import("./files");
+    const userId = await makeUser();
+    const f1 = await insertFile({
+      uploaderId: userId, originalName: "old.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/a",
+    });
+    await insertFile({
+      uploaderId: userId, originalName: "new.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/b",
+    });
+    await insertFile({
+      uploaderId: userId, originalName: "img.png", mimeType: "image/png",
+      sizeBytes: 1, storagePath: "/c",
+    });
+    const next = await getNextPendingTranscode();
+    expect(next?.id).toBe(f1.id);
+    expect(next?.original_name).toBe("old.mp4");
+  });
+
+  it("getNextPendingTranscode returns null when no pending videos", async () => {
+    const { insertFile, getNextPendingTranscode } = await import("./files");
+    const userId = await makeUser();
+    await insertFile({
+      uploaderId: userId, originalName: "img.png", mimeType: "image/png",
+      sizeBytes: 1, storagePath: "/c",
+    });
+    expect(await getNextPendingTranscode()).toBeNull();
+  });
+
+  it("updateTranscodeStatus updates status and transcoded_path", async () => {
+    const { insertFile, updateTranscodeStatus, getFile } = await import("./files");
+    const userId = await makeUser();
+    const f = await insertFile({
+      uploaderId: userId, originalName: "a.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/a",
+    });
+    await updateTranscodeStatus(f.id, "done", "/data/transcoded/abc.mp4");
+    const updated = await getFile(f.id);
+    expect(updated?.transcode_status).toBe("done");
+    expect(updated?.transcoded_path).toBe("/data/transcoded/abc.mp4");
+  });
+
+  it("updateTranscodeStatus can set skipped with same storage_path", async () => {
+    const { insertFile, updateTranscodeStatus, getFile } = await import("./files");
+    const userId = await makeUser();
+    const f = await insertFile({
+      uploaderId: userId, originalName: "a.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/a",
+    });
+    await updateTranscodeStatus(f.id, "skipped", "/a");
+    const updated = await getFile(f.id);
+    expect(updated?.transcode_status).toBe("skipped");
+    expect(updated?.transcoded_path).toBe("/a");
+  });
 });

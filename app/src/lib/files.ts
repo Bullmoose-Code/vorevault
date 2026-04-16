@@ -57,6 +57,29 @@ export async function softDeleteFile(id: string): Promise<void> {
   await pool.query(`UPDATE files SET deleted_at = now() WHERE id = $1`, [id]);
 }
 
+export async function getNextPendingTranscode(): Promise<FileRow | null> {
+  const { rows } = await pool.query<FileRow>(
+    `SELECT * FROM files
+     WHERE transcode_status = 'pending'
+       AND mime_type LIKE 'video/%'
+       AND deleted_at IS NULL
+     ORDER BY created_at ASC
+     LIMIT 1`,
+  );
+  return rows[0] ?? null;
+}
+
+export async function updateTranscodeStatus(
+  id: string,
+  status: FileRow["transcode_status"],
+  transcodedPath: string | null,
+): Promise<void> {
+  await pool.query(
+    `UPDATE files SET transcode_status = $1, transcoded_path = $2 WHERE id = $3`,
+    [status, transcodedPath, id],
+  );
+}
+
 export type FileWithUploader = FileRow & { uploader_name: string };
 
 export type FilePage = {
