@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/sessions";
 import { getFile, softDeleteFile } from "@/lib/files";
+import { revokeAllForFile } from "@/lib/share-links";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest, ctx: RouteContext) {
     return new NextResponse("forbidden", { status: 403 });
   }
 
+  await revokeAllForFile(id);
   await softDeleteFile(id);
   return NextResponse.json({ deleted: true });
 }
