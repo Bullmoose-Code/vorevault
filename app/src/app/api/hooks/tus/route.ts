@@ -30,14 +30,11 @@ type HookEvent = {
 type HookBody = { Type?: string; Event: HookEvent };
 
 function reject(status: number, body: string) {
-  // Return HTTP 4xx so tusd unconditionally rejects (and surfaces our status to the client).
-  return NextResponse.json(
-    {
-      HTTPResponse: { StatusCode: status, Body: body },
-      RejectUpload: true,
-    },
-    { status },
-  );
+  // tusd v2: hook MUST return HTTP 200; rejection is signalled via body fields.
+  return NextResponse.json({
+    HTTPResponse: { StatusCode: status, Body: body, Header: { "Content-Type": "text/plain" } },
+    RejectUpload: true,
+  });
 }
 
 function accept() {
