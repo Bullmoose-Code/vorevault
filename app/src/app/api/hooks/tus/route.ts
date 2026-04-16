@@ -52,8 +52,11 @@ function readSessionCookie(headers: HookHeaderMap | undefined): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const hookName = req.headers.get("hook-name");
   const body = (await req.json()) as HookBody;
+  // tusd v2 puts the hook type in the body's `Type` field. The `Hook-Name`
+  // header from older docs/v1 is not sent. Header is checked as a fallback
+  // for compatibility with the unit tests, which use the header form.
+  const hookName = body.Type ?? req.headers.get("hook-name");
 
   if (hookName === "pre-create") return preCreate(body);
   if (hookName === "post-finish") return postFinish(body);
