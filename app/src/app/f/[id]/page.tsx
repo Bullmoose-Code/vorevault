@@ -3,7 +3,10 @@ import { getCurrentUser } from "@/lib/auth";
 import { getFileWithUploader } from "@/lib/files";
 import { getActiveShareLink } from "@/lib/share-links";
 import { loadEnv } from "@/lib/env";
+import { TopBar } from "@/components/TopBar";
+import { MetaPanel, StatusPill } from "@/components/MetaPanel";
 import { FileActions } from "./FileActions";
+import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -34,91 +37,83 @@ export default async function FilePage({ params }: Props) {
   const env = loadEnv();
   const activeLink = await getActiveShareLink(file.id);
   const shareUrl = activeLink ? `${env.APP_PUBLIC_URL}/p/${activeLink.token}` : null;
+
   const isVideo = file.mime_type.startsWith("video/");
   const isAudio = file.mime_type.startsWith("audio/");
   const isImage = file.mime_type.startsWith("image/");
 
   return (
-    <main style={{ fontFamily: "system-ui", padding: "2rem", maxWidth: 960, margin: "0 auto" }}>
-      <p><a href="/">← back to vault</a></p>
+    <>
+      <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
 
-      {isVideo && (
-        <video
-          controls
-          autoPlay
-          playsInline
-          preload="metadata"
-          src={`/api/stream/${file.id}`}
-          poster={file.thumbnail_path ? `/api/thumbs/${file.id}` : undefined}
-          style={{ width: "100%", maxHeight: "70vh", background: "#000", borderRadius: 8 }}
-        />
-      )}
+      <div className={styles.back}><a href="/">← back to vault</a></div>
 
-      {isAudio && (
-        <audio controls preload="metadata" src={`/api/stream/${file.id}`} style={{ width: "100%" }} />
-      )}
-
-      {isImage && (
-        <img
-          src={`/api/stream/${file.id}`}
-          alt={file.original_name}
-          style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: 8 }}
-        />
-      )}
-
-      {!isVideo && !isAudio && !isImage && (
-        <div style={{
-          padding: "3rem", textAlign: "center", background: "#f0f0f0", borderRadius: 8,
-        }}>
-          <p>No preview available for <code>{file.mime_type}</code></p>
-        </div>
-      )}
-
-      {file.transcode_status === "pending" && file.mime_type.startsWith("video/") && (
-        <div style={{
-          marginTop: "1rem",
-          padding: "0.75rem 1rem",
-          background: "#2a2a3e",
-          borderRadius: 6,
-          color: "#f0ad4e",
-          fontSize: "0.9rem",
-        }}>
-          Processing video for optimized playback... Original is playable in the meantime.
-        </div>
-      )}
-
-      {file.transcode_status === "failed" && (
-        <div style={{
-          marginTop: "1rem",
-          padding: "0.75rem 1rem",
-          background: "#2a1a1a",
-          borderRadius: 6,
-          color: "#d9534f",
-          fontSize: "0.9rem",
-        }}>
-          Transcoding failed. The original file is available for download.
-        </div>
-      )}
-
-      <h2 style={{ marginTop: "1.5rem" }}>{file.original_name}</h2>
-
-      <table style={{ marginTop: "0.5rem", borderCollapse: "collapse", fontSize: "0.9rem" }}>
-        <tbody>
-          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Uploaded by</td><td>{file.uploader_name}</td></tr>
-          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Type</td><td>{file.mime_type}</td></tr>
-          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Size</td><td>{formatBytes(file.size_bytes)}</td></tr>
-          {file.width && file.height && (
-            <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Resolution</td><td>{file.width}x{file.height}</td></tr>
+      <div className={styles.content}>
+        <div>
+          {isVideo && (
+            <video
+              controls
+              autoPlay
+              playsInline
+              preload="metadata"
+              src={`/api/stream/${file.id}`}
+              poster={file.thumbnail_path ? `/api/thumbs/${file.id}` : undefined}
+              className={styles.player}
+            />
           )}
-          {file.duration_sec != null && (
-            <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Duration</td><td>{formatDuration(file.duration_sec)}</td></tr>
+          {isAudio && (
+            <audio controls preload="metadata" src={`/api/stream/${file.id}`} className={styles.audio} />
           )}
-          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Transcode</td><td>{file.transcode_status}</td></tr>
-          <tr><td style={{ paddingRight: "1rem", color: "#666" }}>Uploaded</td><td>{new Date(file.created_at).toLocaleString("en-US", { timeZone: "America/New_York" })}</td></tr>
-        </tbody>
-      </table>
+          {isImage && (
+            <img src={`/api/stream/${file.id}`} alt={file.original_name} className={styles.image} />
+          )}
+          {!isVideo && !isAudio && !isImage && (
+            <div className={styles.noPreview}>
+              No preview available for <code>{file.mime_type}</code>
+            </div>
+          )}
 
-      <FileActions fileId={file.id} isOwnerOrAdmin={isOwnerOrAdmin} initialShareUrl={shareUrl} />
-    </main>
+          {file.transcode_status === "pending" && isVideo && (
+            <div className={`${styles.banner} ${styles.processing}`}>
+              Processing video for optimized playback… Original is playable in the meantime.
+            </div>
+          )}
+
+          {file.transcode_status === "failed" && (
+            <div className={`${styles.banner} ${styles.failed}`}>
+              Transcoding failed. The original file is available for download.
+            </div>
+          )}
+
+          <h1 className={styles.title}>{file.original_name}</h1>
+          <div className={styles.by}>
+            uploaded by <strong>{file.uploader_name}</strong> ·{" "}
+            {new Date(file.created_at).toLocaleString("en-US", {
+              timeZone: "America/New_York",
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </div>
+
+          <FileActions fileId={file.id} isOwnerOrAdmin={isOwnerOrAdmin} initialShareUrl={shareUrl} />
+        </div>
+
+        <MetaPanel
+          title="Details"
+          rows={[
+            { k: "Type", v: file.mime_type },
+            { k: "Size", v: formatBytes(file.size_bytes) },
+            ...(file.width && file.height
+              ? [{ k: "Resolution", v: `${file.width} × ${file.height}` }]
+              : []),
+            ...(file.duration_sec != null
+              ? [{ k: "Duration", v: formatDuration(file.duration_sec) }]
+              : []),
+            { k: "Transcode", v: <StatusPill status={file.transcode_status} /> },
+            { k: "Uploader", v: file.uploader_name },
+          ]}
+        />
+      </div>
+    </>
   );
 }

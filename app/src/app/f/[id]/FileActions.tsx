@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/Button";
+import { ShareBanner } from "@/components/ShareBanner";
+import styles from "./FileActions.module.css";
 
 type Props = {
   fileId: string;
@@ -15,7 +18,6 @@ export function FileActions({ fileId, isOwnerOrAdmin, initialShareUrl }: Props) 
   const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState(initialShareUrl);
   const [sharing, setSharing] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   async function handleDelete() {
     if (!confirm("Delete this file? It can be recovered within 7 days.")) return;
@@ -52,61 +54,37 @@ export function FileActions({ fileId, isOwnerOrAdmin, initialShareUrl }: Props) 
     setSharing(false);
   }
 
-  async function handleCopy() {
-    if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  const btnStyle = (bg: string) => ({
-    padding: "0.5rem 1rem",
-    background: bg,
-    color: "white",
-    border: "none",
-    borderRadius: 6,
-    cursor: "pointer",
-    textDecoration: "none" as const,
-  });
-
   return (
-    <div style={{ marginTop: "1rem" }}>
-      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" as const }}>
-        <a href={`/api/stream/${fileId}`} download style={btnStyle("#5865F2")}>
-          Download
+    <>
+      <div className={styles.actions}>
+        <a
+          href={`/api/stream/${fileId}`}
+          download
+          style={{ textDecoration: "none" }}
+        >
+          <Button variant="primary" type="button">↓ Download</Button>
         </a>
-
-        <button onClick={handleToggleShare} disabled={sharing} style={btnStyle(shareUrl ? "#d9534f" : "#5cb85c")}>
-          {sharing ? "..." : shareUrl ? "Revoke public link" : "Create public link"}
-        </button>
-
+        <Button
+          variant="success"
+          type="button"
+          onClick={handleToggleShare}
+          disabled={sharing}
+        >
+          {sharing ? "..." : shareUrl ? "Revoke public link" : "✦ Create public link"}
+        </Button>
         {isOwnerOrAdmin && (
-          <button onClick={handleDelete} disabled={deleting} style={{ ...btnStyle("#d9534f"), opacity: deleting ? 0.6 : 1 }}>
+          <Button
+            variant="danger"
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
             {deleting ? "Deleting..." : "Delete"}
-          </button>
+          </Button>
         )}
+        {error && <span className={styles.error}>{error}</span>}
       </div>
-
-      {shareUrl && (
-        <div style={{
-          marginTop: "0.75rem",
-          padding: "0.75rem",
-          background: "#1a1a2e",
-          borderRadius: 6,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.75rem",
-        }}>
-          <code style={{ flex: 1, fontSize: "0.85rem", color: "#aaa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {shareUrl}
-          </code>
-          <button onClick={handleCopy} style={btnStyle("#5865F2")}>
-            {copied ? "Copied!" : "Copy"}
-          </button>
-        </div>
-      )}
-
-      {error && <p style={{ color: "crimson", marginTop: "0.5rem" }}>{error}</p>}
-    </div>
+      {shareUrl && <ShareBanner url={shareUrl} />}
+    </>
   );
 }
