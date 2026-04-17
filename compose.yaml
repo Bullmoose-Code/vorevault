@@ -1,8 +1,8 @@
 services:
   app:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
+    image: ghcr.io/bullmoose-code/vorevault:latest
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
     restart: unless-stopped
     user: "0:0"
     env_file: .env
