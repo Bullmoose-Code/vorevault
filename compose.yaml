@@ -58,6 +58,22 @@ services:
         condition: service_started
     networks: [internal]
 
+  watchtower:
+    image: ghcr.io/nicholas-fedor/watchtower
+    restart: unless-stopped
+    command:
+      - --http-api-update
+      - --http-api-token=${WATCHTOWER_TOKEN_VAULT}
+      - --label-enable
+      - --cleanup
+      - --interval=86400
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json:ro
+    networks: [internal]
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
