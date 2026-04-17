@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getShareLink } from "@/lib/share-links";
 import { getFile } from "@/lib/files";
+import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,12 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function formatDuration(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 type Props = { params: Promise<{ token: string }> };
@@ -25,16 +32,14 @@ export default async function PublicViewPage({ params }: Props) {
   const isAudio = file.mime_type.startsWith("audio/");
   const isImage = file.mime_type.startsWith("image/");
 
+  const metaParts = [
+    file.mime_type,
+    formatBytes(file.size_bytes),
+    file.duration_sec != null ? formatDuration(file.duration_sec) : null,
+  ].filter(Boolean);
+
   return (
-    <main style={{
-      fontFamily: "system-ui",
-      padding: "2rem",
-      maxWidth: 960,
-      margin: "0 auto",
-      background: "#0d0d1a",
-      minHeight: "100vh",
-      color: "#eee",
-    }}>
+    <main className={styles.page}>
       {isVideo && (
         <video
           controls
@@ -42,53 +47,25 @@ export default async function PublicViewPage({ params }: Props) {
           playsInline
           preload="metadata"
           src={streamUrl}
-          style={{ width: "100%", maxHeight: "70vh", background: "#000", borderRadius: 8 }}
+          className={styles.player}
         />
       )}
-
-      {isAudio && (
-        <audio controls preload="metadata" src={streamUrl} style={{ width: "100%" }} />
-      )}
-
-      {isImage && (
-        <img
-          src={streamUrl}
-          alt={file.original_name}
-          style={{ maxWidth: "100%", maxHeight: "70vh", borderRadius: 8 }}
-        />
-      )}
-
+      {isAudio && <audio controls preload="metadata" src={streamUrl} className={styles.audio} />}
+      {isImage && <img src={streamUrl} alt={file.original_name} className={styles.image} />}
       {!isVideo && !isAudio && !isImage && (
-        <div style={{ padding: "3rem", textAlign: "center", background: "#1a1a2e", borderRadius: 8 }}>
-          <p>No preview available for <code>{file.mime_type}</code></p>
+        <div className={styles.noPreview}>
+          No preview available for <code>{file.mime_type}</code>
         </div>
       )}
 
-      <div style={{ marginTop: "1.5rem" }}>
-        <h2 style={{ margin: 0 }}>{file.original_name}</h2>
-        <p style={{ color: "#888", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-          {file.mime_type} · {formatBytes(file.size_bytes)}
-        </p>
-        <a
-          href={streamUrl}
-          download
-          style={{
-            display: "inline-block",
-            marginTop: "1rem",
-            padding: "0.5rem 1.5rem",
-            background: "#5865F2",
-            color: "white",
-            textDecoration: "none",
-            borderRadius: 6,
-          }}
-        >
-          Download
-        </a>
-      </div>
+      <h1 className={styles.title}>{file.original_name}</h1>
+      <p className={styles.meta}>{metaParts.join(" · ")}</p>
 
-      <p style={{ marginTop: "3rem", fontSize: "0.75rem", color: "#555" }}>
-        Shared via <strong>VoreVault</strong>
-      </p>
+      <a href={streamUrl} download className={styles.download}>↓ Download</a>
+
+      <div className={styles.footer}>
+        shared via <strong>vorevault ✦</strong> · the bullmoose archive
+      </div>
     </main>
   );
 }
