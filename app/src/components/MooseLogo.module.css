@@ -1,0 +1,39 @@
+.moose {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.moose path:first-of-type,
+.moose path:nth-of-type(2) {
+  stroke: var(--vv-accent);
+}
+
+.moose path:nth-of-type(3) {
+  fill: var(--vv-ink);
+}
+
+.moose circle {
+  fill: var(--vv-bg);
+}
+
+.moose ellipse {
+  fill: var(--vv-accent);
+}
+
+.moose.inverted path:first-of-type,
+.moose.inverted path:nth-of-type(2) {
+  stroke: var(--vv-bg);
+}
+
+.moose.inverted path:nth-of-type(3) {
+  fill: var(--vv-bg);
+}
+
+.moose.mono path:first-of-type,
+.moose.mono path:nth-of-type(2) {
+  stroke: var(--vv-ink);
+}
+
+.moose.mono ellipse {
+  fill: var(--vv-ink);
+}
