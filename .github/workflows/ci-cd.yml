@@ -19,6 +19,7 @@ env:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: app
@@ -50,6 +51,7 @@ jobs:
     # TEMP GATE: flip to the real condition in Task 5 once CI is known-good.
     if: false
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       packages: write
@@ -74,6 +76,6 @@ jobs:
 
       - name: Trigger Watchtower on LXC 105
         run: |
-          curl -fS -X POST \
+          curl -fS --max-time 10 -X POST \
             -H "Authorization: Bearer ${{ secrets.WATCHTOWER_TOKEN_VAULT }}" \
             https://watchtower-vault.vvhq.net/v1/update
