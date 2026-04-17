@@ -1,7 +1,7 @@
 {
   "name": "VoreVault",
   "short_name": "Vault",
-  "description": "The Bullmoose clip archive.",
+  "description": "The Bullmoose clip vault.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
