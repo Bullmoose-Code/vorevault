@@ -9,9 +9,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       NODE_ENV: production
+    # Google DNS — 1.1.1.1 is unreachable from this Docker bridge network for
+    # reasons unclear (works from the LXC host itself). Switching to 8.8.8.8
+    # eliminates the intermittent EAI_AGAIN failures on Discord OAuth callback.
     dns:
-      - 1.1.1.1
-      - 1.0.0.1
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - /data:/data
     depends_on:
