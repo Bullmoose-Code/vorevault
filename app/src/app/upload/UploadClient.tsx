@@ -21,6 +21,9 @@ export function UploadClient() {
       const upload = new tus.Upload(file, {
         endpoint: "/files/",
         retryDelays: [0, 1000, 3000, 5000],
+        // Cloudflare's edge caps request bodies at 100 MB on Free/Pro, so each
+        // PATCH must stay below that. 64 MiB leaves headroom for headers.
+        chunkSize: 64 * 1024 * 1024,
         metadata: {
           filename: file.name,
           filetype: file.type || "application/octet-stream",
