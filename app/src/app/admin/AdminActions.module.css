@@ -1,0 +1,25 @@
+.banBtn {
+  padding: 4px 10px;
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+  font-family: var(--vv-font-ui);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  background: transparent;
+}
+
+.banBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ban {
+  background: var(--vv-danger);
+  color: var(--vv-bg);
+}
+
+.unban {
+  background: var(--vv-success);
+  color: var(--vv-ink);
+}

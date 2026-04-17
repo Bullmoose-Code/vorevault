@@ -1,0 +1,26 @@
+.card {
+  background: var(--vv-bg-panel);
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  padding: 14px 16px;
+  box-shadow: var(--vv-shadow-sm);
+}
+
+.label {
+  font-size: 10px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.value {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 24px;
+  color: var(--vv-accent);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  margin-top: 4px;
+}

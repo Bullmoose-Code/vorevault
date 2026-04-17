@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import styles from "./AdminActions.module.css";
 
 export function BanButton({ userId, isBanned }: { userId: string; isBanned: boolean }) {
   const router = useRouter();
@@ -22,17 +23,10 @@ export function BanButton({ userId, isBanned }: { userId: string; isBanned: bool
 
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={loading}
-      style={{
-        padding: "0.25rem 0.5rem",
-        background: isBanned ? "#5cb85c" : "#d9534f",
-        color: "white",
-        border: "none",
-        borderRadius: 4,
-        cursor: "pointer",
-        fontSize: "0.75rem",
-      }}
+      className={`${styles.banBtn} ${isBanned ? styles.unban : styles.ban}`}
     >
       {loading ? "..." : isBanned ? "Unban" : "Ban"}
     </button>
