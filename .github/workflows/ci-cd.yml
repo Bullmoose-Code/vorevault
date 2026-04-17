@@ -48,8 +48,7 @@ jobs:
 
   deploy:
     needs: ci
-    # TEMP GATE: flip to the real condition in Task 5 once CI is known-good.
-    if: false
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
