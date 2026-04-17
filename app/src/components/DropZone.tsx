@@ -44,7 +44,7 @@ export function DropZone({ onFiles }: { onFiles: (files: File[]) => void }) {
         <div className={styles.limit}>
           or pick them manually · mp4, mov, png, jpg, gif, anything really
         </div>
-        <label className={styles.picker}>
+        <label className={styles.picker} onClick={(e) => e.stopPropagation()}>
           Choose files
           <input
             ref={inputRef}
