@@ -1,0 +1,57 @@
+.panel {
+  background: var(--vv-bg-sunken);
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  padding: 18px;
+  box-shadow: var(--vv-shadow-md);
+  align-self: start;
+}
+
+.title {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-size: 18px;
+  margin: 0 0 12px;
+  font-weight: 900;
+  color: var(--vv-accent);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--vv-ink-subtle);
+  font-size: 12px;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.k {
+  color: var(--vv-ink-muted);
+  font-style: italic;
+}
+
+.v {
+  color: var(--vv-ink);
+  font-weight: 600;
+  text-align: right;
+}
+
+.status {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--vv-radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--vv-font-ui);
+}
+
+.status.pending { background: var(--vv-warn); color: #7c2d12; }
+.status.skipped { background: var(--vv-bg-sunken); color: var(--vv-ink); }
+.status.done { background: var(--vv-success); color: var(--vv-ink); }
+.status.failed { background: var(--vv-danger); color: var(--vv-bg); }

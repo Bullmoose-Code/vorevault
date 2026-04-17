@@ -1,0 +1,48 @@
+.banner {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: var(--vv-warn);
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  box-shadow: var(--vv-shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--vv-accent);
+  flex-shrink: 0;
+}
+
+.url {
+  flex: 1;
+  min-width: 200px;
+  font-family: var(--vv-font-mono);
+  background: var(--vv-bg);
+  padding: 6px 10px;
+  border-radius: var(--vv-radius-sm);
+  font-size: 11px;
+  color: var(--vv-ink);
+  border: 1px solid var(--vv-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copyBtn {
+  padding: 6px 12px;
+  background: var(--vv-ink);
+  color: var(--vv-bg);
+  border: none;
+  border-radius: var(--vv-radius-sm);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--vv-font-ui);
+}
