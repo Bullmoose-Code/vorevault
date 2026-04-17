@@ -22,7 +22,12 @@ export function TopBar({
       </a>
       <div className={styles.actions}>
         {showUpload && (
-          <Pill variant="primary" href="/upload" className={styles.uploadPill}>
+          <Pill
+            variant="primary"
+            href="/upload"
+            className={styles.uploadPill}
+            aria-label="Upload"
+          >
             <span className={styles.uploadIcon} aria-hidden="true">↑</span>
             <span className={styles.uploadLabel}>Upload</span>
           </Pill>

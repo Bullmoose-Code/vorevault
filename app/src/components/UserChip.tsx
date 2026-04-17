@@ -23,11 +23,18 @@ export function UserChip({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
+    function onFocusOut(e: FocusEvent) {
+      const next = e.relatedTarget as Node | null;
+      if (ref.current && next && !ref.current.contains(next)) setOpen(false);
+    }
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKey);
+    ref.current?.addEventListener("focusout", onFocusOut);
+    const wrap = ref.current;
     return () => {
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKey);
+      wrap?.removeEventListener("focusout", onFocusOut);
     };
   }, [open]);
 
