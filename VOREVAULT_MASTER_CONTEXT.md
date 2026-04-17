@@ -38,10 +38,11 @@ Update this file whenever reality changes. If it's out of date, fix it immediate
 ## Docker Compose services (LXC 105, in `/opt/stacks/vorevault/`)
 | Service  | Image                | Ports (internal) | Purpose                          |
 |----------|----------------------|------------------|----------------------------------|
-| app      | built locally        | 3000             | Next.js UI + API routes          |
+| app      | ghcr.io/bullmoose-code/vorevault:latest | 3000 | Next.js UI + API routes (CI/CD-delivered) |
 | postgres | postgres:16-alpine   | 5432             | Primary DB (volume `./pgdata/`)  |
 | tusd     | tusproject/tusd:v2   | 8080             | Resumable uploads (tus protocol) |
 | caddy    | caddy:2-alpine       | 80 (host-exposed)| Reverse proxy, security headers  |
+| watchtower | ghcr.io/nicholas-fedor/watchtower | 8080 (LAN) | Auto-updates the app service via GHA webhook |
 
 ## Data layout (host: `/tank/data/vorevault/` ↔ container: `/data/`)
 | Subdir       | Owner         | Mode | Purpose                                                    |
@@ -142,3 +143,20 @@ Node 22 is installed in LXC 105 alongside Docker for this purpose. The `pve` hos
 - Remove the `VoreVault` role in Discord, OR
 - `UPDATE users SET is_banned = true WHERE discord_id = '...'` (immediate; their cookie still exists but `getSessionUser()` returns null), OR
 - `DELETE FROM sessions WHERE user_id = (SELECT id FROM users WHERE discord_id = '...')` (forces re-login on next request)
+
+## CI/CD
+
+- **Workflow:** `.github/workflows/ci-cd.yml` — two jobs (`ci`, `deploy`).
+- **Triggers:**
+  - `push` to `main` → CI + deploy
+  - `pull_request` targeting `main` → CI only
+  - `paths-ignore: ['**.md', 'docs/**']`
+- **Image:** `ghcr.io/bullmoose-code/vorevault:latest`. Rollback via digest pin (`image: ghcr.io/bullmoose-code/vorevault@sha256:...`).
+- **CI steps:** Node 22 setup, apt-install ffmpeg, `npm ci`, `npm run test` (vitest + testcontainers), `npm run build`.
+- **GHA secrets:** `GHCR_PAT` (classic PAT, `write:packages`), `WATCHTOWER_TOKEN_VAULT`.
+- **Deploy mechanism:** GHA curls `https://watchtower-vault.vvhq.net/v1/update` with bearer token. Cloudflared `bullmoosefn-tunnel` routes that to LXC 105 port 8080. Watchtower pulls the new image and recreates `vorevault-app-1`. Only the `app` service is label-opted-in (`com.centurylinklabs.watchtower.enable=true`) — `postgres`, `tusd`, `caddy` are updated intentionally, not by image push.
+- **One-time LXC 105 setup:** `docker login ghcr.io` with a read-only PAT (writes `/root/.docker/config.json`). Watchtower mounts that file read-only to authenticate pulls.
+- **Manual override:**
+  ```bash
+  pct exec 105 -- bash -c 'cd /opt/stacks/vorevault && git pull && docker compose pull && docker compose up -d'
+  ```

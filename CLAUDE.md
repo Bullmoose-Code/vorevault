@@ -43,7 +43,7 @@ vorevault/
 - Never `--no-verify` or `--no-gpg-sign` unless user explicitly asks.
 - Frequent, small commits. Conventional Commits style (`feat:`, `fix:`, `chore:`, `docs:`).
 - Before claiming work is done: run `npm test`, build the docker image, hit `/api/health`. Use `superpowers:verification-before-completion`.
-- Deploy is manual: push to GitHub, then `pct exec 105 -- bash -c 'cd /opt/stacks/vorevault && git pull && docker compose up -d --build'`.
+- Deploy is automatic via GitHub Actions on merge to `main` — see `VOREVAULT_MASTER_CONTEXT.md` (CI/CD section). For manual override: `pct exec 105 -- bash -c 'cd /opt/stacks/vorevault && git pull && docker compose pull && docker compose up -d'`.
 
 ## Skills to reach for
 - **superpowers:test-driven-development** — default for all feature work
@@ -58,7 +58,6 @@ vorevault/
 - Refactoring unrelated to the current task
 - Changing `DESIGN.md` principles
 - Introducing S3, Redis, Kubernetes, or other infra the spec explicitly rejects
-- Adding CI/CD (until user asks — MVP uses `git pull && docker compose up -d --build`)
 
 ## If you're unsure
 Ask. Small clarifying questions beat big wrong PRs.
