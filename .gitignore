@@ -27,3 +27,4 @@ pgdata/
 
 # test output
 coverage/
+.superpowers/
