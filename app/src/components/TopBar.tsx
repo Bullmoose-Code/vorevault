@@ -21,9 +21,13 @@ export function TopBar({
         vorevault
       </a>
       <div className={styles.actions}>
-        {showUpload && <Pill variant="primary" href="/upload">↑ Upload</Pill>}
-        {isAdmin && <Pill variant="ghost" href="/admin">Admin</Pill>}
-        <UserChip username={username} avatarUrl={avatarUrl} />
+        {showUpload && (
+          <Pill variant="primary" href="/upload" className={styles.uploadPill}>
+            <span className={styles.uploadIcon} aria-hidden="true">↑</span>
+            <span className={styles.uploadLabel}>Upload</span>
+          </Pill>
+        )}
+        <UserChip username={username} avatarUrl={avatarUrl} isAdmin={isAdmin} />
       </div>
     </header>
   );
