@@ -1,0 +1,53 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  border-bottom: 2px solid var(--vv-ink);
+  background: var(--vv-bg);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 28px;
+  color: var(--vv-accent);
+  letter-spacing: -1px;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logout {
+  display: inline-block;
+  margin: 0;
+}
+
+.logoutBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--vv-font-ui);
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--vv-ink-muted);
+  padding: 6px 10px;
+}
+
+.logoutBtn:hover {
+  color: var(--vv-accent);
+  text-decoration: underline;
+}
