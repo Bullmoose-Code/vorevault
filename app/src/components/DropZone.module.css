@@ -1,0 +1,60 @@
+.zone {
+  border: 3px dashed var(--vv-ink);
+  border-radius: var(--vv-radius-xl);
+  padding: 64px 32px;
+  text-align: center;
+  background: var(--vv-bg-panel);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.zone.dragging {
+  background: var(--vv-warn);
+  border-color: var(--vv-accent);
+}
+
+.inner {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.icon {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 14px;
+  color: var(--vv-accent);
+}
+
+.heading {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-size: 28px;
+  margin: 0 0 8px;
+  font-weight: 900;
+  color: var(--vv-ink);
+}
+
+.limit {
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  font-size: 13px;
+  margin-bottom: 22px;
+}
+
+.picker {
+  display: inline-block;
+  padding: 12px 22px;
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+  border: 2px solid var(--vv-ink);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: var(--vv-shadow);
+  cursor: pointer;
+  font-family: var(--vv-font-ui);
+}
+
+.hiddenInput {
+  display: none;
+}
