@@ -1,0 +1,51 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: var(--vv-radius);
+  border: 2px solid var(--vv-ink);
+  font-family: var(--vv-font-ui);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  background: transparent;
+  color: var(--vv-ink);
+  transition: transform 0.1s;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button:not(:disabled):hover {
+  transform: translate(-1px, -1px);
+}
+
+.primary {
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+  box-shadow: var(--vv-shadow);
+}
+
+.success {
+  background: var(--vv-success);
+  color: var(--vv-ink);
+  box-shadow: var(--vv-shadow);
+}
+
+.danger {
+  background: transparent;
+  color: var(--vv-ink);
+}
+
+.danger:not(:disabled):hover {
+  background: var(--vv-danger);
+  color: var(--vv-bg);
+}
+
+.ghost {
+  background: transparent;
+}

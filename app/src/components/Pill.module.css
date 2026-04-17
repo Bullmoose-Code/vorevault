@@ -1,0 +1,37 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 2px solid var(--vv-ink);
+  font-family: var(--vv-font-ui);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--vv-ink);
+  background: transparent;
+  transition: transform 0.1s;
+}
+
+.pill:hover {
+  text-decoration: none;
+  transform: translate(-1px, -1px);
+}
+
+.primary {
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+  box-shadow: var(--vv-shadow);
+}
+
+.primary:hover {
+  box-shadow: var(--vv-shadow-md);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--vv-ink);
+}
