@@ -1,0 +1,124 @@
+.card {
+  background: var(--vv-ink);
+  border: 2.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: var(--vv-shadow-md);
+  transition: transform 0.12s;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--vv-ink);
+  text-decoration: none;
+}
+
+.thumb {
+  aspect-ratio: 16 / 10;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: var(--vv-font-mono);
+  font-size: 11px;
+  background: var(--vv-ink);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tileFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--vv-font-mono);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.tile1 { background: linear-gradient(135deg, #d97706, #b45309); }
+.tile2 { background: linear-gradient(135deg, #84cc16, #4d7c0f); }
+.tile3 { background: linear-gradient(135deg, #0891b2, #155e75); }
+.tile4 { background: linear-gradient(135deg, #be185d, #831843); }
+.tile5 { background: linear-gradient(135deg, #7c2d12, #431407); }
+.tile6 { background: linear-gradient(135deg, #c2410c, #9a3412); }
+
+.typeBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--vv-bg);
+  color: var(--vv-ink);
+  padding: 2px 7px;
+  border-radius: var(--vv-radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: var(--vv-font-ui);
+}
+
+.duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  color: var(--vv-bg);
+  padding: 3px 7px;
+  border-radius: var(--vv-radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--vv-font-ui);
+}
+
+.sharedBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+  padding: 2px 7px;
+  border-radius: var(--vv-radius-sm);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--vv-font-ui);
+  letter-spacing: 0.3px;
+  box-shadow: var(--vv-shadow-sm);
+}
+
+.meta {
+  padding: 10px 12px;
+  background: var(--vv-bg);
+  color: var(--vv-ink);
+  border-top: 2.5px solid var(--vv-ink);
+}
+
+.title {
+  font-weight: 700;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--vv-ink-muted);
+  margin-top: 2px;
+  font-style: italic;
+}

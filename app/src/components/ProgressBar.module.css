@@ -1,0 +1,22 @@
+.track {
+  flex: 1;
+  height: 8px;
+  background: var(--vv-bg-sunken);
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  background: var(--vv-accent);
+  transition: width 0.3s;
+}
+
+.green {
+  background: var(--vv-success);
+}
+
+.red {
+  background: var(--vv-danger);
+}
