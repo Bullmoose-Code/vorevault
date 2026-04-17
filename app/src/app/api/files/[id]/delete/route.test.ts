@@ -22,12 +22,18 @@ vi.mock("@/lib/files", () => ({
   softDeleteFile: (...a: unknown[]) => softDeleteFile(...a),
 }));
 
+const revokeAllForFile = vi.fn();
+vi.mock("@/lib/share-links", () => ({
+  revokeAllForFile: (...a: unknown[]) => revokeAllForFile(...a),
+}));
+
 import { POST } from "./route";
 
 beforeEach(() => {
   getSessionUser.mockReset();
   getFile.mockReset();
   softDeleteFile.mockReset();
+  revokeAllForFile.mockReset();
 });
 
 function req(id: string) {
@@ -66,18 +72,22 @@ describe("POST /api/files/[id]/delete", () => {
   it("soft-deletes when owner requests", async () => {
     getSessionUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
     getFile.mockResolvedValueOnce({ id: "f1", uploader_id: "u1" });
+    revokeAllForFile.mockResolvedValueOnce(undefined);
     softDeleteFile.mockResolvedValueOnce(undefined);
     const res = await POST(req("f1"), { params: Promise.resolve({ id: "f1" }) });
     expect(res.status).toBe(200);
+    expect(revokeAllForFile).toHaveBeenCalledWith("f1");
     expect(softDeleteFile).toHaveBeenCalledWith("f1");
   });
 
   it("soft-deletes when admin requests (even non-owner)", async () => {
     getSessionUser.mockResolvedValueOnce({ id: "u1", is_admin: true });
     getFile.mockResolvedValueOnce({ id: "f1", uploader_id: "u2" });
+    revokeAllForFile.mockResolvedValueOnce(undefined);
     softDeleteFile.mockResolvedValueOnce(undefined);
     const res = await POST(req("f1"), { params: Promise.resolve({ id: "f1" }) });
     expect(res.status).toBe(200);
+    expect(revokeAllForFile).toHaveBeenCalledWith("f1");
     expect(softDeleteFile).toHaveBeenCalledWith("f1");
   });
 });
