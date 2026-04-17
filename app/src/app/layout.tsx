@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { SWRegister } from "@/components/SWRegister";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -52,7 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <SWRegister />
+        {children}
+      </body>
     </html>
   );
 }
