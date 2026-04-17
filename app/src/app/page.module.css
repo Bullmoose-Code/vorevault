@@ -1,0 +1,77 @@
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.subheader {
+  padding: 32px 32px 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.greeting {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.greeting strong {
+  color: var(--vv-accent);
+  font-weight: 900;
+}
+
+.stats {
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.stats strong {
+  color: var(--vv-ink);
+  font-style: normal;
+  font-weight: 700;
+  font-family: var(--vv-font-mono);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 0 32px 32px;
+}
+
+.empty {
+  padding: 80px 32px;
+  text-align: center;
+}
+
+.empty h2 {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 28px;
+  margin-bottom: 16px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 0 32px 48px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+}
+
+.pagination a {
+  color: var(--vv-accent);
+  font-weight: 700;
+  font-style: normal;
+}
