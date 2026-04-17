@@ -1,0 +1,67 @@
+:root {
+  /* Palette */
+  --vv-bg: #f4ead5;
+  --vv-bg-panel: #fff8e6;
+  --vv-bg-sunken: #e8dcc0;
+  --vv-ink: #2a1810;
+  --vv-ink-muted: #7c5e3c;
+  --vv-ink-subtle: #b8a07a;
+  --vv-accent: #c2410c;
+  --vv-accent-soft: #d97706;
+  --vv-success: #84cc16;
+  --vv-info: #0891b2;
+  --vv-danger: #be185d;
+  --vv-warn: #fde68a;
+  --vv-discord: #5865F2;
+
+  /* Typography */
+  --vv-font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --vv-font-ui: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --vv-font-mono: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Shadow & radius */
+  --vv-shadow-sm: 2px 2px 0 var(--vv-ink);
+  --vv-shadow: 3px 3px 0 var(--vv-ink);
+  --vv-shadow-md: 4px 4px 0 var(--vv-ink);
+  --vv-shadow-lg: 5px 5px 0 var(--vv-ink);
+  --vv-shadow-xl: 6px 6px 0 var(--vv-ink);
+  --vv-radius-sm: 4px;
+  --vv-radius: 6px;
+  --vv-radius-md: 8px;
+  --vv-radius-lg: 12px;
+  --vv-radius-xl: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--vv-bg);
+  color: var(--vv-ink);
+  font-family: var(--vv-font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--vv-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+}
