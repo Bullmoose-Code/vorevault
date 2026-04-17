@@ -1,0 +1,74 @@
+.main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 32px 48px;
+}
+
+.back {
+  padding: 16px 0 0;
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+}
+
+.back a {
+  color: var(--vv-accent);
+  font-weight: 700;
+  font-style: normal;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 8px 0 20px;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.heading {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.lede {
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.lede strong {
+  color: var(--vv-ink);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.tip {
+  margin-top: 32px;
+  padding: 18px 22px;
+  background: var(--vv-bg-sunken);
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  line-height: 1.6;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.tipIcon {
+  font-size: 28px;
+  color: var(--vv-accent);
+}
+
+.tip strong {
+  color: var(--vv-ink);
+  font-style: normal;
+  font-weight: 700;
+}
