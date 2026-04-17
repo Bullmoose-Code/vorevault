@@ -89,20 +89,38 @@ export type FilePage = {
   limit: number;
 };
 
-export async function listFiles(page: number, limit: number): Promise<FilePage> {
+export async function listFiles(
+  page: number,
+  limit: number,
+  uploaderId?: string,
+): Promise<FilePage> {
   const offset = (page - 1) * limit;
   const [dataRes, countRes] = await Promise.all([
-    pool.query<FileWithUploader>(
-      `SELECT f.*, u.username AS uploader_name
-       FROM files f JOIN users u ON u.id = f.uploader_id
-       WHERE f.deleted_at IS NULL
-       ORDER BY f.created_at DESC
-       LIMIT $1 OFFSET $2`,
-      [limit, offset],
-    ),
-    pool.query<{ count: string }>(
-      `SELECT count(*)::text AS count FROM files WHERE deleted_at IS NULL`,
-    ),
+    uploaderId
+      ? pool.query<FileWithUploader>(
+          `SELECT f.*, u.username AS uploader_name
+           FROM files f JOIN users u ON u.id = f.uploader_id
+           WHERE f.deleted_at IS NULL AND f.uploader_id = $3
+           ORDER BY f.created_at DESC
+           LIMIT $1 OFFSET $2`,
+          [limit, offset, uploaderId],
+        )
+      : pool.query<FileWithUploader>(
+          `SELECT f.*, u.username AS uploader_name
+           FROM files f JOIN users u ON u.id = f.uploader_id
+           WHERE f.deleted_at IS NULL
+           ORDER BY f.created_at DESC
+           LIMIT $1 OFFSET $2`,
+          [limit, offset],
+        ),
+    uploaderId
+      ? pool.query<{ count: string }>(
+          `SELECT count(*)::text AS count FROM files WHERE deleted_at IS NULL AND uploader_id = $1`,
+          [uploaderId],
+        )
+      : pool.query<{ count: string }>(
+          `SELECT count(*)::text AS count FROM files WHERE deleted_at IS NULL`,
+        ),
   ]);
   return {
     files: dataRes.rows,

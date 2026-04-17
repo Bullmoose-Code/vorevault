@@ -24,9 +24,6 @@ export function TopBar({
         {showUpload && <Pill variant="primary" href="/upload">↑ Upload</Pill>}
         {isAdmin && <Pill variant="ghost" href="/admin">Admin</Pill>}
         <UserChip username={username} avatarUrl={avatarUrl} />
-        <form action="/api/auth/logout" method="post" className={styles.logout}>
-          <button type="submit" className={styles.logoutBtn}>Log out</button>
-        </form>
       </div>
     </header>
   );

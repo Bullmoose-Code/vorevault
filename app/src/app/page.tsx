@@ -24,7 +24,7 @@ function relativeTime(date: Date | null): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-type Props = { searchParams: Promise<{ page?: string }> };
+type Props = { searchParams: Promise<{ page?: string; mine?: string }> };
 
 export default async function Home({ searchParams }: Props) {
   const user = await getCurrentUser();
@@ -32,12 +32,16 @@ export default async function Home({ searchParams }: Props) {
 
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
+  const mineOnly = params.mine === "1";
   const limit = 24;
-  const data = await listFiles(page, limit);
+  const data = await listFiles(page, limit, mineOnly ? user.id : undefined);
   const totalPages = Math.ceil(data.total / limit);
 
   const totalBytes = data.files.reduce((sum, f) => sum + Number(f.size_bytes), 0);
   const lastUpload = data.files[0]?.created_at ?? null;
+
+  const pageHref = (p: number) =>
+    mineOnly ? `/?mine=1&page=${p}` : `/?page=${p}`;
 
   return (
     <>
@@ -45,19 +49,33 @@ export default async function Home({ searchParams }: Props) {
       <main className={styles.main}>
         <div className={styles.subheader}>
           <h1 className={styles.greeting}>
-            Welcome back, <strong>{user.username}</strong>.
+            {mineOnly ? (
+              <>Your uploads, <strong>{user.username}</strong>.</>
+            ) : (
+              <>Welcome back, <strong>{user.username}</strong>.</>
+            )}
           </h1>
           {data.files.length > 0 && (
             <div className={styles.stats}>
               <strong>{data.total}</strong> {data.total === 1 ? "clip" : "clips"} · <strong>{formatBytes(totalBytes)}</strong> · last upload {relativeTime(lastUpload)}
+              {mineOnly && <> · <a href="/">view all</a></>}
             </div>
           )}
         </div>
 
         {data.files.length === 0 ? (
           <div className={styles.empty}>
-            <h2>Drop the first clip in the vault.</h2>
-            <Pill variant="primary" href="/upload">↑ Upload</Pill>
+            {mineOnly ? (
+              <>
+                <h2>You haven&apos;t uploaded anything yet.</h2>
+                <Pill variant="primary" href="/upload">↑ Upload</Pill>
+              </>
+            ) : (
+              <>
+                <h2>Drop the first clip in the vault.</h2>
+                <Pill variant="primary" href="/upload">↑ Upload</Pill>
+              </>
+            )}
           </div>
         ) : (
           <div className={styles.grid}>
@@ -69,9 +87,9 @@ export default async function Home({ searchParams }: Props) {
 
         {totalPages > 1 && (
           <div className={styles.pagination}>
-            {page > 1 && <a href={`/?page=${page - 1}`}>← Prev</a>}
+            {page > 1 && <a href={pageHref(page - 1)}>← Prev</a>}
             <span>Page {page} of {totalPages}</span>
-            {page < totalPages && <a href={`/?page=${page + 1}`}>Next →</a>}
+            {page < totalPages && <a href={pageHref(page + 1)}>Next →</a>}
           </div>
         )}
       </main>

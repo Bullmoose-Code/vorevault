@@ -1,3 +1,8 @@
+.wrap {
+  position: relative;
+  display: inline-block;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -37,4 +42,45 @@
   color: var(--vv-ink-muted);
   font-size: 10px;
   margin-left: 2px;
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  padding: 6px;
+  background: var(--vv-bg-panel);
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  box-shadow: var(--vv-shadow-md);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--vv-radius-sm);
+  font-family: var(--vv-font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--vv-ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item:hover {
+  background: var(--vv-bg-sunken);
+  text-decoration: none;
+}
+
+.logoutForm {
+  margin: 0;
+  padding: 0;
 }
