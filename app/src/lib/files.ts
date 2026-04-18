@@ -13,6 +13,7 @@ export type FileRow = {
   duration_sec: number | null;
   width: number | null;
   height: number | null;
+  folder_id: string | null;
   created_at: Date;
   deleted_at: Date | null;
 };
@@ -152,4 +153,43 @@ export async function getExpiredDeletedFiles(daysOld: number): Promise<FileRow[]
 
 export async function hardDeleteFile(id: string): Promise<void> {
   await pool.query(`DELETE FROM files WHERE id = $1`, [id]);
+}
+
+export class FileAuthError extends Error {
+  constructor() { super("not authorized"); this.name = "FileAuthError"; }
+}
+export class FileDeletedError extends Error {
+  constructor() { super("file is deleted"); this.name = "FileDeletedError"; }
+}
+export class FileNotFoundError extends Error {
+  constructor() { super("file not found"); this.name = "FileNotFoundError"; }
+}
+export class FileFolderNotFoundError extends Error {
+  constructor() { super("target folder not found"); this.name = "FileFolderNotFoundError"; }
+}
+
+export type MoveFileArgs = {
+  fileId: string;
+  actorId: string;
+  isAdmin: boolean;
+  folderId: string | null;
+};
+
+export async function moveFile(args: MoveFileArgs): Promise<FileRow> {
+  const { rows } = await pool.query<FileRow>(`SELECT * FROM files WHERE id = $1`, [args.fileId]);
+  if (rows.length === 0) throw new FileNotFoundError();
+  const file = rows[0];
+  if (!args.isAdmin && file.uploader_id !== args.actorId) throw new FileAuthError();
+  if (file.deleted_at) throw new FileDeletedError();
+
+  if (args.folderId) {
+    const exists = await pool.query(`SELECT 1 FROM folders WHERE id = $1`, [args.folderId]);
+    if (exists.rowCount === 0) throw new FileFolderNotFoundError();
+  }
+
+  const { rows: updated } = await pool.query<FileRow>(
+    `UPDATE files SET folder_id = $1 WHERE id = $2 RETURNING *`,
+    [args.folderId, args.fileId],
+  );
+  return updated[0];
 }
