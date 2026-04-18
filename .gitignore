@@ -28,3 +28,6 @@ pgdata/
 # test output
 coverage/
 .superpowers/
+
+# private operator runbook — contains infrastructure detail not intended for the public repo
+.ops-private/

@@ -13,12 +13,12 @@ VoreVault is a Discord-gated file/clip sharing app for the Bullmoose group. It i
 5. **Unlisted public links are opt-in per file.** Default private.
 6. **Revocable.** Sessions and share links are both server-side rows that can be killed instantly.
 
-## Architecture (summary — source of truth is the design spec)
-- LXC 105 on Proxmox `pve` (192.168.2.105), Docker Compose stack: Next.js app, Postgres, tusd, Caddy.
-- `/data` bind-mounted from host ZFS dataset `tank/data/vorevault`, also mounted into Tdarr LXC 104 for in-place transcoding.
-- Dedicated Cloudflared tunnel `bullmoosefn-tunnel` (in LXC 250) terminates public TLS at `vault.bullmoosefn.com`.
+## Architecture (summary)
+- Docker Compose stack: Next.js app, Postgres, tusd (resumable uploads), Caddy (internal reverse proxy), Watchtower (auto-update).
+- Data volume (`/data` inside the containers) bind-mounted from a host path, holding `uploads/`, `thumbs/`, `transcoded/`, and `tusd-tmp/`.
+- Public TLS terminates upstream (Cloudflare Tunnel in the reference deployment; any TLS terminator works).
 
-See [`docs/superpowers/specs/2026-04-15-vorevault-design.md`](./docs/superpowers/specs/2026-04-15-vorevault-design.md) for full architecture, data model, and flows.
+See [`VOREVAULT_MASTER_CONTEXT.md`](./VOREVAULT_MASTER_CONTEXT.md) for the full architecture decision table, data model, upload pipeline, and auth flow.
 
 ## UX tenets
 - First screen after login is the grid. No dashboard.
@@ -33,7 +33,6 @@ See [`docs/superpowers/specs/2026-04-15-vorevault-design.md`](./docs/superpowers
 - 2FA
 - Mobile app
 - Object storage (S3/MinIO)
-- CI/CD (until manual deploy becomes painful)
 
 ## Decision rules
 - **If in doubt about scope:** say no. YAGNI wins.
