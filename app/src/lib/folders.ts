@@ -1,6 +1,6 @@
 import { pool } from "@/lib/db";
 import type { PoolClient } from "pg";
-import type { FileRow } from "@/lib/files";
+import type { FileRow, FileWithUploader } from "@/lib/files";
 
 export type FolderRow = {
   id: string;
@@ -241,4 +241,39 @@ export async function getFolder(id: string): Promise<FolderRow | null> {
 export async function folderExists(id: string): Promise<boolean> {
   const { rowCount } = await pool.query(`SELECT 1 FROM folders WHERE id = $1`, [id]);
   return (rowCount ?? 0) > 0;
+}
+
+export type FolderWithCreator = FolderRow & { creator_username: string };
+
+export async function getFolderWithCreator(id: string): Promise<FolderWithCreator | null> {
+  const { rows } = await pool.query<FolderWithCreator>(
+    `SELECT f.*, u.username AS creator_username
+       FROM folders f JOIN users u ON u.id = f.created_by
+      WHERE f.id = $1`,
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+export async function listChildrenWithUploader(folderId: string): Promise<{
+  subfolders: FolderWithCounts[];
+  files: FileWithUploader[];
+}> {
+  const { rows: subfolders } = await pool.query<FolderWithCounts>(
+    `SELECT f.*,
+            (SELECT count(*)::int FROM files c WHERE c.folder_id = f.id AND c.deleted_at IS NULL) AS direct_file_count,
+            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id) AS direct_subfolder_count
+       FROM folders f
+      WHERE f.parent_id = $1
+      ORDER BY LOWER(f.name)`,
+    [folderId],
+  );
+  const { rows: files } = await pool.query<FileWithUploader>(
+    `SELECT f.*, u.username AS uploader_name
+       FROM files f JOIN users u ON u.id = f.uploader_id
+      WHERE f.folder_id = $1 AND f.deleted_at IS NULL
+      ORDER BY f.created_at DESC`,
+    [folderId],
+  );
+  return { subfolders, files };
 }
