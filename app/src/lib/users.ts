@@ -21,6 +21,11 @@ function avatarUrl(id: string, hash: string | null): string | null {
   return hash ? `https://cdn.discordapp.com/avatars/${id}/${hash}.png` : null;
 }
 
+export async function getUserById(id: string): Promise<UserRow | null> {
+  const { rows } = await pool.query<UserRow>(`SELECT * FROM users WHERE id = $1`, [id]);
+  return rows[0] ?? null;
+}
+
 export async function upsertUserFromDiscord(profile: DiscordProfile): Promise<UserRow> {
   const { rows } = await pool.query<UserRow>(
     `INSERT INTO users (discord_id, username, avatar_url, last_login_at)

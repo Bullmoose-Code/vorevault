@@ -11,7 +11,8 @@ import {
   registerUploadSession, getUploadSession, finalizeUploadSession,
 } from "@/lib/upload-sessions";
 import { insertFile, updateTranscodeStatus } from "@/lib/files";
-import { folderExists } from "@/lib/folders";
+import { folderExists, getOrCreateUserHomeFolder } from "@/lib/folders";
+import { getUserById } from "@/lib/users";
 import { generateThumbnail } from "@/lib/thumbnails";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +111,14 @@ async function postFinish(body: HookBody) {
   let folderId: string | null = null;
   if (typeof rawFolderId === "string" && uuidRegex.test(rawFolderId)) {
     if (await folderExists(rawFolderId)) folderId = rawFolderId;
+  }
+  // No explicit folder (or explicit folder was invalid): drop the file into the
+  // user's home folder, creating it on first upload so their username acts as
+  // a personal root. Leading-dot usernames (e.g. ".ryan") are stored verbatim
+  // — there is no hidden-folder concept in this app.
+  if (folderId === null) {
+    const owner = await getUserById(session.user_id);
+    if (owner) folderId = await getOrCreateUserHomeFolder(owner.id, owner.username);
   }
 
   const fileId = randomUUID();

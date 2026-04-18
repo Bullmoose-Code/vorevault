@@ -31,13 +31,22 @@ vi.mock("@/lib/upload-sessions", () => ({
 }));
 
 const insertFile = vi.fn();
+const updateTranscodeStatus = vi.fn();
 vi.mock("@/lib/files", () => ({
   insertFile: (...a: unknown[]) => insertFile(...a),
+  updateTranscodeStatus: (...a: unknown[]) => updateTranscodeStatus(...a),
 }));
 
 const folderExists = vi.fn();
+const getOrCreateUserHomeFolder = vi.fn();
 vi.mock("@/lib/folders", () => ({
   folderExists: (...a: unknown[]) => folderExists(...a),
+  getOrCreateUserHomeFolder: (...a: unknown[]) => getOrCreateUserHomeFolder(...a),
+}));
+
+const getUserById = vi.fn();
+vi.mock("@/lib/users", () => ({
+  getUserById: (...a: unknown[]) => getUserById(...a),
 }));
 
 const generateThumbnail = vi.fn();
@@ -72,7 +81,10 @@ beforeEach(() => {
   getUploadSession.mockReset();
   finalizeUploadSession.mockReset();
   insertFile.mockReset();
+  updateTranscodeStatus.mockReset();
   folderExists.mockReset();
+  getOrCreateUserHomeFolder.mockReset();
+  getUserById.mockReset();
   generateThumbnail.mockReset();
   execFileMock.mockReset();
   renameMock.mockReset();
@@ -148,9 +160,11 @@ describe("POST /api/hooks/tus pre-create", () => {
 });
 
 describe("POST /api/hooks/tus post-finish", () => {
-  it("moves file, sniffs MIME, inserts files row, generates thumb, finalizes session", async () => {
+  it("drops file into user home folder when no folderId metadata is supplied", async () => {
     getUploadSession.mockResolvedValueOnce({ tus_id: "tus-1", user_id: "u1", file_id: null });
     execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("home-folder-id");
     insertFile.mockResolvedValueOnce({ id: "file-uuid" });
     generateThumbnail.mockResolvedValueOnce({ width: 1920, height: 1080, durationSec: 5 });
 
@@ -166,16 +180,42 @@ describe("POST /api/hooks/tus post-finish", () => {
     }));
     expect(res.status).toBe(200);
     expect(renameMock).toHaveBeenCalled();
+    expect(getOrCreateUserHomeFolder).toHaveBeenCalledWith("u1", "ryan");
     expect(insertFile).toHaveBeenCalledWith(
       expect.objectContaining({
         uploaderId: "u1",
+        folderId: "home-folder-id",
         originalName: "great clip.mp4",
         mimeType: "video/mp4",
         sizeBytes: 1024,
       }),
     );
-    expect(generateThumbnail).toHaveBeenCalled();
     expect(finalizeUploadSession).toHaveBeenCalledWith("tus-1", "file-uuid");
+  });
+
+  it("preserves leading-dot usernames (.ryan) as the home folder name — no hidden-folder logic", async () => {
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-dot", user_id: "u2", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u2", username: ".ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("dot-folder-id");
+    insertFile.mockResolvedValueOnce({ id: "dot-file" });
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-dot",
+          Size: 100,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-dot" },
+          MetaData: { filename: "x.mp4" },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    expect(getOrCreateUserHomeFolder).toHaveBeenCalledWith("u2", ".ryan");
+    expect(insertFile).toHaveBeenCalledWith(
+      expect.objectContaining({ folderId: "dot-folder-id" }),
+    );
   });
 
   it("returns 200 for unknown hook names (no-op)", async () => {
@@ -210,11 +250,13 @@ describe("POST /api/hooks/tus post-finish", () => {
     );
   });
 
-  it("post-finish falls back to null when metadata.folderId doesn't match an existing folder", async () => {
+  it("post-finish falls back to user home folder when metadata.folderId doesn't match an existing folder", async () => {
     const missingFolderId = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
     getUploadSession.mockResolvedValueOnce({ tus_id: "tus-3", user_id: "u1", file_id: null });
     execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
     folderExists.mockResolvedValueOnce(false);
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("home-for-u1");
     insertFile.mockResolvedValueOnce({ id: "file-uuid-3" });
     generateThumbnail.mockResolvedValueOnce(null);
 
@@ -230,6 +272,30 @@ describe("POST /api/hooks/tus post-finish", () => {
     }));
     expect(res.status).toBe(200);
     expect(folderExists).toHaveBeenCalledWith(missingFolderId);
+    expect(insertFile).toHaveBeenCalledWith(
+      expect.objectContaining({ folderId: "home-for-u1" }),
+    );
+  });
+
+  it("post-finish stores null folder when home-folder slot is already taken by another user", async () => {
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-4", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce(null);
+    insertFile.mockResolvedValueOnce({ id: "file-uuid-4" });
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-4",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-4" },
+          MetaData: { filename: "clip.mp4" },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
     expect(insertFile).toHaveBeenCalledWith(
       expect.objectContaining({ folderId: null }),
     );

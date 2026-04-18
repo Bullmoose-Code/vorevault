@@ -243,6 +243,46 @@ export async function folderExists(id: string): Promise<boolean> {
   return (rowCount ?? 0) > 0;
 }
 
+/**
+ * Returns the id of the user's top-level "home" folder (named after their username),
+ * creating it lazily on first call. Returns null if a foreign folder with the same
+ * name already occupies that slot — caller should fall back to root in that case.
+ */
+export async function getOrCreateUserHomeFolder(
+  userId: string,
+  username: string,
+): Promise<string | null> {
+  const existing = await pool.query<{ id: string; created_by: string }>(
+    `SELECT id, created_by FROM folders
+      WHERE parent_id IS NULL AND LOWER(name) = LOWER($1)`,
+    [username],
+  );
+  if (existing.rowCount && existing.rowCount > 0) {
+    return existing.rows[0].created_by === userId ? existing.rows[0].id : null;
+  }
+  try {
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO folders (name, parent_id, created_by)
+       VALUES ($1, NULL, $2) RETURNING id`,
+      [username, userId],
+    );
+    return rows[0].id;
+  } catch (err) {
+    if ((err as { code?: string }).code === "23505") {
+      const retry = await pool.query<{ id: string; created_by: string }>(
+        `SELECT id, created_by FROM folders
+          WHERE parent_id IS NULL AND LOWER(name) = LOWER($1)`,
+        [username],
+      );
+      if (retry.rowCount && retry.rowCount > 0 && retry.rows[0].created_by === userId) {
+        return retry.rows[0].id;
+      }
+      return null;
+    }
+    throw err;
+  }
+}
+
 export type FolderWithCreator = FolderRow & { creator_username: string };
 
 export async function getFolderWithCreator(id: string): Promise<FolderWithCreator | null> {
