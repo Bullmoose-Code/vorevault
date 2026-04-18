@@ -59,5 +59,21 @@ vorevault/
 - Changing `DESIGN.md` principles
 - Introducing S3, Redis, Kubernetes, or other infra the spec explicitly rejects
 
+## Design system
+
+The authoritative design system lives at `./design-system/` (or wherever you placed it).
+
+Before any UI change, read:
+- `design-system/README.md` — voice, visual foundations, iconography rules
+- `design-system/colors_and_type.css` — canonical tokens (mirrors `app/src/app/globals.css`)
+- `design-system/ui_kits/website/components.jsx` — component patterns
+
+Rules:
+- Use `--vv-*` tokens — never invent new colors or shadows
+- Fraunces italic for display, Inter for UI, JetBrains Mono only for stats
+- Hard offset "sticker" shadow only, no soft shadows
+- No emoji, no gradients-as-backgrounds, no icon libraries
+- Copy voice: terse, lowercase brand, sentence case, no exclamation marks
+
 ## If you're unsure
 Ask. Small clarifying questions beat big wrong PRs.
