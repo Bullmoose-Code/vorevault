@@ -4,9 +4,9 @@ const TOKEN_URL = "https://discord.com/api/oauth2/token";
 const AUTHORIZE_URL = "https://discord.com/oauth2/authorize";
 const SCOPE = "identify guilds.members.read";
 
-// LXC 105's Docker bridge has intermittent DNS/TCP flakiness reaching Discord
-// (see compose.yaml's 8.8.8.8 comment). One retry with a short backoff covers
-// the transient cases without masking a real outage.
+// Some Docker bridge networks have intermittent DNS/TCP flakiness reaching
+// Discord (see compose.yaml's 8.8.8.8 comment). One retry with a short
+// backoff covers the transient cases without masking a real outage.
 const DISCORD_TIMEOUT_MS = 10_000;
 const RETRY_BACKOFF_MS = 500;
 

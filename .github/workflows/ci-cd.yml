@@ -73,12 +73,13 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Trigger Watchtower on LXC 105
+      - name: Trigger Watchtower on the deployment host
         env:
           WATCHTOWER_TOKEN: ${{ secrets.WATCHTOWER_TOKEN_VAULT }}
+          WATCHTOWER_URL: ${{ secrets.WATCHTOWER_UPDATE_URL }}
         run: |
-          # Retries cover transient Cloudflare tunnel QUIC reconnects, which
+          # Retries cover transient reconnects on tunneled endpoints, which
           # otherwise fail the job even when Watchtower's poll picks up the push.
           curl -fS --max-time 30 --retry 5 --retry-all-errors --retry-delay 5 -X POST \
             -H "Authorization: Bearer $WATCHTOWER_TOKEN" \
-            https://watchtower-vault.vvhq.net/v1/update
+            "$WATCHTOWER_URL"

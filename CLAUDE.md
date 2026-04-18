@@ -1,6 +1,6 @@
 # CLAUDE.md — Agent Instructions for VoreVault
 
-You are working on VoreVault, a Discord-gated file/clip sharing app for the Bullmoose group. Before doing anything non-trivial, **read `DESIGN.md` (principles) and `VOREVAULT_MASTER_CONTEXT.md` (current state)**. The design spec at `docs/superpowers/specs/2026-04-15-vorevault-design.md` is the source of truth for architecture.
+You are working on VoreVault, a Discord-gated file/clip sharing app for the Bullmoose group. Before doing anything non-trivial, **read `DESIGN.md` (principles) and `VOREVAULT_MASTER_CONTEXT.md` (architecture + current state)**. The master context document is the source of truth for the data model, upload pipeline, auth flow, and every architectural decision.
 
 ## Project layout
 ```
@@ -43,7 +43,7 @@ vorevault/
 - Never `--no-verify` or `--no-gpg-sign` unless user explicitly asks.
 - Frequent, small commits. Conventional Commits style (`feat:`, `fix:`, `chore:`, `docs:`).
 - Before claiming work is done: run `npm test`, build the docker image, hit `/api/health`. Use `superpowers:verification-before-completion`.
-- Deploy is automatic via GitHub Actions on merge to `main` — see `VOREVAULT_MASTER_CONTEXT.md` (CI/CD section). For manual override: `pct exec 105 -- bash -c 'cd /opt/stacks/vorevault && git pull && docker compose pull && docker compose up -d'`.
+- Deploy is automatic via GitHub Actions on merge to `main` — see `VOREVAULT_MASTER_CONTEXT.md` (CI/CD section). Host-specific manual-override commands live in the operator runbook (`.ops-private/RUNBOOK.md`), not here.
 
 ## Skills to reach for
 - **superpowers:test-driven-development** — default for all feature work
