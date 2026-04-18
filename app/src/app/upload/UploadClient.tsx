@@ -50,7 +50,7 @@ export function UploadClient() {
       upload.start();
       return [...prev, next];
     });
-  }, []);
+  }, [folderId]);
 
   const doneCount = uploads.filter((u) => u.status === "done").length;
   const totalBytes = uploads.reduce((sum, u) => sum + u.size, 0);
