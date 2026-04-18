@@ -1,4 +1,4 @@
-import { Pool, type QueryResult, type QueryResultRow } from "pg";
+import { Pool, type QueryResult, type QueryResultRow, type PoolClient } from "pg";
 
 let _pool: Pool | undefined;
 
@@ -18,5 +18,8 @@ export const pool = {
     params?: unknown[],
   ): Promise<QueryResult<T>> {
     return getPool().query<T>(text, params);
+  },
+  connect(): Promise<PoolClient> {
+    return getPool().connect();
   },
 };
