@@ -108,7 +108,13 @@ export default async function FilePage({ params }: Props) {
           </div>
 
           <StarButton fileId={file.id} initialBookmarked={bookmarked} />
-          <FileActions fileId={file.id} isOwnerOrAdmin={isOwnerOrAdmin} initialShareUrl={shareUrl} />
+          <FileActions
+            fileId={file.id}
+            fileName={file.original_name}
+            initialFolderId={file.folder_id}
+            isOwnerOrAdmin={isOwnerOrAdmin}
+            initialShareUrl={shareUrl}
+          />
         </div>
 
         <MetaPanel
