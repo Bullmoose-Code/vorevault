@@ -6,9 +6,11 @@ import styles from "./UserChip.module.css";
 export function UserChip({
   username,
   avatarUrl,
+  isAdmin = false,
 }: {
   username: string;
   avatarUrl?: string | null;
+  isAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -21,11 +23,19 @@ export function UserChip({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
+    function onFocusOut(e: FocusEvent) {
+      if (!ref.current) return;
+      const next = e.relatedTarget as Node | null;
+      if (!next || !ref.current.contains(next)) setOpen(false);
+    }
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKey);
+    ref.current?.addEventListener("focusout", onFocusOut);
+    const wrap = ref.current;
     return () => {
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKey);
+      wrap?.removeEventListener("focusout", onFocusOut);
     };
   }, [open]);
 
@@ -41,14 +51,21 @@ export function UserChip({
         <span className={styles.avatar}>
           {avatarUrl ? <img src={avatarUrl} alt="" /> : null}
         </span>
-        <span>{username}</span>
+        <span className={styles.username}>{username}</span>
         <span className={styles.caret}>▾</span>
       </button>
       {open && (
         <div className={styles.menu} role="menu">
+          <div className={styles.header}>@{username}</div>
           <a className={styles.item} href="/?mine=1" role="menuitem">
-            My uploads
+            ↑ My uploads
           </a>
+          {isAdmin && (
+            <a className={styles.item} href="/admin" role="menuitem">
+              Admin
+            </a>
+          )}
+          <div className={styles.divider} />
           <form action="/api/auth/logout" method="post" className={styles.logoutForm}>
             <button type="submit" className={styles.item} role="menuitem">
               Log out

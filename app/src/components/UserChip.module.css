@@ -84,3 +84,47 @@
   margin: 0;
   padding: 0;
 }
+
+.header {
+  padding: 6px 12px 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--vv-ink-muted);
+  font-weight: 700;
+  border-bottom: 1px dashed var(--vv-ink-subtle);
+  margin-bottom: 4px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--vv-ink-subtle);
+  margin: 4px 6px;
+}
+
+@media (max-width: 640px) {
+  .chip {
+    padding: 3px 8px 3px 3px;
+    gap: 4px;
+  }
+
+  /* Hide the username text on the chip — avatar + caret is enough.
+     The full username still appears in the open menu header. */
+  .username {
+    display: none;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .menu {
+    min-width: 220px;
+  }
+
+  .item {
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+}

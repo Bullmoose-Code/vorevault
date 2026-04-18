@@ -127,3 +127,49 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+@media (max-width: 640px) {
+  .adminStrip {
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+
+  .adminLabel {
+    font-size: 14px;
+  }
+
+  .main {
+    padding: 20px 16px 32px;
+  }
+
+  .sectionTitle {
+    font-size: 18px;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* Table is wide by nature — allow horizontal scroll inside its rounded box
+     rather than squeezing columns illegibly. */
+  .tableWrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 560px;
+  }
+
+  .table th, .table td {
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}
