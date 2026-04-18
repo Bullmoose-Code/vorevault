@@ -18,6 +18,16 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Major version upgrades we're deliberately holding back. Remove the
+      # corresponding block when we're ready to pick up that major — minor
+      # and patch bumps on the current major keep flowing regardless.
+      - dependency-name: "typescript"
+        versions: ["6.x"]
+      - dependency-name: "next"
+        versions: ["16.x"]
+      - dependency-name: "vitest"
+        versions: ["3.x", "4.x"]
 
   # GitHub Actions workflow versions
   - package-ecosystem: "github-actions"
@@ -28,7 +38,7 @@ updates:
     commit-message:
       prefix: "chore(ci)"
 
-  # Dockerfile base image bumps (node:22-alpine, etc.)
+  # Dockerfile base image bumps
   - package-ecosystem: "docker"
     directory: "/app"
     schedule:
@@ -36,3 +46,8 @@ updates:
       day: "monday"
     commit-message:
       prefix: "chore(docker)"
+    ignore:
+      # Node 22 is the current LTS. Skip odd-number (non-LTS) releases; pick
+      # up Node 24 when it lands in LTS.
+      - dependency-name: "node"
+        versions: ["23-*", "25-*"]
