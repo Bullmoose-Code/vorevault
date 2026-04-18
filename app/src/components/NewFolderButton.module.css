@@ -1,0 +1,20 @@
+.btn {
+  border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+  color: var(--vv-ink);
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+  box-shadow: var(--vv-shadow-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow);
+  background: var(--vv-warn);
+}

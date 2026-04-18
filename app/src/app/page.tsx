@@ -5,6 +5,7 @@ import { listTopLevelFolders } from "@/lib/folders";
 import { TopBar } from "@/components/TopBar";
 import { FileCard } from "@/components/FileCard";
 import { FolderTile } from "@/components/FolderTile";
+import { NewFolderButton } from "@/components/NewFolderButton";
 import { Pill } from "@/components/Pill";
 import styles from "./page.module.css";
 
@@ -70,9 +71,14 @@ export default async function Home({ searchParams }: Props) {
 
         {!mineOnly && (
           <section className={styles.foldersSection}>
-            <h2 className={styles.sectionLabel}>Folders</h2>
+            <div className={styles.foldersHeader}>
+              <h2 className={styles.sectionLabel}>Folders</h2>
+              <NewFolderButton parentId={null} parentName={null} />
+            </div>
             {folders.length === 0 ? (
-              <p className={styles.foldersEmpty}>No folders yet. Create one from the upload page.</p>
+              <p className={styles.foldersEmpty}>
+                No folders yet. Create one with the + New folder button above.
+              </p>
             ) : (
               <div className={styles.folderGrid}>
                 {folders.map((f) => (
