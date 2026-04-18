@@ -3,8 +3,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { getFileWithUploader } from "@/lib/files";
 import { getActiveShareLink } from "@/lib/share-links";
 import { loadEnv } from "@/lib/env";
+import { getBreadcrumbs } from "@/lib/folders";
+import { isBookmarked } from "@/lib/bookmarks";
 import { TopBar } from "@/components/TopBar";
 import { MetaPanel, StatusPill } from "@/components/MetaPanel";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { StarButton } from "@/components/StarButton";
 import { FileActions } from "./FileActions";
 import styles from "./page.module.css";
 
@@ -33,6 +37,11 @@ export default async function FilePage({ params }: Props) {
   const file = await getFileWithUploader(id);
   if (!file) notFound();
 
+  const [breadcrumbs, bookmarked] = await Promise.all([
+    file.folder_id ? getBreadcrumbs(file.folder_id) : Promise.resolve([]),
+    isBookmarked(user.id, file.id),
+  ]);
+
   const isOwnerOrAdmin = file.uploader_id === user.id || user.is_admin;
   const env = loadEnv();
   const activeLink = await getActiveShareLink(file.id);
@@ -47,6 +56,9 @@ export default async function FilePage({ params }: Props) {
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
 
       <div className={styles.back}><a href="/">← back to vault</a></div>
+      {breadcrumbs.length > 0 && (
+        <Breadcrumbs crumbs={breadcrumbs.map(f => ({ id: f.id, name: f.name }))} />
+      )}
 
       <div className={styles.content}>
         <div>
@@ -95,6 +107,7 @@ export default async function FilePage({ params }: Props) {
             })}
           </div>
 
+          <StarButton fileId={file.id} initialBookmarked={bookmarked} />
           <FileActions fileId={file.id} isOwnerOrAdmin={isOwnerOrAdmin} initialShareUrl={shareUrl} />
         </div>
 
