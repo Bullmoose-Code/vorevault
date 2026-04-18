@@ -6,12 +6,14 @@ let pg: PgFixture;
 vi.mock("@/lib/db", () => {
   const pgLib = require("pg") as typeof import("pg");
   let pool: import("pg").Pool | undefined;
+  function getPool() {
+    if (!pool) pool = new pgLib.Pool({ connectionString: process.env.TEST_PG_URL, max: 2 });
+    return pool;
+  }
   return {
     pool: {
-      query: (text: string, params?: unknown[]) => {
-        if (!pool) pool = new pgLib.Pool({ connectionString: process.env.TEST_PG_URL, max: 2 });
-        return pool.query(text, params);
-      },
+      query: (text: string, params?: unknown[]) => getPool().query(text, params),
+      connect: () => getPool().connect(),
     },
   };
 });
@@ -81,5 +83,144 @@ describe("folders — createFolder", () => {
         createdBy: userId,
       }),
     ).rejects.toBeInstanceOf(FolderNotFoundError);
+  });
+});
+
+describe("folders — renameFolder", () => {
+  it("creator can rename their folder", async () => {
+    const { createFolder, renameFolder } = await import("./folders");
+    const userId = await makeUser();
+    const folder = await createFolder({ name: "old", parentId: null, createdBy: userId });
+    const renamed = await renameFolder({ id: folder.id, newName: "new", actorId: userId, isAdmin: false });
+    expect(renamed.name).toBe("new");
+  });
+
+  it("non-creator non-admin cannot rename", async () => {
+    const { createFolder, renameFolder, FolderAuthError } = await import("./folders");
+    const owner = await makeUser("owner");
+    const stranger = await makeUser("stranger");
+    const folder = await createFolder({ name: "old", parentId: null, createdBy: owner });
+    await expect(
+      renameFolder({ id: folder.id, newName: "new", actorId: stranger, isAdmin: false }),
+    ).rejects.toBeInstanceOf(FolderAuthError);
+  });
+
+  it("admin can rename any folder", async () => {
+    const { createFolder, renameFolder } = await import("./folders");
+    const owner = await makeUser("owner");
+    const admin = await makeUser("admin");
+    const folder = await createFolder({ name: "old", parentId: null, createdBy: owner });
+    const renamed = await renameFolder({ id: folder.id, newName: "new", actorId: admin, isAdmin: true });
+    expect(renamed.name).toBe("new");
+  });
+
+  it("rename collision raises FolderCollisionError", async () => {
+    const { createFolder, renameFolder, FolderCollisionError } = await import("./folders");
+    const userId = await makeUser();
+    await createFolder({ name: "Clips", parentId: null, createdBy: userId });
+    const other = await createFolder({ name: "Other", parentId: null, createdBy: userId });
+    await expect(
+      renameFolder({ id: other.id, newName: "clips", actorId: userId, isAdmin: false }),
+    ).rejects.toBeInstanceOf(FolderCollisionError);
+  });
+});
+
+describe("folders — moveFolder", () => {
+  it("creator can move their folder to a new parent", async () => {
+    const { createFolder, moveFolder } = await import("./folders");
+    const userId = await makeUser();
+    const a = await createFolder({ name: "A", parentId: null, createdBy: userId });
+    const b = await createFolder({ name: "B", parentId: null, createdBy: userId });
+    const moved = await moveFolder({ id: a.id, newParentId: b.id, actorId: userId, isAdmin: false });
+    expect(moved.parent_id).toBe(b.id);
+  });
+
+  it("rejects cycle: self as parent", async () => {
+    const { createFolder, moveFolder, FolderCycleError } = await import("./folders");
+    const userId = await makeUser();
+    const a = await createFolder({ name: "A", parentId: null, createdBy: userId });
+    await expect(
+      moveFolder({ id: a.id, newParentId: a.id, actorId: userId, isAdmin: false }),
+    ).rejects.toBeInstanceOf(FolderCycleError);
+  });
+
+  it("rejects cycle: descendant as parent", async () => {
+    const { createFolder, moveFolder, FolderCycleError } = await import("./folders");
+    const userId = await makeUser();
+    const a = await createFolder({ name: "A", parentId: null, createdBy: userId });
+    const b = await createFolder({ name: "B", parentId: a.id, createdBy: userId });
+    const c = await createFolder({ name: "C", parentId: b.id, createdBy: userId });
+    await expect(
+      moveFolder({ id: a.id, newParentId: c.id, actorId: userId, isAdmin: false }),
+    ).rejects.toBeInstanceOf(FolderCycleError);
+  });
+
+  it("rejects collision at new parent", async () => {
+    const { createFolder, moveFolder, FolderCollisionError } = await import("./folders");
+    const userId = await makeUser();
+    const parent = await createFolder({ name: "P", parentId: null, createdBy: userId });
+    await createFolder({ name: "X", parentId: parent.id, createdBy: userId });
+    const other = await createFolder({ name: "X", parentId: null, createdBy: userId });
+    await expect(
+      moveFolder({ id: other.id, newParentId: parent.id, actorId: userId, isAdmin: false }),
+    ).rejects.toBeInstanceOf(FolderCollisionError);
+  });
+});
+
+describe("folders — deleteFolder (orphan-to-parent)", () => {
+  it("reparents direct child folders to the deleted folder's parent", async () => {
+    const { createFolder, deleteFolder } = await import("./folders");
+    const userId = await makeUser();
+    const top = await createFolder({ name: "Top", parentId: null, createdBy: userId });
+    const mid = await createFolder({ name: "Mid", parentId: top.id, createdBy: userId });
+    const leaf = await createFolder({ name: "Leaf", parentId: mid.id, createdBy: userId });
+    await deleteFolder({ id: mid.id, actorId: userId, isAdmin: false });
+    const { rows } = await pg.pool.query<{ parent_id: string | null }>(
+      `SELECT parent_id FROM folders WHERE id = $1`,
+      [leaf.id],
+    );
+    expect(rows[0].parent_id).toBe(top.id);
+  });
+
+  it("reparents direct files to the deleted folder's parent", async () => {
+    const { createFolder, deleteFolder } = await import("./folders");
+    const userId = await makeUser();
+    const top = await createFolder({ name: "Top", parentId: null, createdBy: userId });
+    const mid = await createFolder({ name: "Mid", parentId: top.id, createdBy: userId });
+    const { rows: fileRows } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, folder_id, transcode_status)
+       VALUES ($1, 'f.mp4', 'video/mp4', 100, 'uploads/x/f.mp4', $2, 'skipped')
+       RETURNING id`,
+      [userId, mid.id],
+    );
+    await deleteFolder({ id: mid.id, actorId: userId, isAdmin: false });
+    const { rows } = await pg.pool.query<{ folder_id: string | null }>(
+      `SELECT folder_id FROM files WHERE id = $1`,
+      [fileRows[0].id],
+    );
+    expect(rows[0].folder_id).toBe(top.id);
+  });
+
+  it("reparents to NULL when deleting a top-level folder", async () => {
+    const { createFolder, deleteFolder } = await import("./folders");
+    const userId = await makeUser();
+    const top = await createFolder({ name: "Top", parentId: null, createdBy: userId });
+    const mid = await createFolder({ name: "Mid", parentId: top.id, createdBy: userId });
+    await deleteFolder({ id: top.id, actorId: userId, isAdmin: false });
+    const { rows } = await pg.pool.query<{ parent_id: string | null }>(
+      `SELECT parent_id FROM folders WHERE id = $1`,
+      [mid.id],
+    );
+    expect(rows[0].parent_id).toBeNull();
+  });
+
+  it("non-creator non-admin cannot delete", async () => {
+    const { createFolder, deleteFolder, FolderAuthError } = await import("./folders");
+    const owner = await makeUser("owner");
+    const stranger = await makeUser("stranger");
+    const folder = await createFolder({ name: "F", parentId: null, createdBy: owner });
+    await expect(
+      deleteFolder({ id: folder.id, actorId: stranger, isAdmin: false }),
+    ).rejects.toBeInstanceOf(FolderAuthError);
   });
 });
