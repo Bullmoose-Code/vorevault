@@ -24,8 +24,9 @@ export function UserChip({
       if (e.key === "Escape") setOpen(false);
     }
     function onFocusOut(e: FocusEvent) {
+      if (!ref.current) return;
       const next = e.relatedTarget as Node | null;
-      if (ref.current && next && !ref.current.contains(next)) setOpen(false);
+      if (!next || !ref.current.contains(next)) setOpen(false);
     }
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("keydown", onKey);
