@@ -1,0 +1,7 @@
+.picker { position: relative; display: inline-block; }
+.trigger { border: 1.5px solid #222; background: #f4ead5; padding: 6px 14px; font-size: 14px; cursor: pointer; }
+.tree { position: absolute; top: 100%; left: 0; z-index: 10; background: #fff; border: 2px solid #222; padding: 8px; list-style: none; min-width: 240px; margin: 4px 0 0; max-height: 360px; overflow: auto; }
+.tree ul { list-style: none; padding-left: 14px; margin: 0; }
+.tree button { display: inline-block; border: none; background: transparent; font-size: 13px; cursor: pointer; padding: 2px 6px; }
+.tree button:hover { background: #f4ead5; }
+.add { color: #555; font-style: italic; }
