@@ -11,6 +11,7 @@ import {
   registerUploadSession, getUploadSession, finalizeUploadSession,
 } from "@/lib/upload-sessions";
 import { insertFile, updateTranscodeStatus } from "@/lib/files";
+import { folderExists } from "@/lib/folders";
 import { generateThumbnail } from "@/lib/thumbnails";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,13 @@ async function postFinish(body: HookBody) {
 
   const mimeType = await detectMime(tmpPath);
 
+  const rawFolderId = body.Event.Upload.MetaData?.folderId;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  let folderId: string | null = null;
+  if (typeof rawFolderId === "string" && uuidRegex.test(rawFolderId)) {
+    if (await folderExists(rawFolderId)) folderId = rawFolderId;
+  }
+
   const fileId = randomUUID();
   const dst = canonicalUploadPath(fileId, originalName);
   await ensureDir(`${UPLOADS_DIR}/${fileId}`);
@@ -119,6 +127,7 @@ async function postFinish(body: HookBody) {
 
   const inserted = await insertFile({
     uploaderId: session.user_id,
+    folderId,
     originalName,
     mimeType,
     sizeBytes: size,

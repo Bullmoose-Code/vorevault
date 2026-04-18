@@ -20,6 +20,7 @@ export type FileRow = {
 
 export type InsertFileArgs = {
   uploaderId: string;
+  folderId?: string | null;
   originalName: string;
   mimeType: string;
   sizeBytes: number;
@@ -33,12 +34,12 @@ export type InsertFileArgs = {
 export async function insertFile(args: InsertFileArgs): Promise<FileRow> {
   const { rows } = await pool.query<FileRow>(
     `INSERT INTO files
-       (uploader_id, original_name, mime_type, size_bytes, storage_path,
+       (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path,
         thumbnail_path, duration_sec, width, height)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING *`,
     [
-      args.uploaderId, args.originalName, args.mimeType, args.sizeBytes,
+      args.uploaderId, args.folderId ?? null, args.originalName, args.mimeType, args.sizeBytes,
       args.storagePath, args.thumbnailPath ?? null, args.durationSec ?? null,
       args.width ?? null, args.height ?? null,
     ],
