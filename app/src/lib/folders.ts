@@ -237,3 +237,8 @@ export async function getFolder(id: string): Promise<FolderRow | null> {
   const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1`, [id]);
   return rows[0] ?? null;
 }
+
+export async function folderExists(id: string): Promise<boolean> {
+  const { rowCount } = await pool.query(`SELECT 1 FROM folders WHERE id = $1`, [id]);
+  return (rowCount ?? 0) > 0;
+}

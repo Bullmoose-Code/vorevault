@@ -35,6 +35,11 @@ vi.mock("@/lib/files", () => ({
   insertFile: (...a: unknown[]) => insertFile(...a),
 }));
 
+const folderExists = vi.fn();
+vi.mock("@/lib/folders", () => ({
+  folderExists: (...a: unknown[]) => folderExists(...a),
+}));
+
 const generateThumbnail = vi.fn();
 vi.mock("@/lib/thumbnails", () => ({
   generateThumbnail: (...a: unknown[]) => generateThumbnail(...a),
@@ -67,6 +72,7 @@ beforeEach(() => {
   getUploadSession.mockReset();
   finalizeUploadSession.mockReset();
   insertFile.mockReset();
+  folderExists.mockReset();
   generateThumbnail.mockReset();
   execFileMock.mockReset();
   renameMock.mockReset();
@@ -177,5 +183,55 @@ describe("POST /api/hooks/tus post-finish", () => {
       Event: { Upload: { ID: "x", Size: 1, MetaData: {} }, HTTPRequest: { Header: {} } },
     }));
     expect(res.status).toBe(200);
+  });
+
+  it("post-finish stores folder_id when metadata.folderId is a valid existing folder", async () => {
+    const validFolderId = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-2", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    folderExists.mockResolvedValueOnce(true);
+    insertFile.mockResolvedValueOnce({ id: "file-uuid-2" });
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-2",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-2" },
+          MetaData: { filename: "clip.mp4", folderId: validFolderId },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    expect(folderExists).toHaveBeenCalledWith(validFolderId);
+    expect(insertFile).toHaveBeenCalledWith(
+      expect.objectContaining({ folderId: validFolderId }),
+    );
+  });
+
+  it("post-finish falls back to null when metadata.folderId doesn't match an existing folder", async () => {
+    const missingFolderId = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-3", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    folderExists.mockResolvedValueOnce(false);
+    insertFile.mockResolvedValueOnce({ id: "file-uuid-3" });
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-3",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-3" },
+          MetaData: { filename: "clip.mp4", folderId: missingFolderId },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    expect(folderExists).toHaveBeenCalledWith(missingFolderId);
+    expect(insertFile).toHaveBeenCalledWith(
+      expect.objectContaining({ folderId: null }),
+    );
   });
 });

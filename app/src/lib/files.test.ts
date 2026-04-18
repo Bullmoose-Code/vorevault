@@ -21,11 +21,14 @@ beforeAll(async () => {
   process.env.TEST_PG_URL = pg.container.getConnectionUri();
 });
 afterAll(async () => { await stopPg(pg); });
-beforeEach(async () => { await pg.pool.query("TRUNCATE users RESTART IDENTITY CASCADE"); });
+beforeEach(async () => {
+  await pg.pool.query("TRUNCATE folders, files, upload_sessions, sessions, users RESTART IDENTITY CASCADE");
+});
 
-async function makeUser(): Promise<string> {
+async function makeUser(username = "a"): Promise<string> {
   const { rows } = await pg.pool.query<{ id: string }>(
-    `INSERT INTO users (discord_id, username) VALUES ('1', 'a') RETURNING id`,
+    `INSERT INTO users (discord_id, username) VALUES ($1, $2) RETURNING id`,
+    [username, username],
   );
   return rows[0].id;
 }
@@ -226,5 +229,63 @@ describe("files DB module", () => {
     await hardDeleteFile(f.id);
     const { rows } = await pg.pool.query(`SELECT * FROM files WHERE id = $1`, [f.id]);
     expect(rows.length).toBe(0);
+  });
+});
+
+describe("moveFile", () => {
+  it("uploader moves their own file to a folder", async () => {
+    const { moveFile } = await import("./files");
+    const userId = await makeUser();
+    const { rows: folderRows } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO folders (name, parent_id, created_by) VALUES ('Clips', NULL, $1) RETURNING id`,
+      [userId],
+    );
+    const { rows: fileRows } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, transcode_status)
+       VALUES ($1, 'x.mp4', 'video/mp4', 1, 'uploads/x/x.mp4', 'skipped') RETURNING id`,
+      [userId],
+    );
+    const updated = await moveFile({ fileId: fileRows[0].id, actorId: userId, isAdmin: false, folderId: folderRows[0].id });
+    expect(updated.folder_id).toBe(folderRows[0].id);
+  });
+
+  it("non-uploader non-admin is rejected", async () => {
+    const { moveFile, FileAuthError } = await import("./files");
+    const owner = await makeUser("owner");
+    const stranger = await makeUser("stranger");
+    const { rows: fileRows } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, transcode_status)
+       VALUES ($1, 'x.mp4', 'video/mp4', 1, 'uploads/x/x.mp4', 'skipped') RETURNING id`,
+      [owner],
+    );
+    await expect(
+      moveFile({ fileId: fileRows[0].id, actorId: stranger, isAdmin: false, folderId: null }),
+    ).rejects.toBeInstanceOf(FileAuthError);
+  });
+
+  it("rejects moving a soft-deleted file", async () => {
+    const { moveFile, FileDeletedError } = await import("./files");
+    const userId = await makeUser();
+    const { rows: fileRows } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, transcode_status, deleted_at)
+       VALUES ($1, 'x.mp4', 'video/mp4', 1, 'uploads/x/x.mp4', 'skipped', now()) RETURNING id`,
+      [userId],
+    );
+    await expect(
+      moveFile({ fileId: fileRows[0].id, actorId: userId, isAdmin: false, folderId: null }),
+    ).rejects.toBeInstanceOf(FileDeletedError);
+  });
+
+  it("rejects when target folder doesn't exist", async () => {
+    const { moveFile, FileFolderNotFoundError } = await import("./files");
+    const userId = await makeUser();
+    const { rows: fileRows } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, transcode_status)
+       VALUES ($1, 'x.mp4', 'video/mp4', 1, 'uploads/x/x.mp4', 'skipped') RETURNING id`,
+      [userId],
+    );
+    await expect(
+      moveFile({ fileId: fileRows[0].id, actorId: userId, isAdmin: false, folderId: "00000000-0000-0000-0000-000000000000" }),
+    ).rejects.toBeInstanceOf(FileFolderNotFoundError);
   });
 });
