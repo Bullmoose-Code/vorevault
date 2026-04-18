@@ -23,3 +23,10 @@
   background: var(--vv-success);
   color: var(--vv-ink);
 }
+
+@media (max-width: 640px) {
+  .banBtn {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+}
