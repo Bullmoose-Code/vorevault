@@ -1,6 +1,90 @@
-.page { padding: 16px 24px; max-width: 1200px; margin: 0 auto; }
-.toolbar { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 4px; border-top: 1.5px solid #222; border-bottom: 1.5px solid #222; margin: 8px 0 16px; }
-.meta { font-size: 12px; opacity: 0.7; }
-.sectionLabel { font-family: var(--font-fraunces), serif; font-style: italic; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1.5px solid #222; padding: 4px 0; margin: 16px 0 8px; }
-.folderGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.fileGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.page {
+  padding: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.folderHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 32px 8px;
+}
+
+.folderTitle {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 36px;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  color: var(--vv-ink);
+  margin: 0;
+  flex: 1;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 32px;
+  border-top: 1.5px solid var(--vv-ink);
+  border-bottom: 1.5px solid var(--vv-ink);
+  margin: 8px 0 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--vv-ink-muted);
+}
+
+.sectionLabel {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid var(--vv-ink);
+  padding: 4px 0;
+  margin: 16px 32px 8px;
+  color: var(--vv-ink);
+}
+
+.folderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0 32px 16px;
+}
+
+.fileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  padding: 0 32px 32px;
+}
+
+@media (max-width: 640px) {
+  .folderHeader {
+    padding: 16px 16px 8px;
+  }
+  .folderTitle {
+    font-size: 26px;
+    letter-spacing: -0.5px;
+  }
+  .toolbar {
+    padding: 8px 16px;
+  }
+  .sectionLabel {
+    margin: 16px 16px 8px;
+  }
+  .folderGrid,
+  .fileGrid {
+    grid-template-columns: 1fr;
+    padding: 0 16px 24px;
+  }
+}

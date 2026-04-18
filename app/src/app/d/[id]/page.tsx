@@ -6,6 +6,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { FolderTile } from "@/components/FolderTile";
 import { FileCard } from "@/components/FileCard";
 import { FolderActions } from "./FolderActions";
+import { NewFolderButton } from "@/components/NewFolderButton";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,11 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
     <main className={styles.page}>
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
       <Breadcrumbs crumbs={breadcrumbs.map((f) => ({ id: f.id, name: f.name }))} />
+
+      <div className={styles.folderHeader}>
+        <h1 className={styles.folderTitle}>{folder.name}</h1>
+        <NewFolderButton parentId={folder.id} parentName={folder.name} />
+      </div>
 
       <div className={styles.toolbar}>
         <div className={styles.meta}>
