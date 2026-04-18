@@ -28,6 +28,11 @@ updates:
         versions: ["16.x"]
       - dependency-name: "vitest"
         versions: ["3.x", "4.x"]
+      # @types/node's major must match the runtime Node major (node:22-alpine
+      # in our Dockerfile). When we bump the Docker base to the next LTS, lift
+      # this ignore in the same PR.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions workflow versions
   - package-ecosystem: "github-actions"
