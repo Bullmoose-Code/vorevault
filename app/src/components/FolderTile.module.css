@@ -1,13 +1,42 @@
 .tile {
-  display: block;
-  border: 2px solid #222;
-  padding: 18px 14px;
-  background: #fff;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 2px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+  color: var(--vv-ink);
+  padding: 14px 16px;
+  border-radius: var(--vv-radius-sm);
+  box-shadow: var(--vv-shadow-sm);
   text-decoration: none;
-  color: #222;
-  transition: transform 0.08s;
+  min-height: 64px;
+  justify-content: center;
 }
-.tile:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 #222; }
-.name { font-family: var(--font-fraunces), serif; font-style: italic; font-weight: 700; font-size: 20px; display: block; }
-.counts { display: block; font-family: var(--font-inter), system-ui, sans-serif; font-size: 12px; opacity: 0.6; margin-top: 4px; }
+
+.tile:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow);
+  background: var(--vv-warn);
+  text-decoration: none;
+}
+
+.name {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.counts {
+  font-size: 12px;
+  color: var(--vv-ink-muted);
+  font-family: var(--vv-font-mono);
+}
+
+@media (max-width: 640px) {
+  .tile {
+    min-height: 72px;
+    padding: 14px 16px;
+  }
+  .name { font-size: 17px; }
+}

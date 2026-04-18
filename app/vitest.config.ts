@@ -13,6 +13,10 @@ export default defineConfig({
     // exits non-zero. Tolerate until the teardown race is fixed properly.
     dangerouslyIgnoreUnhandledErrors: true,
   },
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },
   },

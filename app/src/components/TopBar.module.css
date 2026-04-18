@@ -22,14 +22,34 @@
   text-decoration: none;
 }
 
-.brand:hover {
-  text-decoration: none;
-}
+.brand:hover { text-decoration: none; }
+
+.searchDesktop { display: flex; flex: 1; }
 
 .actions {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.searchIconBtn {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+  border-radius: var(--vv-radius-sm);
+  box-shadow: var(--vv-shadow-sm);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.searchIconBtn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow);
+  background: var(--vv-warn);
 }
 
 .uploadPill {
@@ -43,6 +63,35 @@
   font-weight: 900;
 }
 
+.searchOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--vv-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.searchOverlayHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 2px solid var(--vv-ink);
+}
+
+.searchOverlayClose {
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+  border-radius: var(--vv-radius-sm);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .topbar {
     padding: 12px 16px;
@@ -53,11 +102,16 @@
     gap: 8px;
   }
 
-  .actions {
-    gap: 10px;
+  .searchDesktop {
+    display: none;
   }
 
-  /* Upload pill becomes icon-only on narrow screens. */
+  .searchIconBtn {
+    display: inline-flex;
+  }
+
+  .actions { gap: 10px; }
+
   .uploadPill {
     padding: 0;
     width: 44px;
@@ -65,7 +119,10 @@
     justify-content: center;
   }
 
-  .uploadLabel {
-    display: none;
-  }
+  .uploadLabel { display: none; }
+}
+
+@media (min-width: 641px) {
+  .searchIconBtn { display: none; }
+  .searchOverlay { display: none; }
 }

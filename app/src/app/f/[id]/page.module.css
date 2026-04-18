@@ -136,7 +136,7 @@
 
 .banner.processing {
   background: var(--vv-warn);
-  color: #7c2d12;
+  color: var(--vv-ink);
 }
 
 .banner.failed {

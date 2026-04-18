@@ -102,6 +102,19 @@
 
 .foldersEmpty { font-size: 14px; opacity: 0.6; font-style: italic; padding: 8px 0 16px; }
 
+.foldersHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.foldersHeader .sectionLabel {
+  margin: 0;
+  flex: 1;
+}
+
 @media (max-width: 640px) {
   .foldersSection { padding: 0 16px; }
   .sectionLabel { margin: 8px 16px 8px; }

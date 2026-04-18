@@ -1,0 +1,210 @@
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 320px;
+}
+
+.loading, .error {
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+  font-family: var(--vv-font-display);
+  font-style: italic;
+}
+
+.crumb { display: inline-flex; align-items: center; }
+
+.crumbBtn {
+  background: transparent;
+  border: none;
+  font: inherit;
+  color: var(--vv-accent);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+.crumbBtn[aria-current="page"] {
+  color: var(--vv-ink);
+  font-weight: 700;
+}
+
+.crumbSep { margin: 0 2px; color: var(--vv-ink-subtle); }
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: var(--vv-bg);
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--vv-ink);
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--vv-warn);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow-sm);
+}
+
+.rowIcon { font-size: 16px; }
+.rowName { flex: 1; }
+.rowArrow { color: var(--vv-ink-muted); font-size: 16px; }
+
+.empty {
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+  padding: 6px 2px;
+}
+
+.createBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1.5px dashed var(--vv-ink-muted);
+  color: var(--vv-ink-muted);
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+}
+
+.createBtn:hover {
+  color: var(--vv-ink);
+  border-color: var(--vv-ink);
+}
+
+.createForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--vv-bg);
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+  padding: 12px;
+}
+
+.createLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+}
+
+.createInput {
+  border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+}
+
+.createInput:focus {
+  outline: 2px solid var(--vv-accent);
+  outline-offset: 1px;
+}
+
+.createError {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--vv-danger);
+  font-size: 13px;
+  margin: 0;
+}
+
+.useExistingBtn {
+  background: var(--vv-bg-panel);
+  color: var(--vv-ink);
+  border: 1.5px solid var(--vv-ink);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+}
+
+.createActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.createCancel,
+.createSubmit {
+  border: 1.5px solid var(--vv-ink);
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+}
+
+.createCancel { background: var(--vv-bg); color: var(--vv-ink); }
+.createSubmit { background: var(--vv-accent); color: #fff; }
+.createSubmit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1.5px solid var(--vv-ink);
+  margin-top: auto;
+}
+
+.footerCancel,
+.footerSelect {
+  border: 1.5px solid var(--vv-ink);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+  box-shadow: var(--vv-shadow-sm);
+}
+
+.footerCancel { background: var(--vv-bg); color: var(--vv-ink); }
+.footerSelect { background: var(--vv-accent); color: #fff; }
+
+.footerCancel:hover,
+.footerSelect:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow);
+}
+
+@media (max-width: 640px) {
+  .list { max-height: 50dvh; }
+}

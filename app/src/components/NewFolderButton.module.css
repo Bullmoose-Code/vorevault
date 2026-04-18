@@ -1,25 +1,20 @@
-.trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--vv-bg-panel);
+.btn {
   border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
   color: var(--vv-ink);
-  padding: 8px 14px;
+  padding: 4px 10px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border-radius: var(--vv-radius-sm);
   box-shadow: var(--vv-shadow-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.trigger:hover {
+.btn:hover {
   transform: translate(-1px, -1px);
   box-shadow: var(--vv-shadow);
   background: var(--vv-warn);
 }
-
-.triggerIcon { font-size: 16px; }
-.triggerLabel { flex: 1; text-align: left; }
-.triggerCaret { color: var(--vv-ink-muted); }
