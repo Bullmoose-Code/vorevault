@@ -1,5 +1,6 @@
 import { pool } from "@/lib/db";
 import type { PoolClient } from "pg";
+import type { FileRow } from "@/lib/files";
 
 export type FolderRow = {
   id: string;
@@ -181,4 +182,58 @@ export async function deleteFolder(args: DeleteFolderArgs): Promise<void> {
   } finally {
     client.release();
   }
+}
+
+export type FolderWithCounts = FolderRow & {
+  direct_file_count: number;
+  direct_subfolder_count: number;
+};
+
+export async function listTopLevelFolders(): Promise<FolderWithCounts[]> {
+  const { rows } = await pool.query<FolderWithCounts>(
+    `SELECT f.*,
+            (SELECT count(*)::int FROM files c WHERE c.folder_id = f.id AND c.deleted_at IS NULL) AS direct_file_count,
+            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id) AS direct_subfolder_count
+       FROM folders f
+      WHERE f.parent_id IS NULL
+      ORDER BY LOWER(f.name)`,
+  );
+  return rows;
+}
+
+export async function listChildren(folderId: string): Promise<{ subfolders: FolderWithCounts[]; files: FileRow[] }> {
+  const { rows: subfolders } = await pool.query<FolderWithCounts>(
+    `SELECT f.*,
+            (SELECT count(*)::int FROM files c WHERE c.folder_id = f.id AND c.deleted_at IS NULL) AS direct_file_count,
+            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id) AS direct_subfolder_count
+       FROM folders f
+      WHERE f.parent_id = $1
+      ORDER BY LOWER(f.name)`,
+    [folderId],
+  );
+  const { rows: files } = await pool.query<FileRow>(
+    `SELECT * FROM files
+      WHERE folder_id = $1 AND deleted_at IS NULL
+      ORDER BY created_at DESC`,
+    [folderId],
+  );
+  return { subfolders, files };
+}
+
+export async function getBreadcrumbs(folderId: string): Promise<FolderRow[]> {
+  const { rows } = await pool.query<FolderRow & { depth: number }>(
+    `WITH RECURSIVE chain AS (
+       SELECT *, 0 AS depth FROM folders WHERE id = $1
+       UNION ALL
+       SELECT f.*, c.depth + 1 FROM folders f JOIN chain c ON f.id = c.parent_id
+     )
+     SELECT * FROM chain ORDER BY depth DESC`,
+    [folderId],
+  );
+  return rows.map(({ depth: _depth, ...rest }) => rest);
+}
+
+export async function getFolder(id: string): Promise<FolderRow | null> {
+  const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1`, [id]);
+  return rows[0] ?? null;
 }

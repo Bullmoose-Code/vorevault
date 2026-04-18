@@ -224,3 +224,49 @@ describe("folders — deleteFolder (orphan-to-parent)", () => {
     ).rejects.toBeInstanceOf(FolderAuthError);
   });
 });
+
+describe("folders — queries", () => {
+  it("listTopLevelFolders returns top-level folders with counts", async () => {
+    const { createFolder, listTopLevelFolders } = await import("./folders");
+    const userId = await makeUser();
+    const clips = await createFolder({ name: "Clips", parentId: null, createdBy: userId });
+    await createFolder({ name: "Apex", parentId: clips.id, createdBy: userId });
+    await pg.pool.query(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, folder_id, transcode_status)
+       VALUES ($1, 'x.mp4', 'video/mp4', 1, 'uploads/a/x.mp4', $2, 'skipped')`,
+      [userId, clips.id],
+    );
+    const list = await listTopLevelFolders();
+    expect(list).toHaveLength(1);
+    expect(list[0].name).toBe("Clips");
+    expect(list[0].direct_file_count).toBe(1);
+    expect(list[0].direct_subfolder_count).toBe(1);
+  });
+
+  it("listChildren returns subfolders and files of a given folder", async () => {
+    const { createFolder, listChildren } = await import("./folders");
+    const userId = await makeUser();
+    const clips = await createFolder({ name: "Clips", parentId: null, createdBy: userId });
+    await createFolder({ name: "Apex", parentId: clips.id, createdBy: userId });
+    await pg.pool.query(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, folder_id, transcode_status)
+       VALUES ($1, 'clip.mp4', 'video/mp4', 1, 'uploads/a/clip.mp4', $2, 'skipped')`,
+      [userId, clips.id],
+    );
+    const { subfolders, files } = await listChildren(clips.id);
+    expect(subfolders).toHaveLength(1);
+    expect(subfolders[0].name).toBe("Apex");
+    expect(files).toHaveLength(1);
+    expect(files[0].original_name).toBe("clip.mp4");
+  });
+
+  it("getBreadcrumbs returns root-to-leaf chain", async () => {
+    const { createFolder, getBreadcrumbs } = await import("./folders");
+    const userId = await makeUser();
+    const a = await createFolder({ name: "A", parentId: null, createdBy: userId });
+    const b = await createFolder({ name: "B", parentId: a.id, createdBy: userId });
+    const c = await createFolder({ name: "C", parentId: b.id, createdBy: userId });
+    const crumbs = await getBreadcrumbs(c.id);
+    expect(crumbs.map((f) => f.name)).toEqual(["A", "B", "C"]);
+  });
+});
