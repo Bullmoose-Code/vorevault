@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { pool } from "@/lib/db";
 import type { UserRow } from "@/lib/users";
 
-const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+// 30 days. Sliding window: getSessionUser pushes expires_at forward on every
+// successful lookup, so active users stay signed in indefinitely; dormant
+// sessions die after 30 days of no use.
+export const SESSION_TTL_SEC = 30 * 24 * 60 * 60;
+const SESSION_TTL_MS = SESSION_TTL_SEC * 1000;
 
 export type SessionRow = {
   id: string;
@@ -27,13 +31,18 @@ export async function createSession(
 }
 
 export async function getSessionUser(sessionId: string): Promise<UserRow | null> {
+  const newExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
   const { rows } = await pool.query<UserRow>(
-    `SELECT u.* FROM sessions s
-     JOIN users u ON u.id = s.user_id
-     WHERE s.id = $1
-       AND s.expires_at > now()
-       AND u.is_banned = false`,
-    [sessionId],
+    `WITH upd AS (
+       UPDATE sessions
+          SET expires_at = $2
+        WHERE id = $1 AND expires_at > now()
+       RETURNING user_id
+     )
+     SELECT u.* FROM upd
+     JOIN users u ON u.id = upd.user_id
+     WHERE u.is_banned = false`,
+    [sessionId, newExpiresAt],
   );
   return rows[0] ?? null;
 }

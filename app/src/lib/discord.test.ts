@@ -75,6 +75,71 @@ describe("fetchGuildMember", () => {
   });
 });
 
+describe("discord retry behavior", () => {
+  it("retries the token exchange once on fetch throw", async () => {
+    fetchMock
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: "abc", token_type: "Bearer" }),
+      });
+    const { exchangeCodeForToken } = await import("./discord");
+    const tok = await exchangeCodeForToken("code");
+    expect(tok).toBe("abc");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does NOT retry token exchange on 5xx (code may be consumed)", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      text: async () => "",
+    });
+    const { exchangeCodeForToken } = await import("./discord");
+    await expect(exchangeCodeForToken("code")).rejects.toThrow(/503/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries the guild-member fetch on 5xx", async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 502, text: async () => "" })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: { id: "u1", username: "ryan", avatar: null },
+          roles: ["rid"],
+        }),
+      });
+    const { fetchGuildMember } = await import("./discord");
+    const m = await fetchGuildMember("token");
+    expect(m?.hasRequiredRole).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries the guild-member fetch on fetch throw", async () => {
+    fetchMock
+      .mockRejectedValueOnce(new TypeError("fetch failed"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: { id: "u1", username: "ryan", avatar: null },
+          roles: [],
+        }),
+      });
+    const { fetchGuildMember } = await import("./discord");
+    const m = await fetchGuildMember("token");
+    expect(m?.hasRequiredRole).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does NOT retry the guild-member fetch on 404", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 404, text: async () => "" });
+    const { fetchGuildMember } = await import("./discord");
+    expect(await fetchGuildMember("token")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("buildAuthorizeUrl", () => {
   it("returns Discord authorize URL with required params", async () => {
     const { buildAuthorizeUrl } = await import("./discord");

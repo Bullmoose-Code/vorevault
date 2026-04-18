@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { loadEnv } from "@/lib/env";
 import { exchangeCodeForToken, fetchGuildMember } from "@/lib/discord";
 import { upsertUserFromDiscord } from "@/lib/users";
-import { createSession } from "@/lib/sessions";
+import { createSession, SESSION_TTL_SEC } from "@/lib/sessions";
 
 export const dynamic = "force-dynamic";
 
 const STATE_COOKIE = "vv_oauth_state";
 const SESSION_COOKIE = "vv_session";
-const SESSION_TTL_SEC = 24 * 60 * 60;
 
 function badRequest(msg: string) {
   return new NextResponse(msg, { status: 400 });

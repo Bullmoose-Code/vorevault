@@ -26,6 +26,7 @@ vi.mock("@/lib/users", () => ({
 const createSession = vi.fn();
 vi.mock("@/lib/sessions", () => ({
   createSession: (...a: unknown[]) => createSession(...a),
+  SESSION_TTL_SEC: 30 * 24 * 60 * 60,
 }));
 
 import { GET } from "./route";
