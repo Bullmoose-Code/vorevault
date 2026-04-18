@@ -46,3 +46,20 @@
   cursor: pointer;
   font-family: var(--vv-font-ui);
 }
+
+@media (max-width: 640px) {
+  .banner {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .url {
+    width: 100%;
+    min-width: 0;
+    word-break: break-all;
+    white-space: normal;
+    text-overflow: clip;
+    overflow: visible;
+  }
+}

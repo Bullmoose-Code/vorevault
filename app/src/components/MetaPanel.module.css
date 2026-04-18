@@ -55,3 +55,9 @@
 .status.skipped { background: var(--vv-bg-sunken); color: var(--vv-ink); }
 .status.done { background: var(--vv-success); color: var(--vv-ink); }
 .status.failed { background: var(--vv-danger); color: var(--vv-bg); }
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 16px;
+  }
+}
