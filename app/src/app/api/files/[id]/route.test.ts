@@ -16,9 +16,14 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 const getFileWithUploader = vi.fn();
+const renameFile = vi.fn();
 vi.mock("@/lib/files", async () => {
   const actual = await vi.importActual<typeof import("@/lib/files")>("@/lib/files");
-  return { ...actual, getFileWithUploader: (...a: unknown[]) => getFileWithUploader(...a) };
+  return {
+    ...actual,
+    getFileWithUploader: (...a: unknown[]) => getFileWithUploader(...a),
+    renameFile: (...a: unknown[]) => renameFile(...a),
+  };
 });
 
 const getBreadcrumbs = vi.fn();
@@ -33,7 +38,7 @@ vi.mock("@/lib/bookmarks", () => ({
   isBookmarked: (...a: unknown[]) => isBookmarked(...a),
 }));
 
-import { GET } from "./route";
+import { GET, PATCH } from "./route";
 
 const FILE_ID   = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
 const FOLDER_ID = "bbbbbbbb-bbbb-4bbb-abbb-bbbbbbbbbbbb";
@@ -43,6 +48,7 @@ function ctx(id: string) { return { params: Promise.resolve({ id }) }; }
 beforeEach(() => {
   getCurrentUser.mockReset();
   getFileWithUploader.mockReset();
+  renameFile.mockReset();
   getBreadcrumbs.mockReset();
   isBookmarked.mockReset();
 });
@@ -132,5 +138,61 @@ describe("GET /api/files/[id]", () => {
     expect(body.folderId).toBe(FOLDER_ID);
     expect(body.folderBreadcrumbs).toHaveLength(1);
     expect(body.bookmarked).toBe(true);
+  });
+});
+
+describe("PATCH /api/files/[id]", () => {
+  function patchReq(id: string, body: unknown) {
+    return new NextRequest(`https://app.test/api/files/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("returns 401 when unauthenticated", async () => {
+    getCurrentUser.mockResolvedValueOnce(null);
+    const res = await PATCH(patchReq(FILE_ID, { name: "renamed.mp4" }), ctx(FILE_ID));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 on invalid body", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    const res = await PATCH(patchReq(FILE_ID, { nope: 1 }), ctx(FILE_ID));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 200 and the renamed file on success", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    renameFile.mockResolvedValueOnce({ id: FILE_ID, original_name: "new.mp4" });
+    const res = await PATCH(patchReq(FILE_ID, { name: "new.mp4" }), ctx(FILE_ID));
+    expect(res.status).toBe(200);
+    expect(renameFile).toHaveBeenCalledWith(expect.objectContaining({
+      fileId: FILE_ID, actorId: "u1", isAdmin: false, newName: "new.mp4",
+    }));
+  });
+
+  it("returns 400 on FileNameError", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    const { FileNameError } = await import("@/lib/files");
+    renameFile.mockRejectedValueOnce(new FileNameError("name cannot contain path separators"));
+    const res = await PATCH(patchReq(FILE_ID, { name: "bad/name" }), ctx(FILE_ID));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 403 on FileAuthError", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    const { FileAuthError } = await import("@/lib/files");
+    renameFile.mockRejectedValueOnce(new FileAuthError());
+    const res = await PATCH(patchReq(FILE_ID, { name: "x.mp4" }), ctx(FILE_ID));
+    expect(res.status).toBe(403);
+  });
+
+  it("returns 404 on FileNotFoundError", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    const { FileNotFoundError } = await import("@/lib/files");
+    renameFile.mockRejectedValueOnce(new FileNotFoundError());
+    const res = await PATCH(patchReq(FILE_ID, { name: "x.mp4" }), ctx(FILE_ID));
+    expect(res.status).toBe(404);
   });
 });
