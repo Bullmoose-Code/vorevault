@@ -168,6 +168,38 @@ export class FileNotFoundError extends Error {
 export class FileFolderNotFoundError extends Error {
   constructor() { super("target folder not found"); this.name = "FileFolderNotFoundError"; }
 }
+export class FileNameError extends Error {
+  constructor(message: string) { super(message); this.name = "FileNameError"; }
+}
+
+export type RenameFileArgs = {
+  fileId: string;
+  actorId: string;
+  isAdmin: boolean;
+  newName: string;
+};
+
+export async function renameFile(args: RenameFileArgs): Promise<FileRow> {
+  const trimmed = args.newName.trim();
+  if (trimmed.length < 1 || trimmed.length > 255) {
+    throw new FileNameError("name must be 1-255 characters");
+  }
+  if (/[\/\\]/.test(trimmed) || trimmed === "." || trimmed === "..") {
+    throw new FileNameError("name cannot contain path separators");
+  }
+
+  const { rows } = await pool.query<FileRow>(`SELECT * FROM files WHERE id = $1`, [args.fileId]);
+  if (rows.length === 0) throw new FileNotFoundError();
+  const file = rows[0];
+  if (!args.isAdmin && file.uploader_id !== args.actorId) throw new FileAuthError();
+  if (file.deleted_at) throw new FileDeletedError();
+
+  const { rows: updated } = await pool.query<FileRow>(
+    `UPDATE files SET original_name = $1 WHERE id = $2 RETURNING *`,
+    [trimmed, args.fileId],
+  );
+  return updated[0];
+}
 
 export type MoveFileArgs = {
   fileId: string;
