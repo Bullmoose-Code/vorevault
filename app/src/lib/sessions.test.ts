@@ -63,6 +63,32 @@ describe("sessions", () => {
     expect(await getSessionUser(s.id)).toBeNull();
   });
 
+  it("extends expires_at on successful lookup (sliding window)", async () => {
+    const { createSession, getSessionUser } = await import("./sessions");
+    const userId = await makeUser();
+    const s = await createSession(userId, null);
+    // Backdate the session so any later extension is clearly visible.
+    await pg.pool.query(
+      `UPDATE sessions SET expires_at = now() + interval '1 hour' WHERE id = $1`,
+      [s.id],
+    );
+    const before = await pg.pool.query<{ expires_at: Date }>(
+      `SELECT expires_at FROM sessions WHERE id = $1`,
+      [s.id],
+    );
+    const beforeTs = before.rows[0].expires_at.getTime();
+    const u = await getSessionUser(s.id);
+    expect(u?.id).toBe(userId);
+    const after = await pg.pool.query<{ expires_at: Date }>(
+      `SELECT expires_at FROM sessions WHERE id = $1`,
+      [s.id],
+    );
+    const afterTs = after.rows[0].expires_at.getTime();
+    // Should be extended well past the 1-hour marker — the sliding window
+    // pushes it out to now + 30 days.
+    expect(afterTs - beforeTs).toBeGreaterThan(27 * 24 * 60 * 60 * 1000);
+  });
+
   it("ignores users that are banned", async () => {
     const { createSession, getSessionUser } = await import("./sessions");
     const userId = await makeUser();
