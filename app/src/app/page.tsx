@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listFiles } from "@/lib/files";
+import { listTopLevelFolders } from "@/lib/folders";
 import { TopBar } from "@/components/TopBar";
 import { FileCard } from "@/components/FileCard";
+import { FolderTile } from "@/components/FolderTile";
 import { Pill } from "@/components/Pill";
 import styles from "./page.module.css";
 
@@ -34,7 +36,10 @@ export default async function Home({ searchParams }: Props) {
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const mineOnly = params.mine === "1";
   const limit = 24;
-  const data = await listFiles(page, limit, mineOnly ? user.id : undefined);
+  const [data, folders] = await Promise.all([
+    listFiles(page, limit, mineOnly ? user.id : undefined),
+    listTopLevelFolders(),
+  ]);
   const totalPages = Math.ceil(data.total / limit);
 
   const totalBytes = data.files.reduce((sum, f) => sum + Number(f.size_bytes), 0);
@@ -63,6 +68,22 @@ export default async function Home({ searchParams }: Props) {
           )}
         </div>
 
+        {!mineOnly && (
+          <section className={styles.foldersSection}>
+            <h2 className={styles.sectionLabel}>Folders</h2>
+            {folders.length === 0 ? (
+              <p className={styles.foldersEmpty}>No folders yet. Create one from the upload page.</p>
+            ) : (
+              <div className={styles.folderGrid}>
+                {folders.map((f) => (
+                  <FolderTile key={f.id} id={f.id} name={f.name}
+                    fileCount={f.direct_file_count} subfolderCount={f.direct_subfolder_count} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
         {data.files.length === 0 ? (
           <div className={styles.empty}>
             {mineOnly ? (
@@ -78,11 +99,16 @@ export default async function Home({ searchParams }: Props) {
             )}
           </div>
         ) : (
-          <div className={styles.grid}>
-            {data.files.map((f) => (
-              <FileCard key={f.id} file={f} />
-            ))}
-          </div>
+          <>
+            {data.files.length > 0 && (
+              <h2 className={styles.sectionLabel}>Recent uploads</h2>
+            )}
+            <div className={styles.grid}>
+              {data.files.map((f) => (
+                <FileCard key={f.id} file={f} />
+              ))}
+            </div>
+          </>
         )}
 
         {totalPages > 1 && (
