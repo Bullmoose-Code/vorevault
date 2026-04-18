@@ -1,6 +1,81 @@
-.form { position: relative; flex: 1; max-width: 480px; }
-.input { width: 100%; border: 1.5px solid #222; background: #faf4e6; padding: 6px 12px; font-size: 14px; font-family: inherit; }
-.dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 2px solid #222; list-style: none; margin: 2px 0 0; padding: 6px; z-index: 20; max-height: 300px; overflow: auto; }
-.dropdown li a { display: block; padding: 4px 6px; color: #222; text-decoration: none; }
-.dropdown li a:hover { background: #f4ead5; }
-.kind { font-family: var(--font-fraunces), serif; font-style: italic; opacity: 0.6; margin-right: 6px; }
+.form {
+  position: relative;
+}
+
+.formInline {
+  flex: 1;
+  max-width: 480px;
+}
+
+.formOverlay {
+  width: 100%;
+  flex: 1;
+}
+
+.input {
+  width: 100%;
+  font-family: inherit;
+  color: var(--vv-ink);
+  border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+}
+
+.input:focus {
+  outline: 2px solid var(--vv-accent);
+  outline-offset: 1px;
+}
+
+.inputInline {
+  padding: 7px 12px;
+  font-size: 14px;
+  border-radius: var(--vv-radius-sm);
+  box-shadow: var(--vv-shadow-sm);
+}
+
+.inputOverlay {
+  padding: 12px 14px;
+  font-size: 16px;
+  border-radius: var(--vv-radius-sm);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--vv-bg-panel);
+  border: 2px solid var(--vv-ink);
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 6px;
+  z-index: 20;
+  max-height: 300px;
+  overflow: auto;
+  border-radius: var(--vv-radius-sm);
+}
+
+.dropdownInline { box-shadow: var(--vv-shadow); }
+.dropdownOverlay {
+  box-shadow: none;
+  max-height: none;
+  border-left: none;
+  border-right: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+.dropdown li a {
+  display: block;
+  padding: 8px 6px;
+  color: var(--vv-ink);
+  text-decoration: none;
+}
+
+.dropdown li a:hover { background: var(--vv-warn); }
+
+.kind {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  color: var(--vv-ink-muted);
+  margin-right: 6px;
+}
