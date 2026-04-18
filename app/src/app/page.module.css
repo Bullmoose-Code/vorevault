@@ -75,3 +75,39 @@
   font-weight: 700;
   font-style: normal;
 }
+
+@media (max-width: 640px) {
+  .subheader {
+    padding: 20px 16px 16px;
+    gap: 8px;
+  }
+
+  .greeting {
+    font-size: 26px;
+    letter-spacing: -0.5px;
+  }
+
+  .stats {
+    font-size: 13px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 16px 24px;
+  }
+
+  .empty {
+    padding: 48px 16px;
+  }
+
+  .empty h2 {
+    font-size: 22px;
+  }
+
+  .pagination {
+    padding: 0 16px 32px;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+}
