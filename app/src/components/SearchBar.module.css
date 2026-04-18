@@ -1,0 +1,6 @@
+.form { position: relative; flex: 1; max-width: 480px; }
+.input { width: 100%; border: 1.5px solid #222; background: #faf4e6; padding: 6px 12px; font-size: 14px; font-family: inherit; }
+.dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 2px solid #222; list-style: none; margin: 2px 0 0; padding: 6px; z-index: 20; max-height: 300px; overflow: auto; }
+.dropdown li a { display: block; padding: 4px 6px; color: #222; text-decoration: none; }
+.dropdown li a:hover { background: #f4ead5; }
+.kind { font-family: var(--font-fraunces), serif; font-style: italic; opacity: 0.6; margin-right: 6px; }

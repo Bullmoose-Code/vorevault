@@ -3,11 +3,13 @@
 import { useCallback, useState } from "react";
 import * as tus from "tus-js-client";
 import { DropZone } from "@/components/DropZone";
+import { FolderPicker } from "@/components/FolderPicker";
 import { UploadRow, type UploadState } from "@/components/UploadRow";
 import styles from "./UploadClient.module.css";
 
 export function UploadClient() {
   const [uploads, setUploads] = useState<UploadState[]>([]);
+  const [folderId, setFolderId] = useState<string | null>(null);
 
   const startUpload = useCallback((file: File) => {
     setUploads((prev) => {
@@ -27,6 +29,7 @@ export function UploadClient() {
         metadata: {
           filename: file.name,
           filetype: file.type || "application/octet-stream",
+          ...(folderId ? { folderId } : {}),
         },
         onError: (err) => {
           setUploads((s) =>
@@ -47,13 +50,14 @@ export function UploadClient() {
       upload.start();
       return [...prev, next];
     });
-  }, []);
+  }, [folderId]);
 
   const doneCount = uploads.filter((u) => u.status === "done").length;
   const totalBytes = uploads.reduce((sum, u) => sum + u.size, 0);
 
   return (
     <>
+      <FolderPicker value={folderId} onChange={setFolderId} />
       <DropZone onFiles={(files) => files.forEach(startUpload)} />
 
       {uploads.length > 0 && (

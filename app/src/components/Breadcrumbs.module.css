@@ -1,0 +1,5 @@
+.nav { font-family: var(--font-fraunces), serif; font-style: italic; font-size: 15px; margin: 10px 0; }
+.list { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; list-style: none; padding: 0; margin: 0; }
+.list a { color: #222; text-decoration: underline; }
+.sep { opacity: 0.4; margin: 0 6px; }
+.here { font-weight: 700; }

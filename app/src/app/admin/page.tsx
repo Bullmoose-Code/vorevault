@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listAllUsers, getDiskUsage } from "@/lib/admin";
+import { listTopLevelFolders } from "@/lib/folders";
 import { StatCard } from "@/components/StatCard";
 import { BanButton } from "./AdminActions";
+import { FolderAdminActions } from "./FolderAdminActions";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +21,7 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
   if (!user.is_admin) redirect("/");
 
-  const [users, disk] = await Promise.all([listAllUsers(), getDiskUsage()]);
+  const [users, disk, folders] = await Promise.all([listAllUsers(), getDiskUsage(), listTopLevelFolders()]);
 
   return (
     <>
@@ -79,6 +81,46 @@ export default async function AdminPage() {
             </tbody>
           </table>
         </div>
+
+        <h2 className={styles.sectionTitle}>Folders ({folders.length})</h2>
+        {folders.length === 0 ? (
+          <p>No folders yet.</p>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Files</th>
+                  <th>Subfolders</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {folders.map((f) => (
+                  <tr key={f.id}>
+                    <td className={styles.name}>
+                      <a href={`/d/${f.id}`}>{f.name}</a>
+                    </td>
+                    <td>{f.direct_file_count}</td>
+                    <td>{f.direct_subfolder_count}</td>
+                    <td>
+                      {new Date(f.created_at).toLocaleString("en-US", {
+                        timeZone: "America/New_York",
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </td>
+                    <td>
+                      <FolderAdminActions folder={f} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
     </>
   );

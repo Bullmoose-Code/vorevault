@@ -60,6 +60,9 @@ export function UserChip({
           <a className={styles.item} href="/?mine=1" role="menuitem">
             ↑ My uploads
           </a>
+          <a className={styles.item} href="/saved" role="menuitem">
+            Saved
+          </a>
           {isAdmin && (
             <a className={styles.item} href="/admin" role="menuitem">
               Admin

@@ -1,0 +1,6 @@
+.page { padding: 16px 24px; max-width: 1200px; margin: 0 auto; }
+.title { font-family: var(--font-fraunces), serif; font-style: italic; font-size: 28px; margin: 16px 0 8px; }
+.sectionLabel { font-family: var(--font-fraunces), serif; font-style: italic; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1.5px solid #222; padding: 4px 0; margin: 16px 0 8px; }
+.folderGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.fileGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.empty { font-size: 14px; opacity: 0.7; padding: 24px 0; }

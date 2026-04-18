@@ -76,6 +76,37 @@
   font-style: normal;
 }
 
+.foldersSection {
+  padding: 0 32px;
+  margin-bottom: 12px;
+}
+
+.sectionLabel {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid var(--vv-ink, #222);
+  padding: 4px 0;
+  margin: 12px 32px 12px;
+}
+
+.foldersSection .sectionLabel { margin: 0 0 12px; padding: 4px 0; }
+
+.folderGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.foldersEmpty { font-size: 14px; opacity: 0.6; font-style: italic; padding: 8px 0 16px; }
+
+@media (max-width: 640px) {
+  .foldersSection { padding: 0 16px; }
+  .sectionLabel { margin: 8px 16px 8px; }
+}
+
 @media (max-width: 640px) {
   .subheader {
     padding: 20px 16px 16px;

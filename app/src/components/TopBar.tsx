@@ -1,6 +1,7 @@
 import { MooseLogo } from "./MooseLogo";
 import { Pill } from "./Pill";
 import { UserChip } from "./UserChip";
+import { SearchBar } from "./SearchBar";
 import styles from "./TopBar.module.css";
 
 export function TopBar({
@@ -20,6 +21,7 @@ export function TopBar({
         <MooseLogo size="header" />
         vorevault
       </a>
+      <SearchBar />
       <div className={styles.actions}>
         {showUpload && (
           <Pill

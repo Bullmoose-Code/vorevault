@@ -269,4 +269,38 @@ describe("folders — queries", () => {
     const crumbs = await getBreadcrumbs(c.id);
     expect(crumbs.map((f) => f.name)).toEqual(["A", "B", "C"]);
   });
+
+  it("getFolderWithCreator returns folder row with creator_username", async () => {
+    const { createFolder, getFolderWithCreator } = await import("./folders");
+    const userId = await makeUser("alice");
+    const folder = await createFolder({ name: "Clips", parentId: null, createdBy: userId });
+    const result = await getFolderWithCreator(folder.id);
+    expect(result).not.toBeNull();
+    expect(result!.name).toBe("Clips");
+    expect(result!.creator_username).toBe("alice");
+  });
+
+  it("getFolderWithCreator returns null for unknown id", async () => {
+    const { getFolderWithCreator } = await import("./folders");
+    const result = await getFolderWithCreator("00000000-0000-0000-0000-000000000000");
+    expect(result).toBeNull();
+  });
+
+  it("listChildrenWithUploader returns subfolders and files with uploader_name", async () => {
+    const { createFolder, listChildrenWithUploader } = await import("./folders");
+    const userId = await makeUser("bob");
+    const parent = await createFolder({ name: "Parent", parentId: null, createdBy: userId });
+    await createFolder({ name: "Child", parentId: parent.id, createdBy: userId });
+    await pg.pool.query(
+      `INSERT INTO files (uploader_id, original_name, mime_type, size_bytes, storage_path, folder_id, transcode_status)
+       VALUES ($1, 'clip.mp4', 'video/mp4', 1, 'uploads/a/clip.mp4', $2, 'skipped')`,
+      [userId, parent.id],
+    );
+    const { subfolders, files } = await listChildrenWithUploader(parent.id);
+    expect(subfolders).toHaveLength(1);
+    expect(subfolders[0].name).toBe("Child");
+    expect(files).toHaveLength(1);
+    expect(files[0].original_name).toBe("clip.mp4");
+    expect(files[0].uploader_name).toBe("bob");
+  });
 });

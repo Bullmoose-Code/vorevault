@@ -1,5 +1,5 @@
 import { pool } from "@/lib/db";
-import type { FileRow } from "@/lib/files";
+import type { FileRow, FileWithUploader } from "@/lib/files";
 
 export type BookmarkListItem = { file: FileRow; created_at: Date };
 
@@ -48,6 +48,33 @@ export async function listBookmarks(
   );
   return {
     items: items.map(({ bm_created_at, ...file }) => ({ file: file as FileRow, created_at: bm_created_at })),
+    total: Number(totalRows[0].c),
+  };
+}
+
+export type BookmarkListItemWithUploader = { file: FileWithUploader; created_at: Date };
+
+export async function listBookmarksWithUploader(
+  userId: string, limit: number, offset: number,
+): Promise<{ items: BookmarkListItemWithUploader[]; total: number }> {
+  const { rows: items } = await pool.query<FileWithUploader & { bm_created_at: Date }>(
+    `SELECT f.*, u.username AS uploader_name, b.created_at AS bm_created_at
+       FROM bookmarks b
+       JOIN files f ON f.id = b.file_id
+       JOIN users u ON u.id = f.uploader_id
+      WHERE b.user_id = $1 AND f.deleted_at IS NULL
+      ORDER BY b.created_at DESC
+      LIMIT $2 OFFSET $3`,
+    [userId, limit, offset],
+  );
+  const { rows: totalRows } = await pool.query<{ c: string }>(
+    `SELECT count(*)::text AS c
+       FROM bookmarks b JOIN files f ON f.id = b.file_id
+      WHERE b.user_id = $1 AND f.deleted_at IS NULL`,
+    [userId],
+  );
+  return {
+    items: items.map(({ bm_created_at, ...file }) => ({ file: file as FileWithUploader, created_at: bm_created_at })),
     total: Number(totalRows[0].c),
   };
 }

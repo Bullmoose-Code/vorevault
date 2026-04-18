@@ -77,4 +77,14 @@ describe("bookmarks", () => {
     await pg.pool.query(`DELETE FROM files WHERE id = $1`, [fileId]);
     expect(await isBookmarked(userId, fileId)).toBe(false);
   });
+
+  it("listBookmarksWithUploader returns items with uploader_name", async () => {
+    const { addBookmark, listBookmarksWithUploader } = await import("./bookmarks");
+    const { userId, fileId } = await makeUserFile();
+    await addBookmark(userId, fileId);
+    const { items, total } = await listBookmarksWithUploader(userId, 10, 0);
+    expect(total).toBe(1);
+    expect(items[0].file.id).toBe(fileId);
+    expect(items[0].file.uploader_name).toBe("u");
+  });
 });
