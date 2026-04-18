@@ -1,81 +1,63 @@
 "use client";
+
 import { useEffect, useState } from "react";
+import { Modal } from "./Modal";
+import { FolderPickerModal } from "./FolderPickerModal";
 import styles from "./FolderPicker.module.css";
 
-type Node = { id: string; name: string; parent_id: string | null };
+type Props = {
+  value: string | null;
+  onChange: (folderId: string | null) => void;
+};
 
-export function FolderPicker({
-  value, onChange,
-}: { value: string | null; onChange: (folderId: string | null) => void }) {
-  const [nodes, setNodes] = useState<Node[]>([]);
+export function FolderPicker({ value, onChange }: Props) {
   const [open, setOpen] = useState(false);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/folders/tree").then((r) => r.json()).then((d) => setNodes(d.folders ?? []));
-  }, []);
+    if (!value) { setSelectedName(null); return; }
+    let cancelled = false;
+    fetch("/api/folders/tree")
+      .then((r) => r.json())
+      .then((d: { folders?: Array<{ id: string; name: string }> }) => {
+        if (cancelled) return;
+        const node = (d.folders ?? []).find((n) => n.id === value);
+        setSelectedName(node?.name ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [value]);
 
-  const selected = nodes.find((n) => n.id === value);
-
-  async function createAt(parentId: string | null) {
-    const name = prompt("New folder name:");
-    if (!name) return;
-    const res = await fetch("/api/folders", {
-      method: "POST", body: JSON.stringify({ name, parentId }),
-      headers: { "Content-Type": "application/json" },
-    });
-    if (res.ok) {
-      const folder = await res.json();
-      setNodes((prev) => [...prev, folder]);
-      onChange(folder.id);
-    } else if (res.status === 409) {
-      const body = await res.json();
-      if (confirm(`A folder named "${name}" already exists here. Use it?`)) onChange(body.existingId);
-    } else {
-      alert(`Create failed: ${res.status}`);
-    }
-  }
+  const label = value
+    ? `Folder: ${selectedName ?? "…"}`
+    : "Folder: None (root)";
 
   return (
-    <div className={styles.picker}>
-      <button type="button" className={styles.trigger} onClick={() => setOpen((o) => !o)}>
-        Folder: <strong>{selected ? selected.name : "None (root)"}</strong>
+    <>
+      <button
+        type="button"
+        className={styles.trigger}
+        onClick={() => setOpen(true)}
+      >
+        <span className={styles.triggerIcon} aria-hidden="true">📁</span>
+        <span className={styles.triggerLabel}>{label}</span>
+        <span className={styles.triggerCaret} aria-hidden="true">›</span>
       </button>
-      {open && (
-        <ul className={styles.tree}>
-          <li>
-            <button type="button" onClick={() => { onChange(null); setOpen(false); }}>
-              None (root)
-            </button>
-            <button type="button" className={styles.add} onClick={() => createAt(null)}>+ new</button>
-          </li>
-          {nodes.filter((n) => n.parent_id === null).map((root) => (
-            <FolderBranch key={root.id} node={root} all={nodes}
-              onPick={(id) => { onChange(id); setOpen(false); }}
-              onCreate={(parentId) => createAt(parentId)} />
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function FolderBranch({
-  node, all, onPick, onCreate,
-}: {
-  node: Node; all: Node[];
-  onPick: (id: string) => void;
-  onCreate: (parentId: string) => void;
-}) {
-  const children = all.filter((n) => n.parent_id === node.id);
-  return (
-    <li>
-      <button type="button" onClick={() => onPick(node.id)}>{node.name}</button>
-      <button type="button" onClick={() => onCreate(node.id)}>+ new inside</button>
-      {children.length > 0 && (
-        <ul>
-          {children.map((c) => <FolderBranch key={c.id} node={c} all={all} onPick={onPick} onCreate={onCreate} />)}
-        </ul>
-      )}
-    </li>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Choose folder"
+        size="md"
+      >
+        <FolderPickerModal
+          initialFolderId={value}
+          onCancel={() => setOpen(false)}
+          onSelect={(folderId) => {
+            onChange(folderId);
+            setOpen(false);
+          }}
+        />
+      </Modal>
+    </>
   );
 }
