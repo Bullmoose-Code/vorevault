@@ -72,7 +72,7 @@ describe("POST /api/folders", () => {
     getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
     const { FolderNotFoundError } = await import("@/lib/folders");
     createFolder.mockRejectedValueOnce(new FolderNotFoundError("parent folder"));
-    const res = await POST(reqBody({ name: "Clips", parentId: "ghost" }));
+    const res = await POST(reqBody({ name: "Clips", parentId: "00000000-0000-0000-0000-000000000000" }));
     expect(res.status).toBe(404);
   });
 });
