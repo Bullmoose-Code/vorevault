@@ -34,6 +34,16 @@
   color: var(--vv-ink);
 }
 
+/* Default: show drag copy, hide tap copy. */
+.hoverCopy { display: inline; }
+.touchCopy { display: none; }
+
+/* Touch devices: show tap copy, hide drag copy. */
+@media (hover: none) and (pointer: coarse) {
+  .hoverCopy { display: none; }
+  .touchCopy { display: inline; }
+}
+
 .limit {
   color: var(--vv-ink-muted);
   font-style: italic;
@@ -57,4 +67,20 @@
 
 .hiddenInput {
   display: none;
+}
+
+@media (max-width: 640px) {
+  .zone {
+    padding: 40px 20px;
+    border-width: 2px;
+  }
+
+  .icon {
+    font-size: 44px;
+    margin-bottom: 10px;
+  }
+
+  .heading {
+    font-size: 22px;
+  }
 }
