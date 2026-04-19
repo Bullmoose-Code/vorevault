@@ -14,7 +14,7 @@
 
 .card:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--vv-ink);
+  box-shadow: var(--vv-shadow-xl);
   text-decoration: none;
 }
 
@@ -50,12 +50,12 @@
   letter-spacing: 1px;
 }
 
-.tile1 { background: linear-gradient(135deg, #d97706, #b45309); }
-.tile2 { background: linear-gradient(135deg, #84cc16, #4d7c0f); }
-.tile3 { background: linear-gradient(135deg, #0891b2, #155e75); }
-.tile4 { background: linear-gradient(135deg, #be185d, #831843); }
-.tile5 { background: linear-gradient(135deg, #7c2d12, #431407); }
-.tile6 { background: linear-gradient(135deg, #c2410c, #9a3412); }
+.tile1 { background: var(--vv-accent); }
+.tile2 { background: var(--vv-success); }
+.tile3 { background: var(--vv-info); }
+.tile4 { background: var(--vv-danger); }
+.tile5 { background: var(--vv-ink-muted); }
+.tile6 { background: var(--vv-accent-soft); }
 
 .typeBadge {
   position: absolute;
@@ -117,8 +117,6 @@
 }
 
 .sub {
-  font-size: 11px;
-  color: var(--vv-ink-muted);
   margin-top: 2px;
-  font-style: italic;
+  font-size: 11px;
 }

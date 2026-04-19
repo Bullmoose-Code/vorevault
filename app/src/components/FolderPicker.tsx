@@ -39,7 +39,7 @@ export function FolderPicker({ value, onChange }: Props) {
         className={styles.trigger}
         onClick={() => setOpen(true)}
       >
-        <span className={styles.triggerIcon} aria-hidden="true">📁</span>
+        <span className={styles.triggerIcon} aria-hidden="true">·</span>
         <span className={styles.triggerLabel}>{label}</span>
         <span className={styles.triggerCaret} aria-hidden="true">›</span>
       </button>

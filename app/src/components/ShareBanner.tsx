@@ -17,7 +17,7 @@ export function ShareBanner({ url }: { url: string }) {
       <span className={styles.label}>Public link</span>
       <code className={styles.url}>{url}</code>
       <button type="button" className={styles.copyBtn} onClick={handleCopy}>
-        {copied ? "Copied!" : "Copy"}
+        {copied ? "Copied" : "Copy"}
       </button>
     </div>
   );

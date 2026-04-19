@@ -17,7 +17,7 @@ export default async function SavedPage() {
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
       <h1 className={`vv-title ${styles.title}`}>Saved</h1>
       {items.length === 0 ? (
-        <p className={styles.empty}>No saved files yet. Tap the star on any file to save it here.</p>
+        <p className={styles.empty}>Nothing saved yet. Tap ★ on any file to pin it here.</p>
       ) : (
         <div className={styles.grid}>
           {items.map((b) => <FileCard key={b.file.id} file={b.file} />)}

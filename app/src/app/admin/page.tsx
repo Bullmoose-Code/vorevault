@@ -84,7 +84,7 @@ export default async function AdminPage() {
 
         <h2 className={`vv-title ${styles.sectionTitle}`}>Folders ({folders.length})</h2>
         {folders.length === 0 ? (
-          <p>No folders yet.</p>
+          <p className="vv-meta">No folders yet.</p>
         ) : (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
