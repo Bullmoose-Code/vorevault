@@ -159,7 +159,7 @@ export function FolderPickerModal({ initialFolderId, onCancel, onSelect }: Props
               onClick={() => setCurrentId(c.id)}
               className={styles.row}
             >
-              <span className={styles.rowIcon} aria-hidden="true">📁</span>
+              <span className={styles.rowIcon} aria-hidden="true">·</span>
               <span className={styles.rowName}>{c.name}</span>
               <span className={styles.rowArrow} aria-hidden="true">›</span>
             </button>
