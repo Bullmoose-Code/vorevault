@@ -29,10 +29,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   return (
     <main className={styles.page}>
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
-      <h1 className={styles.title}>Search: <em>{q}</em></h1>
+      <h1 className={`vv-title ${styles.title}`}>Search: <em>{q}</em></h1>
       {result.folders.length > 0 && (
         <>
-          <h2 className={styles.sectionLabel}>Folders</h2>
+          <h2 className={`vv-section-label ${styles.sectionLabel}`}>Folders</h2>
           <div className={styles.folderGrid}>
             {result.folders.map((f) => (
               <FolderTile key={f.id} id={f.id} name={f.name} fileCount={0} subfolderCount={0} />
@@ -42,7 +42,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       )}
       {fileCards.length > 0 && (
         <>
-          <h2 className={styles.sectionLabel}>Files</h2>
+          <h2 className={`vv-section-label ${styles.sectionLabel}`}>Files</h2>
           <div className={styles.fileGrid}>
             {fileCards.map((f) => <FileCard key={f.id} file={f} />)}
           </div>

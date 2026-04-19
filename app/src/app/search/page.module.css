@@ -6,23 +6,11 @@
 }
 
 .title {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 28px;
   margin: 16px 0 8px;
-  color: var(--vv-ink);
 }
 
 .sectionLabel {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border-bottom: 1.5px solid var(--vv-ink);
-  padding: 4px 0;
   margin: 16px 0 8px;
-  color: var(--vv-ink);
 }
 
 .folderGrid {
@@ -46,8 +34,5 @@
 @media (max-width: 640px) {
   .page {
     padding: 16px;
-  }
-  .title {
-    font-size: 24px;
   }
 }
