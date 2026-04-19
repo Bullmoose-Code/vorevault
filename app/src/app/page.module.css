@@ -13,34 +13,6 @@
   flex-wrap: wrap;
 }
 
-.greeting {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 36px;
-  font-weight: 400;
-  letter-spacing: -1px;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.greeting strong {
-  color: var(--vv-accent);
-  font-weight: 900;
-}
-
-.stats {
-  color: var(--vv-ink-muted);
-  font-style: italic;
-  font-size: 14px;
-}
-
-.stats strong {
-  color: var(--vv-ink);
-  font-style: normal;
-  font-weight: 700;
-  font-family: var(--vv-font-mono);
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -51,14 +23,6 @@
 .empty {
   padding: 80px 32px;
   text-align: center;
-}
-
-.empty h2 {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-weight: 900;
-  font-size: 28px;
-  margin-bottom: 16px;
 }
 
 .pagination {
@@ -82,17 +46,17 @@
 }
 
 .sectionLabel {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border-bottom: 1.5px solid var(--vv-ink, #222);
-  padding: 4px 0;
   margin: 12px 32px 12px;
 }
 
-.foldersSection .sectionLabel { margin: 0 0 12px; padding: 4px 0; }
+.foldersSection .sectionLabel {
+  margin: 0 0 12px;
+}
+
+.foldersHeader .sectionLabel {
+  margin: 0;
+  flex: 1;
+}
 
 .folderGrid {
   display: grid;
@@ -110,11 +74,6 @@
   margin-bottom: 12px;
 }
 
-.foldersHeader .sectionLabel {
-  margin: 0;
-  flex: 1;
-}
-
 @media (max-width: 640px) {
   .foldersSection { padding: 0 16px; }
   .sectionLabel { margin: 8px 16px 8px; }
@@ -126,15 +85,6 @@
     gap: 8px;
   }
 
-  .greeting {
-    font-size: 26px;
-    letter-spacing: -0.5px;
-  }
-
-  .stats {
-    font-size: 13px;
-  }
-
   .grid {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -143,10 +93,6 @@
 
   .empty {
     padding: 48px 16px;
-  }
-
-  .empty h2 {
-    font-size: 22px;
   }
 
   .pagination {

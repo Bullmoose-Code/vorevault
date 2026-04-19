@@ -5,7 +5,7 @@ type Row = { k: string; v: React.ReactNode };
 export function MetaPanel({ title, rows }: { title: string; rows: Row[] }) {
   return (
     <aside className={styles.panel}>
-      <h3 className={styles.title}>{title}</h3>
+      <h3 className={`vv-dialog-title ${styles.title}`}>{title}</h3>
       {rows.map((row, i) => (
         <div key={i} className={styles.row}>
           <span className={styles.k}>{row.k}</span>

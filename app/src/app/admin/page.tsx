@@ -31,7 +31,7 @@ export default async function AdminPage() {
       </div>
 
       <main className={styles.main}>
-        <h2 className={styles.sectionTitle}>Disk usage</h2>
+        <h2 className={`vv-title ${styles.sectionTitle}`}>Disk usage</h2>
         <div className={styles.statsGrid}>
           <StatCard label="Active files" value={disk.total_files} />
           <StatCard label="Total size" value={formatBytes(disk.total_bytes)} />
@@ -39,7 +39,7 @@ export default async function AdminPage() {
           <StatCard label="Deleted (pending cleanup)" value={disk.deleted_pending_cleanup} />
         </div>
 
-        <h2 className={styles.sectionTitle}>Users ({users.length})</h2>
+        <h2 className={`vv-title ${styles.sectionTitle}`}>Users ({users.length})</h2>
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
@@ -82,7 +82,7 @@ export default async function AdminPage() {
           </table>
         </div>
 
-        <h2 className={styles.sectionTitle}>Folders ({folders.length})</h2>
+        <h2 className={`vv-title ${styles.sectionTitle}`}>Folders ({folders.length})</h2>
         {folders.length === 0 ? (
           <p>No folders yet.</p>
         ) : (

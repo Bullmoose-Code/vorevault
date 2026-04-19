@@ -54,7 +54,7 @@ export default async function Home({ searchParams }: Props) {
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
       <main className={styles.main}>
         <div className={styles.subheader}>
-          <h1 className={styles.greeting}>
+          <h1 className="vv-greeting">
             {mineOnly ? (
               <>Your uploads, <strong>{user.username}</strong>.</>
             ) : (
@@ -62,7 +62,7 @@ export default async function Home({ searchParams }: Props) {
             )}
           </h1>
           {data.files.length > 0 && (
-            <div className={styles.stats}>
+            <div className="vv-meta">
               <strong>{data.total}</strong> {data.total === 1 ? "clip" : "clips"} · <strong>{formatBytes(totalBytes)}</strong> · last upload {relativeTime(lastUpload)}
               {mineOnly && <> · <a href="/">view all</a></>}
             </div>
@@ -72,7 +72,7 @@ export default async function Home({ searchParams }: Props) {
         {!mineOnly && (
           <section className={styles.foldersSection}>
             <div className={styles.foldersHeader}>
-              <h2 className={styles.sectionLabel}>Folders</h2>
+              <h2 className={`vv-section-label ${styles.sectionLabel}`}>Folders</h2>
               <NewFolderButton parentId={null} parentName={null} />
             </div>
             {folders.length === 0 ? (
@@ -94,12 +94,12 @@ export default async function Home({ searchParams }: Props) {
           <div className={styles.empty}>
             {mineOnly ? (
               <>
-                <h2>You haven&apos;t uploaded anything yet.</h2>
+                <h2 className="vv-title">You haven&apos;t uploaded anything yet.</h2>
                 <Pill variant="primary" href="/upload">↑ Upload</Pill>
               </>
             ) : (
               <>
-                <h2>Drop the first clip in the vault.</h2>
+                <h2 className="vv-title">Drop the first clip in the vault.</h2>
                 <Pill variant="primary" href="/upload">↑ Upload</Pill>
               </>
             )}
@@ -107,7 +107,7 @@ export default async function Home({ searchParams }: Props) {
         ) : (
           <>
             {data.files.length > 0 && (
-              <h2 className={styles.sectionLabel}>Recent uploads</h2>
+              <h2 className={`vv-section-label ${styles.sectionLabel}`}>Recent uploads</h2>
             )}
             <div className={styles.grid}>
               {data.files.map((f) => (

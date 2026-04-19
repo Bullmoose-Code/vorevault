@@ -27,24 +27,7 @@
 }
 
 .heading {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 40px;
-  font-weight: 900;
-  letter-spacing: -1px;
   margin: 0;
-}
-
-.lede {
-  color: var(--vv-ink-muted);
-  font-style: italic;
-  font-size: 14px;
-}
-
-.lede strong {
-  color: var(--vv-ink);
-  font-style: normal;
-  font-weight: 700;
 }
 
 .tip {
@@ -83,10 +66,6 @@
     margin: 6px 0 16px;
   }
 
-  .heading {
-    font-size: 28px;
-    letter-spacing: -0.5px;
-  }
 
   .tip {
     padding: 14px 16px;

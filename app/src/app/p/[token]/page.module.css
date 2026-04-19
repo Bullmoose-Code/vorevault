@@ -44,12 +44,7 @@
 }
 
 .title {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 22px;
-  font-weight: 900;
   margin: 18px 0 2px;
-  letter-spacing: -0.5px;
 }
 
 .meta {
@@ -106,7 +101,6 @@
   }
 
   .title {
-    font-size: 20px;
     margin: 14px 0 2px;
   }
 
