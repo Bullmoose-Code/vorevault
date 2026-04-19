@@ -15,12 +15,8 @@
 }
 
 .value {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-weight: 900;
   font-size: 24px;
   color: var(--vv-accent);
-  letter-spacing: -0.5px;
   line-height: 1.2;
   margin-top: 4px;
 }
