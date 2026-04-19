@@ -22,8 +22,8 @@ export default async function UploadPage() {
         <div className={styles.back}><a href="/">← back to vault</a></div>
 
         <div className={styles.header}>
-          <h1 className={styles.heading}>Drop something in the vault.</h1>
-          <div className={styles.lede}>Up to <strong>10 GB</strong> per file · resumable</div>
+          <h1 className={`vv-greeting ${styles.heading}`}>Drop something in the vault.</h1>
+          <div className="vv-meta">Up to <strong>10 GB</strong> per file · resumable</div>
         </div>
 
         <UploadClient />
