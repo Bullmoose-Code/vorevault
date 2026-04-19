@@ -15,7 +15,7 @@ export default async function SavedPage() {
   return (
     <main className={styles.page}>
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
-      <h1 className={styles.title}>Saved</h1>
+      <h1 className={`vv-title ${styles.title}`}>Saved</h1>
       {items.length === 0 ? (
         <p className={styles.empty}>No saved files yet. Tap the star on any file to save it here.</p>
       ) : (
