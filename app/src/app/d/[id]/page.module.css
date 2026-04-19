@@ -14,13 +14,6 @@
 }
 
 .folderTitle {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 36px;
-  letter-spacing: -1px;
-  line-height: 1.1;
-  color: var(--vv-ink);
   margin: 0;
   flex: 1;
 }
@@ -43,15 +36,7 @@
 }
 
 .sectionLabel {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  border-bottom: 1.5px solid var(--vv-ink);
-  padding: 4px 0;
   margin: 16px 32px 8px;
-  color: var(--vv-ink);
 }
 
 .folderGrid {
@@ -71,10 +56,6 @@
 @media (max-width: 640px) {
   .folderHeader {
     padding: 16px 16px 8px;
-  }
-  .folderTitle {
-    font-size: 26px;
-    letter-spacing: -0.5px;
   }
   .toolbar {
     padding: 8px 16px;
