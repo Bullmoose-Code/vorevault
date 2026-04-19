@@ -5,7 +5,7 @@
   overflow: hidden;
   cursor: pointer;
   box-shadow: var(--vv-shadow-md);
-  transition: transform 0.12s;
+  transition: transform 0.1s;
   position: relative;
   text-decoration: none;
   color: inherit;
@@ -13,8 +13,8 @@
 }
 
 .card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--vv-shadow-xl);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow-lg);
   text-decoration: none;
 }
 
@@ -46,8 +46,6 @@
   font-family: var(--vv-font-mono);
   font-size: 11px;
   color: rgba(255, 255, 255, 0.45);
-  text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 .tile1 { background: var(--vv-accent); }
@@ -65,11 +63,9 @@
   color: var(--vv-ink);
   padding: 2px 7px;
   border-radius: var(--vv-radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-family: var(--vv-font-ui);
+  font-family: var(--vv-font-mono);
 }
 
 .duration {
@@ -94,10 +90,9 @@
   color: var(--vv-bg);
   padding: 2px 7px;
   border-radius: var(--vv-radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   font-family: var(--vv-font-ui);
-  letter-spacing: 0.3px;
   box-shadow: var(--vv-shadow-sm);
 }
 

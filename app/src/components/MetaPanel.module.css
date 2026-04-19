@@ -17,7 +17,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 7px 0;
-  border-bottom: 1px dashed var(--vv-ink-subtle);
+  border-bottom: 1.5px solid var(--vv-ink-subtle);
   font-size: 12px;
 }
 
@@ -40,14 +40,12 @@
   display: inline-block;
   padding: 2px 7px;
   border-radius: var(--vv-radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   font-family: var(--vv-font-ui);
 }
 
-.status.pending { background: var(--vv-warn); color: #7c2d12; }
+.status.pending { background: var(--vv-warn); color: var(--vv-ink-warn); }
 .status.skipped { background: var(--vv-bg-sunken); color: var(--vv-ink); }
 .status.done { background: var(--vv-success); color: var(--vv-ink); }
 .status.failed { background: var(--vv-danger); color: var(--vv-bg); }

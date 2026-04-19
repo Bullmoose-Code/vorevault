@@ -67,7 +67,7 @@
 .footer {
   margin-top: 48px;
   padding-top: 18px;
-  border-top: 1px dashed var(--vv-ink-subtle);
+  border-top: 1.5px solid var(--vv-ink-subtle);
   font-family: var(--vv-font-display);
   font-style: italic;
   font-size: 12px;

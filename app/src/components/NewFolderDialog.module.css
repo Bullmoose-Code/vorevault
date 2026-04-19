@@ -59,7 +59,7 @@
 
 .create {
   background: var(--vv-accent);
-  color: #fff;
+  color: var(--vv-bg);
 }
 
 .create:disabled {

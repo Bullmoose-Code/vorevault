@@ -14,7 +14,6 @@
   font-weight: 900;
   color: var(--vv-accent);
   font-size: 16px;
-  letter-spacing: 0.5px;
 }
 
 .adminStrip a {
@@ -27,7 +26,7 @@
 .main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 32px 48px;
+  padding: 32px 32px 48px;
 }
 
 .sectionTitle {
@@ -63,16 +62,14 @@
 .table th {
   padding: 10px 14px;
   text-align: left;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .table td {
   padding: 10px 14px;
   font-size: 12px;
-  border-top: 1px dashed var(--vv-ink-subtle);
+  border-top: 1.5px solid var(--vv-ink-subtle);
 }
 
 .name {
@@ -86,9 +83,15 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--vv-accent-soft), var(--vv-danger));
+  background: var(--vv-ink-muted);
+  color: var(--vv-bg);
   flex-shrink: 0;
   overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: italic 900 11px/1 var(--vv-font-display);
+  text-transform: lowercase;
 }
 
 .avatar img {
@@ -99,13 +102,11 @@
 
 .rolePill {
   background: var(--vv-warn);
-  color: #7c2d12;
+  color: var(--vv-ink-warn);
   padding: 2px 7px;
   border-radius: var(--vv-radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .rolePill.admin {
@@ -118,10 +119,8 @@
   color: var(--vv-bg);
   padding: 2px 7px;
   border-radius: var(--vv-radius-sm);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 @media (max-width: 640px) {

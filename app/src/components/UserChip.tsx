@@ -48,8 +48,8 @@ export function UserChip({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className={styles.avatar}>
-          {avatarUrl ? <img src={avatarUrl} alt="" /> : null}
+        <span className={styles.avatar} aria-hidden="true">
+          {avatarUrl ? <img src={avatarUrl} alt="" /> : username.charAt(0)}
         </span>
         <span className={styles.username}>{username}</span>
         <span className={styles.caret}>▾</span>

@@ -172,7 +172,7 @@
 }
 
 .createCancel { background: var(--vv-bg); color: var(--vv-ink); }
-.createSubmit { background: var(--vv-accent); color: #fff; }
+.createSubmit { background: var(--vv-accent); color: var(--vv-bg); }
 .createSubmit:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .footer {
@@ -197,7 +197,7 @@
 }
 
 .footerCancel { background: var(--vv-bg); color: var(--vv-ink); }
-.footerSelect { background: var(--vv-accent); color: #fff; }
+.footerSelect { background: var(--vv-accent); color: var(--vv-bg); }
 
 .footerCancel:hover,
 .footerSelect:hover {

@@ -55,8 +55,8 @@ export default async function AdminPage() {
               {users.map((u) => (
                 <tr key={u.id}>
                   <td className={styles.name}>
-                    <span className={styles.avatar}>
-                      {u.avatar_url ? <img src={u.avatar_url} alt="" /> : null}
+                    <span className={styles.avatar} aria-hidden="true">
+                      {u.avatar_url ? <img src={u.avatar_url} alt="" /> : u.username.charAt(0)}
                     </span>
                     {u.username}
                     {u.is_admin && <span className={`${styles.rolePill} ${styles.admin}`}>admin</span>}

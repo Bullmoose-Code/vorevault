@@ -20,6 +20,7 @@ A design system for **VoreVault** — a self-hosted, Discord-gated file/clip sha
 - Sentence case for everything.
 - Lowercase brand mark: `vorevault`, always.
 - ALL-CAPS only for the tiny italic section-label bar (FOLDERS, RECENT UPLOADS).
+- Badges, pills, table headers: sentence/lowercase in Inter — never caps. File-type badges use JetBrains Mono at their natural lowercase.
 
 ### Grammar tics
 - **Bold role names in running copy.** `You need the **vorevault** role in the Bullmoose server.`
@@ -61,6 +62,7 @@ Aesthetic: **"brutalist parchment"** — cream bg, warm ink, burnt-orange accent
 ### Borders
 - Default `2px solid var(--vv-ink)`. Cards/players `2.5px`. Drop-zone `3px dashed`. Inputs `1.5px`.
 - Borders ARE the separation — no subtle hairlines on neutral surfaces.
+- **Internal dividers** (table row separators, menu separators, key/value row rules): `1.5px solid var(--vv-ink-subtle)`. Never `1px dashed`.
 
 ### Shadows
 - Hard offset "sticker" only: `Npx Npx 0 var(--vv-ink)` where N is 2/3/4/5/6.

@@ -7,11 +7,11 @@
 }
 
 .label {
-  font-size: 10px;
-  color: var(--vv-ink-muted);
+  font-family: var(--vv-font-display);
   font-style: italic;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--vv-ink-muted);
 }
 
 .value {
