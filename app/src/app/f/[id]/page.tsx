@@ -97,7 +97,7 @@ export default async function FilePage({ params }: Props) {
             </div>
           )}
 
-          <h1 className={styles.title}>{file.original_name}</h1>
+          <h1 className={`vv-title ${styles.title}`}>{file.original_name}</h1>
           <div className={styles.by}>
             uploaded by <strong>{file.uploader_name}</strong> ·{" "}
             {new Date(file.created_at).toLocaleString("en-US", {
