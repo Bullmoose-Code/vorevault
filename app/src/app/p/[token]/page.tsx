@@ -58,7 +58,7 @@ export default async function PublicViewPage({ params }: Props) {
         </div>
       )}
 
-      <h1 className={styles.title}>{file.original_name}</h1>
+      <h1 className={`vv-title ${styles.title}`}>{file.original_name}</h1>
       <p className={styles.meta}>{metaParts.join(" · ")}</p>
 
       <a href={streamUrl} download className={styles.download}>↓ Download</a>
