@@ -30,6 +30,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <main className={styles.page}>
       <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
       <h1 className={`vv-title ${styles.title}`}>Search: <em>{q}</em></h1>
+      <p className="vv-meta">
+        <strong>{result.folders.length + fileCards.length}</strong> {result.folders.length + fileCards.length === 1 ? "result" : "results"} for <em>&ldquo;{q}&rdquo;</em>
+      </p>
       {result.folders.length > 0 && (
         <>
           <h2 className={`vv-section-label ${styles.sectionLabel}`}>Folders</h2>

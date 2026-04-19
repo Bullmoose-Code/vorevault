@@ -118,7 +118,7 @@ export function FileActions({
           onClick={handleToggleShare}
           disabled={sharing}
         >
-          {sharing ? "..." : shareUrl ? "Revoke public link" : "✦ Create public link"}
+          {sharing ? "…" : shareUrl ? "Revoke public link" : "✦ Create public link"}
         </Button>
         {isOwnerOrAdmin && (
           <>
@@ -127,7 +127,7 @@ export function FileActions({
               onClick={handleRename}
               disabled={renaming}
             >
-              {renaming ? "..." : "Rename"}
+              {renaming ? "…" : "Rename"}
             </Button>
             <Button
               type="button"
@@ -141,7 +141,7 @@ export function FileActions({
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? "Deleting…" : "Delete"}
             </Button>
           </>
         )}

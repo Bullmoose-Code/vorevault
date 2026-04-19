@@ -33,8 +33,8 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className={styles.toolbar}>
-        <div className={styles.meta}>
-          created by <strong>@{folder.creator_username}</strong> · {children.subfolders.length} subfolders · {children.files.length} files
+        <div className="vv-meta">
+          created by <strong>@{folder.creator_username}</strong> · <strong>{children.subfolders.length}</strong> {children.subfolders.length === 1 ? "subfolder" : "subfolders"} · <strong>{children.files.length}</strong> {children.files.length === 1 ? "file" : "files"}
         </div>
         <FolderActions folder={folder} canManage={canManage} />
       </div>

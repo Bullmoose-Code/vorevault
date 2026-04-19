@@ -81,7 +81,7 @@ export default async function FilePage({ params }: Props) {
           )}
           {!isVideo && !isAudio && !isImage && (
             <div className={styles.noPreview}>
-              No preview available for <code>{file.mime_type}</code>
+              No preview available for <code>{file.mime_type}</code>.
             </div>
           )}
 
@@ -98,13 +98,12 @@ export default async function FilePage({ params }: Props) {
           )}
 
           <h1 className={`vv-title ${styles.title}`}>{file.original_name}</h1>
-          <div className={styles.by}>
-            uploaded by <strong>{file.uploader_name}</strong> ·{" "}
-            {new Date(file.created_at).toLocaleString("en-US", {
+          <div className="vv-meta">
+            uploaded by <strong>{file.uploader_name}</strong> · <strong>{new Date(file.created_at).toLocaleString("en-US", {
               timeZone: "America/New_York",
               dateStyle: "medium",
               timeStyle: "short",
-            })}
+            })}</strong>
           </div>
 
           <StarButton fileId={file.id} initialBookmarked={bookmarked} />

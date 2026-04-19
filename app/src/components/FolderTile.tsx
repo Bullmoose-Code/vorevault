@@ -4,13 +4,26 @@ import styles from "./FolderTile.module.css";
 export function FolderTile({
   id, name, fileCount, subfolderCount,
 }: { id: string; name: string; fileCount: number; subfolderCount: number }) {
-  const parts: string[] = [];
-  if (fileCount) parts.push(`${fileCount} file${fileCount === 1 ? "" : "s"}`);
-  if (subfolderCount) parts.push(`${subfolderCount} subfolder${subfolderCount === 1 ? "" : "s"}`);
+  const hasFiles = fileCount > 0;
+  const hasSubs = subfolderCount > 0;
   return (
     <Link href={`/d/${id}`} className={styles.tile}>
       <span className={styles.name}>{name}</span>
-      {parts.length > 0 && <small className={styles.counts}>{parts.join(" · ")}</small>}
+      {(hasFiles || hasSubs) && (
+        <small className={`vv-meta ${styles.counts}`}>
+          {hasFiles && (
+            <>
+              <strong>{fileCount}</strong> {fileCount === 1 ? "file" : "files"}
+            </>
+          )}
+          {hasFiles && hasSubs && " · "}
+          {hasSubs && (
+            <>
+              <strong>{subfolderCount}</strong> {subfolderCount === 1 ? "subfolder" : "subfolders"}
+            </>
+          )}
+        </small>
+      )}
     </Link>
   );
 }

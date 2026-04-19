@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, var(--vv-bg-panel) 0%, var(--vv-bg) 70%);
+  background: var(--vv-bg);
   padding: 32px;
 }
 

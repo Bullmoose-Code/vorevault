@@ -48,16 +48,7 @@
 }
 
 .meta {
-  font-size: 12px;
-  color: var(--vv-ink-muted);
-  font-style: italic;
   margin-bottom: 14px;
-}
-
-.meta strong {
-  color: var(--vv-ink);
-  font-style: normal;
-  font-weight: 700;
 }
 
 .download {

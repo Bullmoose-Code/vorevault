@@ -32,12 +32,6 @@ export default async function PublicViewPage({ params }: Props) {
   const isAudio = file.mime_type.startsWith("audio/");
   const isImage = file.mime_type.startsWith("image/");
 
-  const metaParts = [
-    file.mime_type,
-    formatBytes(file.size_bytes),
-    file.duration_sec != null ? formatDuration(file.duration_sec) : null,
-  ].filter(Boolean);
-
   return (
     <main className={styles.page}>
       {isVideo && (
@@ -59,7 +53,10 @@ export default async function PublicViewPage({ params }: Props) {
       )}
 
       <h1 className={`vv-title ${styles.title}`}>{file.original_name}</h1>
-      <p className={styles.meta}>{metaParts.join(" · ")}</p>
+      <p className={`vv-meta ${styles.meta}`}>
+        {file.mime_type} · <strong>{formatBytes(file.size_bytes)}</strong>
+        {file.duration_sec != null && <> · <strong>{formatDuration(file.duration_sec)}</strong></>}
+      </p>
 
       <a href={streamUrl} download className={styles.download}>↓ Download</a>
 

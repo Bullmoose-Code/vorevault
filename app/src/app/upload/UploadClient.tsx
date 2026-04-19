@@ -64,8 +64,8 @@ export function UploadClient() {
         <>
           <div className={styles.uploadsHeader}>
             <h2>In flight</h2>
-            <div className={styles.summary}>
-              <strong>{doneCount} of {uploads.length} done</strong> · total {formatTotalBytes(totalBytes)}
+            <div className="vv-meta">
+              <strong>{doneCount}</strong> of <strong>{uploads.length}</strong> done · total <strong>{formatTotalBytes(totalBytes)}</strong>
             </div>
           </div>
           <div className={styles.grid}>
