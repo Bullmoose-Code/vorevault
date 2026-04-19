@@ -62,8 +62,8 @@ export function FileCard({
       </div>
       <div className={styles.meta}>
         <div className={styles.title}>{file.original_name}</div>
-        <div className={styles.sub}>
-          {file.uploader_name} · {formatBytes(file.size_bytes)} · {relativeTime(file.created_at)}
+        <div className={`vv-meta ${styles.sub}`}>
+          {file.uploader_name} · <strong>{formatBytes(file.size_bytes)}</strong> · <strong>{relativeTime(file.created_at)}</strong>
         </div>
       </div>
     </a>

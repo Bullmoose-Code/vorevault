@@ -117,8 +117,6 @@
 }
 
 .sub {
-  font-size: 11px;
-  color: var(--vv-ink-muted);
   margin-top: 2px;
-  font-style: italic;
+  font-size: 11px;
 }
