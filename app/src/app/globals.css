@@ -94,3 +94,78 @@ body {
     min-height: 44px;
   }
 }
+
+/* ---- Semantic type classes (from design-system/colors_and_type.css) ---- */
+
+.vv-brand {
+  font: italic 900 48px/1 var(--vv-font-display);
+  letter-spacing: -1.5px;
+  color: var(--vv-accent);
+}
+
+.vv-greeting {
+  font: italic 400 36px/1.1 var(--vv-font-display);
+  letter-spacing: -1px;
+  color: var(--vv-ink);
+}
+
+.vv-greeting strong {
+  font-weight: 900;
+  color: var(--vv-accent);
+}
+
+.vv-title {
+  font: italic 900 28px/1.15 var(--vv-font-display);
+  letter-spacing: -0.5px;
+  color: var(--vv-ink);
+}
+
+.vv-dialog-title {
+  font: italic 700 20px/1.2 var(--vv-font-display);
+  color: var(--vv-ink);
+}
+
+.vv-section-label {
+  font: italic 700 14px var(--vv-font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid var(--vv-ink);
+  padding: 4px 0;
+}
+
+.vv-body {
+  font: 400 14px/1.5 var(--vv-font-ui);
+  color: var(--vv-ink);
+}
+
+.vv-label {
+  font: 600 12px/1 var(--vv-font-ui);
+  color: var(--vv-ink);
+}
+
+.vv-meta {
+  font: italic 400 13px/1.4 var(--vv-font-ui);
+  color: var(--vv-ink-muted);
+}
+
+.vv-meta strong {
+  font-family: var(--vv-font-mono);
+  font-style: normal;
+  font-weight: 700;
+  color: var(--vv-ink);
+}
+
+.vv-mono {
+  font: 700 12px var(--vv-font-mono);
+  color: var(--vv-ink);
+}
+
+.vv-button-label {
+  font: 700 13px/1 var(--vv-font-ui);
+}
+
+@media (max-width: 640px) {
+  .vv-brand    { font-size: 36px; letter-spacing: -1px; }
+  .vv-greeting { font-size: 26px; letter-spacing: -0.5px; }
+  .vv-title    { font-size: 22px; }
+}
