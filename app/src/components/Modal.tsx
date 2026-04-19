@@ -101,7 +101,7 @@ export function Modal({ open, onClose, title, size = "md", children }: Props) {
         tabIndex={-1}
       >
         <header className={styles.header}>
-          <h2 id={titleId} className={styles.title}>
+          <h2 id={titleId} className={`vv-dialog-title ${styles.title}`}>
             {title}
           </h2>
           <button

@@ -39,11 +39,6 @@
 }
 
 .title {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-weight: 700;
-  font-size: 20px;
-  color: var(--vv-ink);
   margin: 0;
 }
 
