@@ -8,7 +8,7 @@ export default function LoginPage() {
     <main className={styles.page}>
       <div className={styles.card}>
         <MooseLogo size="hero" />
-        <h1 className={styles.brand}>vorevault</h1>
+        <h1 className={`vv-brand ${styles.brand}`}>vorevault</h1>
         <p className={styles.tagline}>
           the <strong>bullmoose</strong> clip archive
         </p>

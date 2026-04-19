@@ -13,13 +13,6 @@
 }
 
 .brand {
-  font-family: var(--vv-font-display);
-  font-style: italic;
-  font-weight: 900;
-  font-size: 48px;
-  color: var(--vv-accent);
-  letter-spacing: -1.5px;
-  line-height: 1;
   margin: 18px 0 10px;
 }
 
