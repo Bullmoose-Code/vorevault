@@ -63,7 +63,7 @@ export default async function Home({ searchParams }: Props) {
           </h1>
           {data.files.length > 0 && (
             <div className="vv-meta">
-              <strong>{data.total}</strong> {data.total === 1 ? "clip" : "clips"} · <strong>{formatBytes(totalBytes)}</strong> · last upload {relativeTime(lastUpload)}
+              <strong>{data.total}</strong> {data.total === 1 ? "clip" : "clips"} · <strong>{formatBytes(totalBytes)}</strong> · last upload <strong>{relativeTime(lastUpload)}</strong>
               {mineOnly && <> · <a href="/">view all</a></>}
             </div>
           )}
