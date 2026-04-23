@@ -160,4 +160,23 @@ describe("FileCard", () => {
     fireEvent.click(link, { ctrlKey: true });
     expect(container.querySelector("a")!.className).toMatch(/selected/);
   });
+
+  it("shift-click after a cmd-click adds the range between the two", () => {
+    const a = makeFile({ id: "aaaaaaaa-bbbb-cccc-dddd-111111111111", original_name: "a.mp4" });
+    const b = makeFile({ id: "aaaaaaaa-bbbb-cccc-dddd-222222222222", original_name: "b.mp4" });
+    const { container } = renderWithProviders(
+      <>
+        <FileCard file={a} />
+        <FileCard file={b} />
+      </>
+    );
+    const links = Array.from(container.querySelectorAll("a"));
+    const [linkA, linkB] = links;
+    // cmd-click A (sets anchor)
+    fireEvent.click(linkA, { metaKey: true });
+    // shift-click B (extends range)
+    fireEvent.click(linkB, { shiftKey: true });
+    expect(linkA.className).toMatch(/selected/);
+    expect(linkB.className).toMatch(/selected/);
+  });
 });

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FolderContextMenu } from "./FolderContextMenu";
 import { useCurrentUser } from "./CurrentUserContext";
 import { useSelection, type SelectedItem } from "./SelectionContext";
+import { readNavItems, sliceBetween } from "@/lib/gridNav";
 import styles from "./FolderTile.module.css";
 
 type Props = {
@@ -27,17 +28,34 @@ export function FolderTile({ id, name, fileCount, subfolderCount, createdBy, par
   const descriptor: SelectedItem = { kind: "folder", id, name, canManage, parentId };
 
   function handleClick(e: MouseEvent<HTMLAnchorElement>) {
-    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+    if (e.metaKey || e.ctrlKey) {
       e.preventDefault();
       selection.toggle(descriptor);
+      return;
     }
+    if (e.shiftKey) {
+      e.preventDefault();
+      if (!selection.anchorId) {
+        selection.toggle(descriptor);
+        return;
+      }
+      const items = readNavItems();
+      const range = sliceBetween(selection.anchorId, { kind: descriptor.kind, id: descriptor.id }, items);
+      if (range.length > 0) {
+        selection.addRange(range.map((r) => r.descriptor));
+      } else {
+        selection.toggle(descriptor);
+      }
+      return;
+    }
+    // plain click → navigate (default anchor behavior)
   }
 
   const className = selected ? `${styles.tile} ${styles.selected}` : styles.tile;
 
   return (
     <FolderContextMenu folder={{ id, name, createdBy, parentId }}>
-      <Link href={`/d/${id}`} className={className} onClick={handleClick} aria-pressed={selected}>
+      <Link href={`/d/${id}`} className={className} onClick={handleClick} aria-pressed={selected} data-nav-item data-nav-descriptor={JSON.stringify(descriptor)} tabIndex={0}>
         <span className={styles.name}>{name}</span>
         {(hasFiles || hasSubs) && (
           <small className={`vv-meta ${styles.counts}`}>

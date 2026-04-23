@@ -52,4 +52,23 @@ describe("FolderTile", () => {
     fireEvent.click(a, { metaKey: true });
     expect(container.querySelector("a")!.className).toMatch(/selected/);
   });
+
+  it("shift-click after a cmd-click adds the range between the two", () => {
+    const { container } = render(
+      <CurrentUserProvider value={{ id: "u", isAdmin: false }}>
+        <SelectionProvider>
+          <ItemActionProvider>
+            <FolderTile id="fo-1" name="a" fileCount={0} subfolderCount={0} createdBy="u" parentId={null} />
+            <FolderTile id="fo-2" name="b" fileCount={0} subfolderCount={0} createdBy="u" parentId={null} />
+          </ItemActionProvider>
+        </SelectionProvider>
+      </CurrentUserProvider>,
+    );
+    const links = Array.from(container.querySelectorAll("a"));
+    const [linkA, linkB] = links;
+    fireEvent.click(linkA, { metaKey: true });
+    fireEvent.click(linkB, { shiftKey: true });
+    expect(linkA.className).toMatch(/selected/);
+    expect(linkB.className).toMatch(/selected/);
+  });
 });
