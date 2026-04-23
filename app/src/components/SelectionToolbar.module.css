@@ -1,0 +1,27 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--vv-ink);
+  color: var(--vv-bg);
+  border: 2.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  box-shadow: var(--vv-shadow-md);
+  margin-bottom: 16px;
+}
+
+.count {
+  font: 600 14px/1 var(--vv-font-ui);
+}
+
+.count strong {
+  font-family: var(--vv-font-mono);
+}
+
+.spacer {
+  flex: 1;
+}
