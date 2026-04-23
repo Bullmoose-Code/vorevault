@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import { StorageBar } from "./StorageBar";
 
 const ORIG_FETCH = global.fetch;
@@ -18,29 +18,29 @@ describe("StorageBar", () => {
     });
   });
   afterEach(() => {
+    cleanup(); // ensure React trees are unmounted and window listeners removed before next test
     global.fetch = ORIG_FETCH;
   });
 
   it("renders the formatted usage string after fetch", async () => {
-    render(<StorageBar />);
+    const { container } = render(<StorageBar />);
     await waitFor(() => {
-      expect(screen.getByText(/2\.8 GB of 11 TB/)).toBeInTheDocument();
+      const wrap = container.querySelector('[aria-label="storage usage"]');
+      // 3_000_000_000 bytes / 1024^3 ≈ 2.8 GB; 11_000_000_000_000 bytes / 1024^4 ≈ 10.0 TB (binary)
+      expect(wrap?.textContent).toMatch(/2\.8 GB of 10\.0 TB/);
     });
   });
 
   it("re-fetches on vorevault:upload-done event", async () => {
     render(<StorageBar />);
-    // Wait for the initial fetch(es) to settle; React 19 dev mode may run
-    // effects twice, so we wait for at least 1 call before dispatching.
+    // Wait for the initial fetch to settle. reactStrictMode:true is a Next.js browser
+    // setting; vitest/jsdom does not double-invoke effects, so exactly 1 call happens here.
     await waitFor(() =>
-      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(1),
+      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1),
     );
-    const callsBefore = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
     window.dispatchEvent(new CustomEvent("vorevault:upload-done"));
     await waitFor(() =>
-      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(
-        callsBefore + 1,
-      ),
+      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(2),
     );
   });
 });
