@@ -5,16 +5,15 @@ import { act, cleanup, render, screen, fireEvent } from "@testing-library/react"
 import { UploadProgressDrawer } from "./UploadProgressDrawer";
 import * as providerModule from "./UploadProgressProvider";
 
-const baseCtx = {
-  enqueue: vi.fn(),
-  cancel: vi.fn(),
-  clearCompleted: vi.fn(),
-};
-
 function stubCtx(uploads: providerModule.ActiveUpload[]) {
-  vi.spyOn(providerModule, "useUploadProgress").mockReturnValue({
-    uploads, ...baseCtx,
-  });
+  const ctx = {
+    uploads,
+    enqueue: vi.fn(),
+    cancel: vi.fn(),
+    clearCompleted: vi.fn(),
+  };
+  vi.spyOn(providerModule, "useUploadProgress").mockReturnValue(ctx);
+  return ctx;
 }
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -38,12 +37,12 @@ describe("UploadProgressDrawer", () => {
   });
 
   it("cancel button calls ctx.cancel for the row id", () => {
-    stubCtx([
+    const ctx = stubCtx([
       { id: "a", folderId: null, startedAt: 0, name: "clip.mp4", size: 100, uploaded: 10, status: "uploading" },
     ]);
     render(<UploadProgressDrawer />);
     fireEvent.click(screen.getByRole("button", { name: /cancel clip\.mp4/i }));
-    expect(baseCtx.cancel).toHaveBeenCalledWith("a");
+    expect(ctx.cancel).toHaveBeenCalledWith("a");
   });
 
   it("header pill collapses the drawer", () => {

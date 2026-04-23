@@ -20,11 +20,19 @@ export function UploadProgressDrawer() {
   const errored = uploads.filter((u) => u.status === "error").length;
 
   useEffect(() => {
+    // Always clear any pending collapse timer before deciding what to do next.
+    if (collapseTimer.current) {
+      clearTimeout(collapseTimer.current);
+      collapseTimer.current = null;
+    }
     if (uploads.length === 0) return;
     if (inflight.length === 0) {
       collapseTimer.current = setTimeout(() => setCollapsed(true), 5000);
       return () => {
-        if (collapseTimer.current) clearTimeout(collapseTimer.current);
+        if (collapseTimer.current) {
+          clearTimeout(collapseTimer.current);
+          collapseTimer.current = null;
+        }
       };
     }
     setCollapsed(false);
