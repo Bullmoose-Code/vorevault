@@ -5,6 +5,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { FileContextMenu } from "./FileContextMenu";
 import { CurrentUserProvider } from "./CurrentUserContext";
 import { ItemActionProvider } from "./ItemActionProvider";
+import { SelectionProvider, useSelection, type SelectedItem } from "./SelectionContext";
 import type { FileWithUploader } from "@/lib/files";
 
 vi.mock("next/navigation", () => ({
@@ -36,11 +37,13 @@ function makeFile(overrides: Partial<FileWithUploader> = {}): FileWithUploader {
 function wrap(file: FileWithUploader, user: { id: string; isAdmin: boolean }) {
   return render(
     <CurrentUserProvider value={user}>
-      <ItemActionProvider>
-        <FileContextMenu file={file}>
-          <div data-testid="target">child</div>
-        </FileContextMenu>
-      </ItemActionProvider>
+      <SelectionProvider>
+        <ItemActionProvider>
+          <FileContextMenu file={file}>
+            <div data-testid="target">child</div>
+          </FileContextMenu>
+        </ItemActionProvider>
+      </SelectionProvider>
     </CurrentUserProvider>,
   );
 }
@@ -81,5 +84,36 @@ describe("FileContextMenu", () => {
     wrap(makeFile(), { id: "u-admin", isAdmin: true });
     fireEvent.contextMenu(screen.getByTestId("target"));
     expect(await screen.findByText(/^rename$/i)).toBeInTheDocument();
+  });
+
+  it("batch mode: right-click a selected file when selection > 1 shows only batch actions", async () => {
+    const file = makeFile({ id: "f-1" });
+    function Seed() {
+      const sel = useSelection();
+      if (sel.size === 0) {
+        sel.toggle({ kind: "file", id: file.id, name: file.original_name, canManage: true, folderId: null });
+        sel.toggle({ kind: "file", id: "other", name: "other.mp4", canManage: true, folderId: null });
+      }
+      return null;
+    }
+    render(
+      <CurrentUserProvider value={{ id: "u-owner", isAdmin: false }}>
+        <SelectionProvider>
+          <ItemActionProvider>
+            <Seed />
+            <FileContextMenu file={file}>
+              <div data-testid="target">t</div>
+            </FileContextMenu>
+          </ItemActionProvider>
+        </SelectionProvider>
+      </CurrentUserProvider>,
+    );
+    fireEvent.contextMenu(screen.getByTestId("target"));
+    expect(await screen.findByText(/download as zip/i)).toBeInTheDocument();
+    expect(screen.getByText(/^move to…$/i)).toBeInTheDocument();
+    expect(screen.getByText(/move to trash/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^open$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^rename$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/copy public link/i)).not.toBeInTheDocument();
   });
 });
