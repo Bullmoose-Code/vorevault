@@ -13,7 +13,9 @@
 }
 .caret:hover { color: var(--vv-ink); }
 .link {
-  flex: 1; color: var(--vv-ink); text-decoration: none;
+  flex: 1;
+  font: 600 13px var(--vv-font-ui);
+  color: var(--vv-ink); text-decoration: none;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .link:hover { text-decoration: underline; }

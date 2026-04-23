@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import styles from "./VaultSection.module.css";
 
 export function VaultSection({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   return (
     <div className={styles.section}>
       <button

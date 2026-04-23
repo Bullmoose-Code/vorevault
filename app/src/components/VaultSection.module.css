@@ -1,22 +1,21 @@
-.section { display: block; }
+.section { display: block; padding: 4px 0; }
 
 .label {
   display: flex;
   align-items: center;
   gap: 4px;
   width: 100%;
-  padding: 14px 12px 6px;
+  padding: 8px 12px;
   background: none;
   border: 0;
   cursor: pointer;
   text-align: left;
-  font: italic 700 12px var(--vv-font-display);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--vv-ink-muted);
+  font: 600 13px var(--vv-font-ui);
+  color: var(--vv-ink);
+  border-radius: 4px;
 }
 
-.label:hover { color: var(--vv-ink); }
+.label:hover { background: var(--vv-bg-sunken); }
 
 .caret {
   display: inline-flex;
@@ -28,4 +27,4 @@
 
 .label:hover .caret { color: var(--vv-ink); }
 
-.tree { padding: 0 4px 14px; }
+.tree { padding: 4px 4px 8px; }
