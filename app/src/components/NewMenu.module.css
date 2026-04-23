@@ -27,3 +27,12 @@
   border-radius: 4px; cursor: pointer;
 }
 .item:hover { background: var(--vv-bg-sunken); }
+
+.error {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--vv-ink);
+  border-radius: 6px;
+  background: var(--vv-bg);
+  font: 500 12px var(--vv-font-mono);
+}
