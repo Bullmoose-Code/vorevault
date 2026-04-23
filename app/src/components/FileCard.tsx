@@ -47,7 +47,7 @@ export function FileCard({
         {hasThumb ? (
           <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
         ) : (
-          <div className={`${styles.iconTile} ${styles[`kind_${kind.replace("-", "_")}`]}`}>
+          <div className={`${styles.iconTile} ${styles[`kind_${kind.replaceAll("-", "_")}`]}`}>
             <FileIcon kind={kind} size={48} />
           </div>
         )}
