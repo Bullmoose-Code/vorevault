@@ -394,6 +394,45 @@ describe("trashFolder", () => {
   });
 });
 
+describe("permanentDeleteFolder", () => {
+  it("refuses to permanent-delete a folder that isn't trashed", async () => {
+    const { createFolder, permanentDeleteFolder, FolderNotTrashedError } = await import("./folders");
+    const uid = await makeUser("mia");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await expect(permanentDeleteFolder({ id: f.id, actorId: uid, isAdmin: false }))
+      .rejects.toBeInstanceOf(FolderNotTrashedError);
+  });
+
+  it("hard-deletes a trashed folder and all descendants + files", async () => {
+    const { createFolder, trashFolder, permanentDeleteFolder } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("ned");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    const file = await insertFile({ uploaderId: uid, folderId: b.id, originalName: "x", mimeType: "image/png", sizeBytes: 1, storagePath: "/x/p" });
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+
+    const res = await permanentDeleteFolder({ id: a.id, actorId: uid, isAdmin: false });
+    expect(res.deletedFiles.map((f) => f.id)).toEqual([file.id]);
+
+    const { rowCount: fCount } = await pg.pool.query(`SELECT 1 FROM folders WHERE id IN ($1, $2)`, [a.id, b.id]);
+    expect(fCount).toBe(0);
+    const { rowCount: fileCount } = await pg.pool.query(`SELECT 1 FROM files WHERE id = $1`, [file.id]);
+    expect(fileCount).toBe(0);
+  });
+});
+
+describe("getExpiredTrashedFolders", () => {
+  it("returns folders trashed beyond the retention window", async () => {
+    const { createFolder, getExpiredTrashedFolders } = await import("./folders");
+    const uid = await makeUser("ola");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() - interval '40 days' WHERE id = $1`, [f.id]);
+    const rows = await getExpiredTrashedFolders(30);
+    expect(rows.map((r) => r.id)).toContain(f.id);
+  });
+});
+
 describe("restoreFolder", () => {
   it("restores the cascade group by matching deleted_at timestamp", async () => {
     const { createFolder, trashFolder, restoreFolder } = await import("./folders");

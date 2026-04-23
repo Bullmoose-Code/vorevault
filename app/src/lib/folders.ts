@@ -412,6 +412,60 @@ export async function restoreFolder(args: RestoreFolderArgs): Promise<RestoreFol
   }
 }
 
+export class FolderNotTrashedError extends Error {
+  constructor() { super("folder is not trashed"); this.name = "FolderNotTrashedError"; }
+}
+
+export type PermanentDeleteFolderArgs = { id: string; actorId: string; isAdmin: boolean };
+export type PermanentDeleteFolderResult = { deletedFiles: FileRow[] };
+
+export async function permanentDeleteFolder(
+  args: PermanentDeleteFolderArgs,
+): Promise<PermanentDeleteFolderResult> {
+  const folder = await getFolderIncludingTrashed(args.id);
+  if (!folder) throw new FolderNotFoundError("folder");
+  if (!folder.deleted_at) throw new FolderNotTrashedError();
+  if (!args.isAdmin && folder.created_by !== args.actorId) throw new FolderAuthError();
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: subtree } = await client.query<{ id: string }>(
+      `WITH RECURSIVE tree AS (
+         SELECT id FROM folders WHERE id = $1
+         UNION ALL
+         SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
+       )
+       SELECT id FROM tree`,
+      [args.id],
+    );
+    const folderIds = subtree.map((r) => r.id);
+
+    const { rows: deletedFiles } = await client.query<FileRow>(
+      `DELETE FROM files WHERE folder_id = ANY($1::uuid[]) RETURNING *`,
+      [folderIds],
+    );
+    await client.query(`DELETE FROM folders WHERE id = ANY($1::uuid[])`, [folderIds]);
+    await client.query("COMMIT");
+    return { deletedFiles };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getExpiredTrashedFolders(daysOld: number): Promise<FolderRow[]> {
+  const { rows } = await pool.query<FolderRow>(
+    `SELECT * FROM folders
+       WHERE deleted_at IS NOT NULL
+         AND deleted_at < now() - ($1 || ' days')::interval`,
+    [daysOld],
+  );
+  return rows;
+}
+
 export type TrashFolderArgs = { id: string; actorId: string; isAdmin: boolean };
 export type TrashFolderResult = { folders: number; files: number };
 
