@@ -1,4 +1,6 @@
 import type { FileWithUploader } from "@/lib/files";
+import { classifyFile } from "@/lib/fileKind";
+import { FileIcon } from "./FileIcon";
 import styles from "./FileCard.module.css";
 
 function formatBytes(bytes: number): string {
@@ -28,16 +30,6 @@ function relativeTime(date: Date | string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function typeBadge(mime: string): string {
-  const sub = mime.split("/")[1] ?? mime;
-  return sub.slice(0, 4);
-}
-
-function tileClass(id: string): string {
-  const n = (id.charCodeAt(0) + id.charCodeAt(id.length - 1)) % 6;
-  return styles[`tile${n + 1}`];
-}
-
 export function FileCard({
   file,
   isShared,
@@ -45,18 +37,21 @@ export function FileCard({
   file: FileWithUploader;
   isShared?: boolean;
 }) {
-  const duration = formatDuration(file.duration_sec);
+  const { kind, label } = classifyFile(file.mime_type, file.original_name);
+  const duration = (kind === "video" || kind === "audio") ? formatDuration(file.duration_sec) : null;
+  const hasThumb = file.thumbnail_path != null;
+
   return (
     <a href={`/f/${file.id}`} className={styles.card}>
       <div className={styles.thumb}>
-        {file.thumbnail_path ? (
+        {hasThumb ? (
           <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
         ) : (
-          <div className={`${styles.tileFallback} ${tileClass(file.id)}`}>
-            {file.mime_type}
+          <div className={`${styles.iconTile} ${styles[`kind_${kind.replaceAll("-", "_")}`]}`}>
+            <FileIcon kind={kind} size={48} />
           </div>
         )}
-        <span className={styles.typeBadge}>{typeBadge(file.mime_type)}</span>
+        <span className={styles.typeBadge}>{label}</span>
         {duration && <span className={styles.duration}>{duration}</span>}
         {isShared && <span className={styles.sharedBadge}>✦ shared</span>}
       </div>

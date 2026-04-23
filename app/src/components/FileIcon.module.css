@@ -1,0 +1,5 @@
+.icon {
+  display: inline-block;
+  color: currentColor;
+  flex-shrink: 0;
+}
