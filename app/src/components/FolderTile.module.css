@@ -43,3 +43,10 @@
   outline: 3px solid var(--vv-accent);
   outline-offset: 2px;
 }
+
+.selected {
+  outline: 3px solid var(--vv-accent);
+  outline-offset: 2px;
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+}
