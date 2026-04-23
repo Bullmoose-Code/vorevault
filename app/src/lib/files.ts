@@ -95,8 +95,9 @@ export async function listFiles(
   page: number,
   limit: number,
   uploaderId?: string,
+  extraOffset: number = 0,
 ): Promise<FilePage> {
-  const offset = (page - 1) * limit;
+  const offset = (page - 1) * limit + extraOffset;
   const [dataRes, countRes] = await Promise.all([
     uploaderId
       ? pool.query<FileWithUploader>(
@@ -126,10 +127,22 @@ export async function listFiles(
   ]);
   return {
     files: dataRes.rows,
-    total: parseInt(countRes.rows[0].count, 10),
+    total: Math.max(0, parseInt(countRes.rows[0].count, 10) - extraOffset),
     page,
     limit,
   };
+}
+
+export async function listRecentFiles(limit: number): Promise<FileWithUploader[]> {
+  const { rows } = await pool.query<FileWithUploader>(
+    `SELECT f.*, u.username AS uploader_name
+     FROM files f JOIN users u ON u.id = f.uploader_id
+     WHERE f.deleted_at IS NULL
+     ORDER BY f.created_at DESC
+     LIMIT $1`,
+    [limit],
+  );
+  return rows;
 }
 
 export async function getFileWithUploader(id: string): Promise<FileWithUploader | null> {
