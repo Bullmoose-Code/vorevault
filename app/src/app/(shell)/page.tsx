@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listFiles } from "@/lib/files";
 import { listTopLevelFolders } from "@/lib/folders";
-import { TopBar } from "@/components/TopBar";
 import { FileCard } from "@/components/FileCard";
 import { FolderTile } from "@/components/FolderTile";
 import { NewFolderButton } from "@/components/NewFolderButton";
@@ -51,7 +50,6 @@ export default async function Home({ searchParams }: Props) {
 
   return (
     <>
-      <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
       <main className={styles.main}>
         <div className={styles.subheader}>
           <h1 className="vv-greeting">
