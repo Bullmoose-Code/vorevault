@@ -31,9 +31,10 @@ export async function searchEverything(args: SearchArgs): Promise<SearchResult> 
     folderScopeClause = `
       AND f.id IN (
         WITH RECURSIVE tree AS (
-          SELECT id FROM folders WHERE id = $2
+          SELECT id FROM folders WHERE id = $2 AND deleted_at IS NULL
           UNION ALL
           SELECT c.id FROM folders c JOIN tree t ON c.parent_id = t.id
+          WHERE c.deleted_at IS NULL
         )
         SELECT id FROM tree
       )`;
@@ -44,6 +45,7 @@ export async function searchEverything(args: SearchArgs): Promise<SearchResult> 
     `SELECT f.*
        FROM folders f
       WHERE similarity(f.name, $1) > ${SIMILARITY_THRESHOLD}
+            AND f.deleted_at IS NULL
             ${folderScopeClause}
       ORDER BY similarity(f.name, $1) DESC
       LIMIT 20`,
@@ -57,9 +59,10 @@ export async function searchEverything(args: SearchArgs): Promise<SearchResult> 
     fileScopeClause = `
       AND fi.folder_id IN (
         WITH RECURSIVE tree AS (
-          SELECT id FROM folders WHERE id = $2
+          SELECT id FROM folders WHERE id = $2 AND deleted_at IS NULL
           UNION ALL
           SELECT c.id FROM folders c JOIN tree t ON c.parent_id = t.id
+          WHERE c.deleted_at IS NULL
         )
         SELECT id FROM tree
       )`;
@@ -80,6 +83,9 @@ export async function searchEverything(args: SearchArgs): Promise<SearchResult> 
               COALESCE(similarity(fo.name, $1), 0),
               similarity(u.username, $1)
             ) > ${SIMILARITY_THRESHOLD}
+        AND (fi.folder_id IS NULL OR NOT EXISTS (
+          SELECT 1 FROM folders fo_t WHERE fo_t.id = fi.folder_id AND fo_t.deleted_at IS NOT NULL
+        ))
         ${fileScopeClause}
       ORDER BY GREATEST(
                  similarity(fi.original_name, $1),
