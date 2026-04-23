@@ -20,7 +20,7 @@ const listChildren = vi.fn();
 const getBreadcrumbs = vi.fn();
 const renameFolder = vi.fn();
 const moveFolder = vi.fn();
-const deleteFolder = vi.fn();
+const permanentDeleteFolder = vi.fn();
 vi.mock("@/lib/folders", async () => {
   const actual = await vi.importActual<typeof import("@/lib/folders")>("@/lib/folders");
   return {
@@ -30,7 +30,7 @@ vi.mock("@/lib/folders", async () => {
     getBreadcrumbs: (...a: unknown[]) => getBreadcrumbs(...a),
     renameFolder: (...a: unknown[]) => renameFolder(...a),
     moveFolder: (...a: unknown[]) => moveFolder(...a),
-    deleteFolder: (...a: unknown[]) => deleteFolder(...a),
+    permanentDeleteFolder: (...a: unknown[]) => permanentDeleteFolder(...a),
   };
 });
 
@@ -44,7 +44,7 @@ function ctx(id: string) { return { params: Promise.resolve({ id }) }; }
 
 beforeEach(() => {
   getCurrentUser.mockReset(); getFolder.mockReset(); listChildren.mockReset();
-  getBreadcrumbs.mockReset(); renameFolder.mockReset(); moveFolder.mockReset(); deleteFolder.mockReset();
+  getBreadcrumbs.mockReset(); renameFolder.mockReset(); moveFolder.mockReset(); permanentDeleteFolder.mockReset();
 });
 
 describe("GET /api/folders/[id]", () => {
@@ -117,9 +117,15 @@ describe("PATCH /api/folders/[id]", () => {
 });
 
 describe("DELETE /api/folders/[id]", () => {
-  it("returns 204 on success", async () => {
+  it("returns 401 when unauthenticated", async () => {
+    getCurrentUser.mockResolvedValueOnce(null);
+    const res = await DELETE(new NextRequest(`https://app.test/api/folders/${FOLDER_ID}`), ctx(FOLDER_ID));
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 204 on success when folder is trashed", async () => {
     getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
-    deleteFolder.mockResolvedValueOnce(undefined);
+    permanentDeleteFolder.mockResolvedValueOnce({ deletedFiles: [] });
     const res = await DELETE(new NextRequest(`https://app.test/api/folders/${FOLDER_ID}`), ctx(FOLDER_ID));
     expect(res.status).toBe(204);
   });
@@ -127,8 +133,26 @@ describe("DELETE /api/folders/[id]", () => {
   it("returns 403 on auth error", async () => {
     getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
     const { FolderAuthError } = await import("@/lib/folders");
-    deleteFolder.mockRejectedValueOnce(new FolderAuthError());
+    permanentDeleteFolder.mockRejectedValueOnce(new FolderAuthError());
     const res = await DELETE(new NextRequest(`https://app.test/api/folders/${FOLDER_ID}`), ctx(FOLDER_ID));
     expect(res.status).toBe(403);
+  });
+
+  it("returns 404 when folder not found", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    const { FolderNotFoundError } = await import("@/lib/folders");
+    permanentDeleteFolder.mockRejectedValueOnce(new FolderNotFoundError("folder"));
+    const res = await DELETE(new NextRequest(`https://app.test/api/folders/${FOLDER_ID}`), ctx(FOLDER_ID));
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 409 when folder is not trashed", async () => {
+    getCurrentUser.mockResolvedValueOnce({ id: "u1", is_admin: false });
+    const { FolderNotTrashedError } = await import("@/lib/folders");
+    permanentDeleteFolder.mockRejectedValueOnce(new FolderNotTrashedError());
+    const res = await DELETE(new NextRequest(`https://app.test/api/folders/${FOLDER_ID}`), ctx(FOLDER_ID));
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe("not_trashed");
   });
 });

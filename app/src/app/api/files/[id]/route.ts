@@ -1,12 +1,18 @@
+import { rm } from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import {
-  getFileWithUploader, renameFile,
-  FileAuthError, FileDeletedError, FileNameError, FileNotFoundError,
+  getFileWithUploader, renameFile, permanentDeleteFile,
+  FileAuthError, FileDeletedError, FileNameError, FileNotFoundError, FileNotTrashedError,
 } from "@/lib/files";
 import { getBreadcrumbs } from "@/lib/folders";
 import { isBookmarked } from "@/lib/bookmarks";
+
+async function safeRm(path: string | null): Promise<void> {
+  if (!path) return;
+  try { await rm(path, { recursive: true, force: true }); } catch { /* already gone */ }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +63,24 @@ export async function PATCH(req: NextRequest, ctx: Ctx): Promise<NextResponse> {
     if (err instanceof FileAuthError) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     if (err instanceof FileDeletedError) return NextResponse.json({ error: "file_deleted" }, { status: 400 });
     if (err instanceof FileNotFoundError) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    throw err;
+  }
+}
+
+export async function DELETE(_req: NextRequest, ctx: Ctx): Promise<NextResponse> {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  const { id } = await ctx.params;
+  try {
+    const file = await permanentDeleteFile({ fileId: id, actorId: user.id, isAdmin: user.is_admin });
+    await safeRm(file.storage_path.split("/").slice(0, -1).join("/"));
+    await safeRm(file.transcoded_path);
+    await safeRm(file.thumbnail_path);
+    return NextResponse.json({ deleted: true });
+  } catch (err) {
+    if (err instanceof FileAuthError) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (err instanceof FileNotFoundError) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (err instanceof FileNotTrashedError) return NextResponse.json({ error: "not_trashed" }, { status: 409 });
     throw err;
   }
 }

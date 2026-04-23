@@ -1,0 +1,39 @@
+.row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "kind name actions"
+    "kind meta actions";
+  gap: 4px 16px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  background: var(--vv-bg-panel);
+}
+
+.kind {
+  grid-area: kind;
+  align-self: center;
+  font: italic 700 12px var(--vv-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--vv-ink-muted);
+}
+
+.name { grid-area: name; font-weight: 700; word-break: break-all; }
+.meta { grid-area: meta; font-size: 12px; color: var(--vv-ink-muted); }
+.actions { grid-area: actions; align-self: center; display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "kind"
+      "name"
+      "meta"
+      "actions";
+    gap: 6px;
+  }
+}

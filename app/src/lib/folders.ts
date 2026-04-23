@@ -8,6 +8,7 @@ export type FolderRow = {
   parent_id: string | null;
   created_by: string;
   created_at: Date;
+  deleted_at: Date | null;
 };
 
 export class FolderNameError extends Error {
@@ -42,7 +43,7 @@ export async function createFolder(args: CreateFolderArgs): Promise<FolderRow> {
 
   if (args.parentId) {
     const parent = await pool.query<{ id: string }>(
-      `SELECT id FROM folders WHERE id = $1`,
+      `SELECT id FROM folders WHERE id = $1 AND deleted_at IS NULL`,
       [args.parentId],
     );
     if (parent.rowCount === 0) throw new FolderNotFoundError("parent folder");
@@ -61,7 +62,8 @@ export async function createFolder(args: CreateFolderArgs): Promise<FolderRow> {
         `SELECT id FROM folders
           WHERE COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)
                 = COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
-            AND LOWER(name) = LOWER($2)`,
+            AND LOWER(name) = LOWER($2)
+            AND deleted_at IS NULL`,
         [args.parentId, args.name],
       );
       throw new FolderCollisionError(existing.rows[0].id);
@@ -78,7 +80,7 @@ export class FolderCycleError extends Error {
 }
 
 async function assertCanEdit(folderId: string, actorId: string, isAdmin: boolean): Promise<FolderRow> {
-  const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1`, [folderId]);
+  const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1 AND deleted_at IS NULL`, [folderId]);
   if (rows.length === 0) throw new FolderNotFoundError("folder");
   if (!isAdmin && rows[0].created_by !== actorId) throw new FolderAuthError();
   return rows[0];
@@ -102,7 +104,8 @@ export async function renameFolder(args: RenameFolderArgs): Promise<FolderRow> {
           WHERE COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)
                 = COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
             AND LOWER(name) = LOWER($2)
-            AND id <> $3`,
+            AND id <> $3
+            AND deleted_at IS NULL`,
         [current.parent_id, args.newName, args.id],
       );
       throw new FolderCollisionError(existing.rows[0].id);
@@ -131,7 +134,7 @@ export async function moveFolder(args: MoveFolderArgs): Promise<FolderRow> {
 
   if (args.newParentId === args.id) throw new FolderCycleError();
   if (args.newParentId !== null) {
-    const parentExists = await pool.query(`SELECT 1 FROM folders WHERE id = $1`, [args.newParentId]);
+    const parentExists = await pool.query(`SELECT 1 FROM folders WHERE id = $1 AND deleted_at IS NULL`, [args.newParentId]);
     if (parentExists.rowCount === 0) throw new FolderNotFoundError("new parent");
     if (await isDescendant(args.id, args.newParentId)) throw new FolderCycleError();
   }
@@ -149,7 +152,8 @@ export async function moveFolder(args: MoveFolderArgs): Promise<FolderRow> {
           WHERE COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)
                 = COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
             AND LOWER(name) = LOWER($2)
-            AND id <> $3`,
+            AND id <> $3
+            AND deleted_at IS NULL`,
         [args.newParentId, current.name, args.id],
       );
       throw new FolderCollisionError(existing.rows[0].id);
@@ -193,9 +197,10 @@ export async function listTopLevelFolders(): Promise<FolderWithCounts[]> {
   const { rows } = await pool.query<FolderWithCounts>(
     `SELECT f.*,
             (SELECT count(*)::int FROM files c WHERE c.folder_id = f.id AND c.deleted_at IS NULL) AS direct_file_count,
-            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id) AS direct_subfolder_count
+            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id AND c.deleted_at IS NULL) AS direct_subfolder_count
        FROM folders f
       WHERE f.parent_id IS NULL
+        AND f.deleted_at IS NULL
       ORDER BY LOWER(f.name)`,
   );
   return rows;
@@ -205,9 +210,10 @@ export async function listChildren(folderId: string): Promise<{ subfolders: Fold
   const { rows: subfolders } = await pool.query<FolderWithCounts>(
     `SELECT f.*,
             (SELECT count(*)::int FROM files c WHERE c.folder_id = f.id AND c.deleted_at IS NULL) AS direct_file_count,
-            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id) AS direct_subfolder_count
+            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id AND c.deleted_at IS NULL) AS direct_subfolder_count
        FROM folders f
       WHERE f.parent_id = $1
+        AND f.deleted_at IS NULL
       ORDER BY LOWER(f.name)`,
     [folderId],
   );
@@ -223,9 +229,9 @@ export async function listChildren(folderId: string): Promise<{ subfolders: Fold
 export async function getBreadcrumbs(folderId: string): Promise<FolderRow[]> {
   const { rows } = await pool.query<FolderRow & { depth: number }>(
     `WITH RECURSIVE chain AS (
-       SELECT *, 0 AS depth FROM folders WHERE id = $1
+       SELECT *, 0 AS depth FROM folders WHERE id = $1 AND deleted_at IS NULL
        UNION ALL
-       SELECT f.*, c.depth + 1 FROM folders f JOIN chain c ON f.id = c.parent_id
+       SELECT f.*, c.depth + 1 FROM folders f JOIN chain c ON f.id = c.parent_id WHERE f.deleted_at IS NULL
      )
      SELECT * FROM chain ORDER BY depth DESC`,
     [folderId],
@@ -234,12 +240,12 @@ export async function getBreadcrumbs(folderId: string): Promise<FolderRow[]> {
 }
 
 export async function getFolder(id: string): Promise<FolderRow | null> {
-  const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1`, [id]);
+  const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1 AND deleted_at IS NULL`, [id]);
   return rows[0] ?? null;
 }
 
 export async function folderExists(id: string): Promise<boolean> {
-  const { rowCount } = await pool.query(`SELECT 1 FROM folders WHERE id = $1`, [id]);
+  const { rowCount } = await pool.query(`SELECT 1 FROM folders WHERE id = $1 AND deleted_at IS NULL`, [id]);
   return (rowCount ?? 0) > 0;
 }
 
@@ -254,7 +260,7 @@ export async function getOrCreateUserHomeFolder(
 ): Promise<string | null> {
   const existing = await pool.query<{ id: string; created_by: string }>(
     `SELECT id, created_by FROM folders
-      WHERE parent_id IS NULL AND LOWER(name) = LOWER($1)`,
+      WHERE parent_id IS NULL AND LOWER(name) = LOWER($1) AND deleted_at IS NULL`,
     [username],
   );
   if (existing.rowCount && existing.rowCount > 0) {
@@ -271,7 +277,7 @@ export async function getOrCreateUserHomeFolder(
     if ((err as { code?: string }).code === "23505") {
       const retry = await pool.query<{ id: string; created_by: string }>(
         `SELECT id, created_by FROM folders
-          WHERE parent_id IS NULL AND LOWER(name) = LOWER($1)`,
+          WHERE parent_id IS NULL AND LOWER(name) = LOWER($1) AND deleted_at IS NULL`,
         [username],
       );
       if (retry.rowCount && retry.rowCount > 0 && retry.rows[0].created_by === userId) {
@@ -289,7 +295,7 @@ export async function getFolderWithCreator(id: string): Promise<FolderWithCreato
   const { rows } = await pool.query<FolderWithCreator>(
     `SELECT f.*, u.username AS creator_username
        FROM folders f JOIN users u ON u.id = f.created_by
-      WHERE f.id = $1`,
+      WHERE f.id = $1 AND f.deleted_at IS NULL`,
     [id],
   );
   return rows[0] ?? null;
@@ -302,9 +308,10 @@ export async function listChildrenWithUploader(folderId: string): Promise<{
   const { rows: subfolders } = await pool.query<FolderWithCounts>(
     `SELECT f.*,
             (SELECT count(*)::int FROM files c WHERE c.folder_id = f.id AND c.deleted_at IS NULL) AS direct_file_count,
-            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id) AS direct_subfolder_count
+            (SELECT count(*)::int FROM folders c WHERE c.parent_id = f.id AND c.deleted_at IS NULL) AS direct_subfolder_count
        FROM folders f
       WHERE f.parent_id = $1
+        AND f.deleted_at IS NULL
       ORDER BY LOWER(f.name)`,
     [folderId],
   );
@@ -316,4 +323,254 @@ export async function listChildrenWithUploader(folderId: string): Promise<{
     [folderId],
   );
   return { subfolders, files };
+}
+
+export async function getFolderIncludingTrashed(id: string): Promise<FolderRow | null> {
+  const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1`, [id]);
+  return rows[0] ?? null;
+}
+
+export type RestoreFolderArgs = { id: string; actorId: string };
+export type RestoreFolderResult = { folders: number; files: number };
+
+export async function restoreFolder(args: RestoreFolderArgs): Promise<RestoreFolderResult> {
+  const folder = await getFolderIncludingTrashed(args.id);
+  if (!folder) throw new FolderNotFoundError("folder");
+  if (!folder.deleted_at) return { folders: 0, files: 0 };
+  // Restore is permitted for any signed-in user per spec.
+
+  const targetTs = folder.deleted_at;
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Cascade group within the subtree + same timestamp.
+    const { rows: subtree } = await client.query<{ id: string }>(
+      `WITH RECURSIVE tree AS (
+         SELECT id FROM folders WHERE id = $1
+         UNION ALL
+         SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
+       )
+       SELECT id FROM tree`,
+      [args.id],
+    );
+    const subtreeIds = subtree.map((r) => r.id);
+
+    // Also walk UP: any ancestor trashed at the same ts gets restored too.
+    const { rows: ancestors } = await client.query<{ id: string }>(
+      `WITH RECURSIVE chain AS (
+         SELECT id, parent_id, deleted_at FROM folders WHERE id = $1
+         UNION ALL
+         SELECT f.id, f.parent_id, f.deleted_at
+           FROM folders f JOIN chain c ON f.id = c.parent_id
+       )
+       SELECT id FROM chain WHERE deleted_at = $2`,
+      [args.id, targetTs],
+    );
+    const ancestorIds = ancestors.map((r) => r.id);
+
+    const allIds = Array.from(new Set([...subtreeIds, ...ancestorIds]));
+
+    try {
+      const { rowCount: folderCount } = await client.query(
+        `UPDATE folders SET deleted_at = NULL
+           WHERE id = ANY($1::uuid[]) AND deleted_at = $2`,
+        [allIds, targetTs],
+      );
+
+      const { rowCount: fileCount } = await client.query(
+        `UPDATE files SET deleted_at = NULL
+           WHERE folder_id = ANY($1::uuid[]) AND deleted_at = $2`,
+        [allIds, targetTs],
+      );
+
+      await client.query("COMMIT");
+      return { folders: folderCount ?? 0, files: fileCount ?? 0 };
+    } catch (err) {
+      if ((err as { code?: string }).code === "23505") {
+        await client.query("ROLLBACK");
+        // Find the existing active row that blocks us.
+        const { rows } = await pool.query<{ id: string }>(
+          `SELECT id FROM folders
+             WHERE deleted_at IS NULL
+               AND COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)
+                   = COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+               AND LOWER(name) = LOWER($2)
+               AND id <> $3`,
+          [folder.parent_id, folder.name, folder.id],
+        );
+        throw new FolderCollisionError(rows[0]?.id ?? "");
+      }
+      throw err;
+    }
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export class FolderNotTrashedError extends Error {
+  constructor() { super("folder is not trashed"); this.name = "FolderNotTrashedError"; }
+}
+
+export type PermanentDeleteFolderArgs = { id: string; actorId: string; isAdmin: boolean };
+export type PermanentDeleteFolderResult = { deletedFiles: FileRow[] };
+
+export async function permanentDeleteFolder(
+  args: PermanentDeleteFolderArgs,
+): Promise<PermanentDeleteFolderResult> {
+  const folder = await getFolderIncludingTrashed(args.id);
+  if (!folder) throw new FolderNotFoundError("folder");
+  if (!folder.deleted_at) throw new FolderNotTrashedError();
+  if (!args.isAdmin && folder.created_by !== args.actorId) throw new FolderAuthError();
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: subtree } = await client.query<{ id: string }>(
+      `WITH RECURSIVE tree AS (
+         SELECT id FROM folders WHERE id = $1
+         UNION ALL
+         SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
+       )
+       SELECT id FROM tree`,
+      [args.id],
+    );
+    const folderIds = subtree.map((r) => r.id);
+
+    const { rows: deletedFiles } = await client.query<FileRow>(
+      `DELETE FROM files WHERE folder_id = ANY($1::uuid[]) RETURNING *`,
+      [folderIds],
+    );
+    await client.query(`DELETE FROM folders WHERE id = ANY($1::uuid[])`, [folderIds]);
+    await client.query("COMMIT");
+    return { deletedFiles };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export type TrashItem =
+  | { kind: "folder"; id: string; name: string; deleted_at: Date; actor_username: string }
+  | { kind: "file"; id: string; name: string; deleted_at: Date; actor_username: string; size_bytes: number };
+
+export type TrashPage = { items: TrashItem[]; total: number; page: number; limit: number };
+
+export async function listTrashedItems({ page, limit }: { page: number; limit: number }): Promise<TrashPage> {
+  const offset = (page - 1) * limit;
+  const { rows } = await pool.query<{
+    kind: "folder" | "file";
+    id: string;
+    name: string;
+    deleted_at: Date;
+    actor_username: string;
+    size_bytes: string | null;
+  }>(
+    `WITH folder_rows AS (
+       SELECT 'folder'::text AS kind, f.id, f.name, f.deleted_at, u.username AS actor_username, NULL::bigint AS size_bytes
+         FROM folders f
+         JOIN users u ON u.id = f.created_by
+        WHERE f.deleted_at IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM folders p
+             WHERE p.id = f.parent_id AND p.deleted_at IS NOT NULL
+          )
+     ),
+     file_rows AS (
+       SELECT 'file'::text AS kind, fi.id, fi.original_name AS name, fi.deleted_at, u.username AS actor_username, fi.size_bytes::bigint
+         FROM files fi
+         JOIN users u ON u.id = fi.uploader_id
+        WHERE fi.deleted_at IS NOT NULL
+          AND (fi.folder_id IS NULL
+               OR NOT EXISTS (
+                 SELECT 1 FROM folders p
+                  WHERE p.id = fi.folder_id AND p.deleted_at IS NOT NULL
+               ))
+     )
+     SELECT * FROM (SELECT * FROM folder_rows UNION ALL SELECT * FROM file_rows) u
+      ORDER BY deleted_at DESC
+      LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  );
+
+  const { rows: countRows } = await pool.query<{ count: string }>(
+    `SELECT (
+       (SELECT count(*) FROM folders f WHERE f.deleted_at IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM folders p WHERE p.id = f.parent_id AND p.deleted_at IS NOT NULL))
+       +
+       (SELECT count(*) FROM files fi WHERE fi.deleted_at IS NOT NULL
+          AND (fi.folder_id IS NULL OR NOT EXISTS (SELECT 1 FROM folders p WHERE p.id = fi.folder_id AND p.deleted_at IS NOT NULL)))
+     )::text AS count`,
+  );
+
+  const items: TrashItem[] = rows.map((r) =>
+    r.kind === "folder"
+      ? { kind: "folder", id: r.id, name: r.name, deleted_at: r.deleted_at, actor_username: r.actor_username }
+      : {
+          kind: "file", id: r.id, name: r.name, deleted_at: r.deleted_at,
+          actor_username: r.actor_username, size_bytes: Number(r.size_bytes ?? 0),
+        },
+  );
+  return { items, total: parseInt(countRows[0].count, 10), page, limit };
+}
+
+export async function getExpiredTrashedFolders(daysOld: number): Promise<FolderRow[]> {
+  const { rows } = await pool.query<FolderRow>(
+    `SELECT * FROM folders
+       WHERE deleted_at IS NOT NULL
+         AND deleted_at < now() - ($1 || ' days')::interval`,
+    [daysOld],
+  );
+  return rows;
+}
+
+export type TrashFolderArgs = { id: string; actorId: string; isAdmin: boolean };
+export type TrashFolderResult = { folders: number; files: number };
+
+export async function trashFolder(args: TrashFolderArgs): Promise<TrashFolderResult> {
+  const folder = await getFolderIncludingTrashed(args.id);
+  if (!folder) throw new FolderNotFoundError("folder");
+  if (folder.deleted_at) return { folders: 0, files: 0 };
+  if (!args.isAdmin && folder.created_by !== args.actorId) throw new FolderAuthError();
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Find every descendant folder id (includes the folder itself).
+    const { rows: ids } = await client.query<{ id: string }>(
+      `WITH RECURSIVE tree AS (
+         SELECT id FROM folders WHERE id = $1
+         UNION ALL
+         SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
+       )
+       SELECT id FROM tree`,
+      [args.id],
+    );
+    const folderIds = ids.map((r) => r.id);
+    // Stamp all folders with the same now().
+    const { rowCount: folderCount } = await client.query(
+      `UPDATE folders SET deleted_at = now()
+         WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`,
+      [folderIds],
+    );
+    // Match the timestamp for files in those folders.
+    const { rowCount: fileCount } = await client.query(
+      `UPDATE files SET deleted_at = (SELECT deleted_at FROM folders WHERE id = $1)
+         WHERE folder_id = ANY($2::uuid[]) AND deleted_at IS NULL`,
+      [args.id, folderIds],
+    );
+    await client.query("COMMIT");
+    return { folders: folderCount ?? 0, files: fileCount ?? 0 };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }

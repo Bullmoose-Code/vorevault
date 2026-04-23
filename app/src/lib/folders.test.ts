@@ -304,3 +304,208 @@ describe("folders — queries", () => {
     expect(files[0].uploader_name).toBe("bob");
   });
 });
+
+describe("folder read paths skip trashed", () => {
+  it("listTopLevelFolders excludes trashed folders", async () => {
+    const { createFolder, listTopLevelFolders } = await import("./folders");
+    const uid = await makeUser("alice");
+    const keep = await createFolder({ name: "keep", parentId: null, createdBy: uid });
+    const trash = await createFolder({ name: "trash", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [trash.id]);
+    const rows = await listTopLevelFolders();
+    expect(rows.map((r) => r.id)).toEqual([keep.id]);
+  });
+
+  it("listChildren excludes trashed subfolders", async () => {
+    const { createFolder, listChildren } = await import("./folders");
+    const uid = await makeUser("bob");
+    const root = await createFolder({ name: "root", parentId: null, createdBy: uid });
+    const keep = await createFolder({ name: "keep", parentId: root.id, createdBy: uid });
+    const trash = await createFolder({ name: "trash", parentId: root.id, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [trash.id]);
+    const { subfolders } = await listChildren(root.id);
+    expect(subfolders.map((r) => r.id)).toEqual([keep.id]);
+  });
+
+  it("getFolder returns null for trashed folders, getFolderIncludingTrashed returns them", async () => {
+    const { createFolder, getFolder, getFolderIncludingTrashed } = await import("./folders");
+    const uid = await makeUser("carol");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [f.id]);
+    expect(await getFolder(f.id)).toBeNull();
+    const including = await getFolderIncludingTrashed(f.id);
+    expect(including?.id).toBe(f.id);
+  });
+
+  it("createFolder allows reusing a trashed sibling's name", async () => {
+    const { createFolder } = await import("./folders");
+    const uid = await makeUser("dan");
+    const a = await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [a.id]);
+    const b = await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    expect(b.id).not.toBe(a.id);
+  });
+});
+
+describe("trashFolder", () => {
+  it("cascades deleted_at to descendant folders and files with same timestamp", async () => {
+    const { createFolder, trashFolder } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("eve");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    const c = await createFolder({ name: "c", parentId: b.id, createdBy: uid });
+    const f1 = await insertFile({ uploaderId: uid, folderId: a.id, originalName: "f1", mimeType: "image/png", sizeBytes: 1, storagePath: "/a/f1" });
+    const f2 = await insertFile({ uploaderId: uid, folderId: c.id, originalName: "f2", mimeType: "image/png", sizeBytes: 1, storagePath: "/a/f2" });
+
+    const counts = await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+    expect(counts).toEqual({ folders: 3, files: 2 });
+
+    const { rows: f } = await pg.pool.query<{ id: string; deleted_at: string | null }>(
+      `SELECT id, deleted_at FROM folders WHERE id IN ($1, $2, $3) ORDER BY id`,
+      [a.id, b.id, c.id],
+    );
+    expect(f.every((r) => r.deleted_at !== null)).toBe(true);
+    const ts = new Set(f.map((r) => r.deleted_at));
+    expect(ts.size).toBe(1); // same timestamp across cascade
+
+    const { rows: files } = await pg.pool.query<{ id: string; deleted_at: string | null }>(
+      `SELECT id, deleted_at FROM files WHERE id IN ($1, $2)`,
+      [f1.id, f2.id],
+    );
+    expect(files.every((r) => r.deleted_at === f[0].deleted_at)).toBe(true);
+  });
+
+  it("rejects a non-owner non-admin actor", async () => {
+    const { createFolder, trashFolder, FolderAuthError } = await import("./folders");
+    const owner = await makeUser("owner");
+    const other = await makeUser("other");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: owner });
+    await expect(trashFolder({ id: f.id, actorId: other, isAdmin: false })).rejects.toBeInstanceOf(FolderAuthError);
+  });
+
+  it("is a no-op on an already-trashed folder (returns zero counts)", async () => {
+    const { createFolder, trashFolder } = await import("./folders");
+    const uid = await makeUser("ida");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await trashFolder({ id: f.id, actorId: uid, isAdmin: false });
+    const second = await trashFolder({ id: f.id, actorId: uid, isAdmin: false });
+    expect(second).toEqual({ folders: 0, files: 0 });
+  });
+});
+
+describe("permanentDeleteFolder", () => {
+  it("refuses to permanent-delete a folder that isn't trashed", async () => {
+    const { createFolder, permanentDeleteFolder, FolderNotTrashedError } = await import("./folders");
+    const uid = await makeUser("mia");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await expect(permanentDeleteFolder({ id: f.id, actorId: uid, isAdmin: false }))
+      .rejects.toBeInstanceOf(FolderNotTrashedError);
+  });
+
+  it("hard-deletes a trashed folder and all descendants + files", async () => {
+    const { createFolder, trashFolder, permanentDeleteFolder } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("ned");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    const file = await insertFile({ uploaderId: uid, folderId: b.id, originalName: "x", mimeType: "image/png", sizeBytes: 1, storagePath: "/x/p" });
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+
+    const res = await permanentDeleteFolder({ id: a.id, actorId: uid, isAdmin: false });
+    expect(res.deletedFiles.map((f) => f.id)).toEqual([file.id]);
+
+    const { rowCount: fCount } = await pg.pool.query(`SELECT 1 FROM folders WHERE id IN ($1, $2)`, [a.id, b.id]);
+    expect(fCount).toBe(0);
+    const { rowCount: fileCount } = await pg.pool.query(`SELECT 1 FROM files WHERE id = $1`, [file.id]);
+    expect(fileCount).toBe(0);
+  });
+});
+
+describe("getExpiredTrashedFolders", () => {
+  it("returns folders trashed beyond the retention window", async () => {
+    const { createFolder, getExpiredTrashedFolders } = await import("./folders");
+    const uid = await makeUser("ola");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() - interval '40 days' WHERE id = $1`, [f.id]);
+    const rows = await getExpiredTrashedFolders(30);
+    expect(rows.map((r) => r.id)).toContain(f.id);
+  });
+});
+
+describe("listTrashedItems", () => {
+  it("returns top-level trashed folders + top-level trashed files newest first", async () => {
+    const { createFolder, trashFolder, listTrashedItems } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("pat");
+    const parent = await createFolder({ name: "parent", parentId: null, createdBy: uid });
+    const child = await createFolder({ name: "child", parentId: parent.id, createdBy: uid });
+    const rootFile = await insertFile({ uploaderId: uid, folderId: null, originalName: "r.mp4", mimeType: "video/mp4", sizeBytes: 10, storagePath: "/r" });
+    const childFile = await insertFile({ uploaderId: uid, folderId: child.id, originalName: "c.mp4", mimeType: "video/mp4", sizeBytes: 20, storagePath: "/c" });
+
+    // Trash the root file (top-level).
+    await pg.pool.query(`UPDATE files SET deleted_at = now() WHERE id = $1`, [rootFile.id]);
+    // Trash child folder (cascades to its file).
+    await trashFolder({ id: child.id, actorId: uid, isAdmin: false });
+    // Trash parent separately later — proves child + childFile aren't surfaced as top-level.
+    await trashFolder({ id: parent.id, actorId: uid, isAdmin: false });
+
+    const rows = await listTrashedItems({ page: 1, limit: 50 });
+    const ids = rows.items.map((r) => r.id);
+    expect(ids).toContain(rootFile.id);
+    expect(ids).toContain(parent.id);
+    expect(ids).not.toContain(child.id);
+    expect(ids).not.toContain(childFile.id);
+  });
+});
+
+describe("restoreFolder", () => {
+  it("restores the cascade group by matching deleted_at timestamp", async () => {
+    const { createFolder, trashFolder, restoreFolder } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("jen");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    const f1 = await insertFile({ uploaderId: uid, folderId: a.id, originalName: "f1", mimeType: "image/png", sizeBytes: 1, storagePath: "/x/f1" });
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+
+    const counts = await restoreFolder({ id: a.id, actorId: uid });
+    expect(counts).toEqual({ folders: 2, files: 1 });
+
+    const { rows } = await pg.pool.query<{ deleted_at: string | null }>(
+      `SELECT deleted_at FROM folders WHERE id IN ($1, $2) UNION ALL SELECT deleted_at FROM files WHERE id = $3`,
+      [a.id, b.id, f1.id],
+    );
+    expect(rows.every((r) => r.deleted_at === null)).toBe(true);
+  });
+
+  it("leaves items trashed at a different timestamp still trashed", async () => {
+    const { createFolder, trashFolder, restoreFolder } = await import("./folders");
+    const uid = await makeUser("kit");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    // Trash b alone (first timestamp).
+    await trashFolder({ id: b.id, actorId: uid, isAdmin: false });
+    // Now trash a (second timestamp). a's deleted_at differs from b's.
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+
+    await restoreFolder({ id: a.id, actorId: uid });
+    const { rows } = await pg.pool.query<{ id: string; deleted_at: string | null }>(
+      `SELECT id, deleted_at FROM folders WHERE id IN ($1, $2)`,
+      [a.id, b.id],
+    );
+    const aRow = rows.find((r) => r.id === a.id)!;
+    const bRow = rows.find((r) => r.id === b.id)!;
+    expect(aRow.deleted_at).toBeNull();
+    expect(bRow.deleted_at).not.toBeNull();
+  });
+
+  it("throws FolderCollisionError when restore would collide with an active sibling", async () => {
+    const { createFolder, trashFolder, restoreFolder, FolderCollisionError } = await import("./folders");
+    const uid = await makeUser("leo");
+    const a = await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+    await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    await expect(restoreFolder({ id: a.id, actorId: uid })).rejects.toBeInstanceOf(FolderCollisionError);
+  });
+});

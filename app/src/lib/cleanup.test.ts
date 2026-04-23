@@ -47,3 +47,26 @@ describe("cleanupOrphanUploads", () => {
     expect(count).toBe(2);
   });
 });
+
+describe("cleanupExpiredFolders", () => {
+  it("permanent-deletes expired trashed folders and rms their files' storage", async () => {
+    const getExpiredTrashedFolders = vi.fn().mockResolvedValueOnce([
+      { id: "folderA", name: "a", parent_id: null, created_by: "u1", created_at: new Date(), deleted_at: new Date(Date.now() - 40 * 86400000) },
+    ]);
+    const permanentDeleteFolder = vi.fn().mockResolvedValueOnce({
+      deletedFiles: [{ id: "f1", storage_path: "/data/uploads/f1/a.mp4", transcoded_path: "/data/transcoded/f1.mp4", thumbnail_path: null }],
+    });
+
+    vi.resetModules();
+    vi.doMock("@/lib/folders", () => ({ getExpiredTrashedFolders, permanentDeleteFolder }));
+
+    const { cleanupExpiredFolders } = await import("./cleanup");
+    const n = await cleanupExpiredFolders();
+    expect(n).toBe(1);
+    expect(permanentDeleteFolder).toHaveBeenCalledWith({ id: "folderA", actorId: "system", isAdmin: true });
+    expect(rmMock).toHaveBeenCalledTimes(2); // storage dir + transcoded (thumbnail null)
+
+    vi.doUnmock("@/lib/folders");
+    vi.resetModules();
+  });
+});
