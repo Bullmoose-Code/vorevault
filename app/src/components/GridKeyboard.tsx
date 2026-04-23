@@ -36,9 +36,9 @@ function parseDescriptor(el: HTMLElement): SelectedItem | null {
 
 export function GridKeyboard() {
   const selection = useSelection();
-  // Keep a ref to the latest selection so the stable keydown listener always
-  // calls the current callbacks. The Ctx object's data properties (size,
-  // items) use getter indirection into a live store, so they're always fresh.
+  // Keep a ref to the latest selection value so the stable keydown listener
+  // (installed once in the effect below) reads fresh `size` / `items` /
+  // callbacks on every keypress without re-subscribing on each re-render.
   const selRef = useRef(selection);
   selRef.current = selection;
 
@@ -109,8 +109,9 @@ export function GridKeyboard() {
 
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
+    // Install the listener once; `selRef.current` gives us the latest value each call.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // stable listener; reads latest via selRef (getters into live store)
+  }, []);
 
   return null;
 }
