@@ -7,6 +7,10 @@ import {
   useUploadProgress,
 } from "./UploadProgressProvider";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+}));
+
 type TusCallbacks = {
   onProgress?: (uploaded: number, total: number) => void;
   onSuccess?: () => void;

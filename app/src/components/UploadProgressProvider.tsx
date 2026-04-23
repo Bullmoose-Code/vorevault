@@ -3,6 +3,7 @@
 import {
   createContext, useCallback, useContext, useMemo, useRef, useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
 
 export type UploadStatus = "pending" | "uploading" | "done" | "error";
@@ -36,6 +37,7 @@ export function useUploadProgress(): Ctx {
 export function UploadProgressProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<ActiveUpload[]>([]);
   const instances = useRef<Map<string, tus.Upload>>(new Map());
+  const router = useRouter();
 
   const enqueue = useCallback((file: File, folderId: string | null) => {
     const id = crypto.randomUUID();
@@ -73,6 +75,7 @@ export function UploadProgressProvider({ children }: { children: React.ReactNode
           s.map((u) => (u.id === id ? { ...u, status: "done", uploaded: u.size } : u)),
         );
         window.dispatchEvent(new CustomEvent("vorevault:upload-done", { detail: { id } }));
+        router.refresh();
         instances.current.delete(id);
       },
     });
