@@ -52,17 +52,6 @@
   background: var(--vv-warn);
 }
 
-.uploadPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.uploadIcon {
-  display: inline-block;
-  font-weight: 900;
-}
-
 .searchOverlay {
   position: fixed;
   inset: 0;
@@ -92,6 +81,22 @@
   flex-shrink: 0;
 }
 
+.hamburger {
+  display: none;
+  background: none; border: 0; padding: 8px;
+  cursor: pointer;
+}
+.hamburger span {
+  display: block;
+  width: 18px; height: 2px;
+  background: var(--vv-ink);
+  margin: 4px 0;
+  border-radius: 1px;
+}
+@media (max-width: 768px) {
+  .hamburger { display: inline-flex; flex-direction: column; }
+}
+
 @media (max-width: 640px) {
   .topbar {
     padding: 12px 16px;
@@ -111,15 +116,6 @@
   }
 
   .actions { gap: 10px; }
-
-  .uploadPill {
-    padding: 0;
-    width: 44px;
-    height: 44px;
-    justify-content: center;
-  }
-
-  .uploadLabel { display: none; }
 }
 
 @media (min-width: 641px) {

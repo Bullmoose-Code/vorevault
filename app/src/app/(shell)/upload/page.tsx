@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { TopBar } from "@/components/TopBar";
 import { UploadClient } from "./UploadClient";
 import styles from "./page.module.css";
 
@@ -12,13 +11,7 @@ export default async function UploadPage() {
 
   return (
     <>
-      <TopBar
-        username={user.username}
-        avatarUrl={user.avatar_url}
-        showUpload={false}
-        isAdmin={user.is_admin}
-      />
-      <main className={styles.main}>
+      <div className={styles.main}>
         <div className={styles.back}><a href="/">← back to vault</a></div>
 
         <div className={styles.header}>
@@ -34,7 +27,7 @@ export default async function UploadPage() {
             <strong>Heads up:</strong> videos that aren&apos;t already h264 mp4 will auto-transcode in the background — you&apos;ll see a <em>&ldquo;Processing…&rdquo;</em> banner on the file page until it&apos;s ready. Originals are always playable in the meantime.
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

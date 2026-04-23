@@ -232,6 +232,87 @@ describe("files DB module", () => {
   });
 });
 
+describe("listFiles extraOffset", () => {
+  it("skips the first extraOffset rows and reduces total by extraOffset", async () => {
+    const { insertFile, listFiles } = await import("./files");
+    const userId = await makeUser();
+    // Insert 10 files with distinct names, oldest first; listFiles returns newest first.
+    for (let i = 0; i < 10; i++) {
+      await insertFile({
+        uploaderId: userId,
+        originalName: `f${i}.mp4`,
+        mimeType: "video/mp4",
+        sizeBytes: 1,
+        storagePath: `/x/${i}`,
+      });
+    }
+    const withOffset = await listFiles(1, 24, undefined, 3);
+    expect(withOffset.files).toHaveLength(7);
+    expect(withOffset.total).toBe(7); // 10 - 3
+
+    // The 3 newest should be skipped — files f9, f8, f7 absent; f6 is now first.
+    expect(withOffset.files[0].original_name).toBe("f6.mp4");
+  });
+
+  it("total never goes negative when extraOffset exceeds count", async () => {
+    const { insertFile, listFiles } = await import("./files");
+    const userId = await makeUser();
+    await insertFile({
+      uploaderId: userId, originalName: "only.mp4", mimeType: "video/mp4",
+      sizeBytes: 1, storagePath: "/o",
+    });
+    const page = await listFiles(1, 24, undefined, 10);
+    expect(page.total).toBe(0);
+  });
+
+  it("defaults extraOffset to 0 when omitted", async () => {
+    const { insertFile, listFiles } = await import("./files");
+    const userId = await makeUser();
+    for (let i = 0; i < 3; i++) {
+      await insertFile({
+        uploaderId: userId, originalName: `a${i}`, mimeType: "image/png",
+        sizeBytes: 1, storagePath: `/a/${i}`,
+      });
+    }
+    const page = await listFiles(1, 24);
+    expect(page.total).toBe(3);
+    expect(page.files).toHaveLength(3);
+  });
+});
+
+describe("listRecentFiles", () => {
+  it("returns up to N most-recent non-deleted files with uploader_name", async () => {
+    const { insertFile, listRecentFiles } = await import("./files");
+    const userId = await makeUser("bob");
+    for (let i = 0; i < 8; i++) {
+      await insertFile({
+        uploaderId: userId, originalName: `r${i}`, mimeType: "image/png",
+        sizeBytes: 1, storagePath: `/r/${i}`,
+      });
+    }
+    const rows = await listRecentFiles(6);
+    expect(rows).toHaveLength(6);
+    expect(rows[0].original_name).toBe("r7"); // newest first
+    expect(rows[0].uploader_name).toBe("bob");
+  });
+
+  it("excludes soft-deleted files", async () => {
+    const { insertFile, softDeleteFile, listRecentFiles } = await import("./files");
+    const userId = await makeUser();
+    const a = await insertFile({
+      uploaderId: userId, originalName: "keep", mimeType: "image/png",
+      sizeBytes: 1, storagePath: "/k",
+    });
+    const b = await insertFile({
+      uploaderId: userId, originalName: "gone", mimeType: "image/png",
+      sizeBytes: 1, storagePath: "/g",
+    });
+    await softDeleteFile(b.id);
+    const rows = await listRecentFiles(10);
+    expect(rows.map((r) => r.id)).toEqual([a.id]);
+  });
+});
+
 describe("moveFile", () => {
   it("uploader moves their own file to a folder", async () => {
     const { moveFile } = await import("./files");

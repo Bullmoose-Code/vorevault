@@ -30,7 +30,7 @@ export default async function AdminPage() {
         <a href="/">← back to vault</a>
       </div>
 
-      <main className={styles.main}>
+      <div className={styles.main}>
         <h2 className={`vv-title ${styles.sectionTitle}`}>Disk usage</h2>
         <div className={styles.statsGrid}>
           <StatCard label="Active files" value={disk.total_files} />
@@ -121,7 +121,7 @@ export default async function AdminPage() {
             </table>
           </div>
         )}
-      </main>
+      </div>
     </>
   );
 }

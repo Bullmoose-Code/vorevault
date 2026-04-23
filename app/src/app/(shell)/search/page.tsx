@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { searchEverything } from "@/lib/search";
-import { TopBar } from "@/components/TopBar";
 import { FolderTile } from "@/components/FolderTile";
 import { FileCard } from "@/components/FileCard";
 import type { FileWithUploader } from "@/lib/files";
@@ -15,10 +14,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const { q, folder } = await searchParams;
   if (!q || q.trim().length < 2) {
     return (
-      <main className={styles.page}>
-        <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
+      <div className={styles.page}>
         <p className={styles.empty}>Query too short.</p>
-      </main>
+      </div>
     );
   }
   const result = await searchEverything({ query: q, limit: 50, offset: 0, scopeFolderId: folder });
@@ -27,8 +25,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   }));
 
   return (
-    <main className={styles.page}>
-      <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
+    <div className={styles.page}>
       <h1 className={`vv-title ${styles.title}`}>Search: <em>{q}</em></h1>
       <p className="vv-meta">
         <strong>{result.folders.length + fileCards.length}</strong> {result.folders.length + fileCards.length === 1 ? "result" : "results"} for <em>&ldquo;{q}&rdquo;</em>
@@ -54,6 +51,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {result.folders.length + fileCards.length === 0 && (
         <p className={styles.empty}>No matches. Try a shorter or fuzzier query.</p>
       )}
-    </main>
+    </div>
   );
 }

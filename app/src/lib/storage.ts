@@ -14,6 +14,11 @@ export async function freeBytes(dir: string): Promise<bigint> {
   return stats.bavail * stats.bsize;
 }
 
+export async function totalBytes(dir: string): Promise<bigint> {
+  const stats = await statfs(dir, { bigint: true });
+  return stats.blocks * stats.bsize;
+}
+
 export async function ensureDir(dir: string): Promise<void> {
   await mkdir(dir, { recursive: true });
 }

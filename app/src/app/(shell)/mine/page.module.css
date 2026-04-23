@@ -1,0 +1,15 @@
+.main { max-width: 1200px; margin: 0 auto; padding: 0; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 20px 32px 32px;
+}
+.pagination {
+  display: flex; justify-content: center; gap: 20px;
+  padding: 0 32px 48px; color: var(--vv-ink-muted); font-style: italic;
+}
+.pagination a { color: var(--vv-accent); font-weight: 700; font-style: normal; }
+@media (max-width: 640px) {
+  .grid { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+}

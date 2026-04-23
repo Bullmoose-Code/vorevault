@@ -57,17 +57,6 @@ export function UserChip({
       {open && (
         <div className={styles.menu} role="menu">
           <div className={styles.header}>@{username}</div>
-          <a className={styles.item} href="/?mine=1" role="menuitem">
-            ↑ My uploads
-          </a>
-          <a className={styles.item} href="/saved" role="menuitem">
-            Saved
-          </a>
-          {isAdmin && (
-            <a className={styles.item} href="/admin" role="menuitem">
-              Admin
-            </a>
-          )}
           <div className={styles.divider} />
           <form action="/api/auth/logout" method="post" className={styles.logoutForm}>
             <button type="submit" className={styles.item} role="menuitem">

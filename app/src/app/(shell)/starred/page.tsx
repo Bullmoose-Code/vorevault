@@ -1,28 +1,26 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listBookmarksWithUploader } from "@/lib/bookmarks";
-import { TopBar } from "@/components/TopBar";
 import { FileCard } from "@/components/FileCard";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function SavedPage() {
+export default async function StarredPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { items } = await listBookmarksWithUploader(user.id, 100, 0);
 
   return (
-    <main className={styles.page}>
-      <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
-      <h1 className={`vv-title ${styles.title}`}>Saved</h1>
+    <div className={styles.page}>
+      <h1 className={`vv-title ${styles.title}`}>starred</h1>
       {items.length === 0 ? (
-        <p className={styles.empty}>Nothing saved yet. Tap ★ on any file to pin it here.</p>
+        <p className={styles.empty}>nothing starred yet. tap ★ on any file to pin it here.</p>
       ) : (
         <div className={styles.grid}>
           {items.map((b) => <FileCard key={b.file.id} file={b.file} />)}
         </div>
       )}
-    </main>
+    </div>
   );
 }
