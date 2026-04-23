@@ -433,6 +433,32 @@ describe("getExpiredTrashedFolders", () => {
   });
 });
 
+describe("listTrashedItems", () => {
+  it("returns top-level trashed folders + top-level trashed files newest first", async () => {
+    const { createFolder, trashFolder, listTrashedItems } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("pat");
+    const parent = await createFolder({ name: "parent", parentId: null, createdBy: uid });
+    const child = await createFolder({ name: "child", parentId: parent.id, createdBy: uid });
+    const rootFile = await insertFile({ uploaderId: uid, folderId: null, originalName: "r.mp4", mimeType: "video/mp4", sizeBytes: 10, storagePath: "/r" });
+    const childFile = await insertFile({ uploaderId: uid, folderId: child.id, originalName: "c.mp4", mimeType: "video/mp4", sizeBytes: 20, storagePath: "/c" });
+
+    // Trash the root file (top-level).
+    await pg.pool.query(`UPDATE files SET deleted_at = now() WHERE id = $1`, [rootFile.id]);
+    // Trash child folder (cascades to its file).
+    await trashFolder({ id: child.id, actorId: uid, isAdmin: false });
+    // Trash parent separately later — proves child + childFile aren't surfaced as top-level.
+    await trashFolder({ id: parent.id, actorId: uid, isAdmin: false });
+
+    const rows = await listTrashedItems({ page: 1, limit: 50 });
+    const ids = rows.items.map((r) => r.id);
+    expect(ids).toContain(rootFile.id);
+    expect(ids).toContain(parent.id);
+    expect(ids).not.toContain(child.id);
+    expect(ids).not.toContain(childFile.id);
+  });
+});
+
 describe("restoreFolder", () => {
   it("restores the cascade group by matching deleted_at timestamp", async () => {
     const { createFolder, trashFolder, restoreFolder } = await import("./folders");

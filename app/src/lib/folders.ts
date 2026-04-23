@@ -456,6 +456,70 @@ export async function permanentDeleteFolder(
   }
 }
 
+export type TrashItem =
+  | { kind: "folder"; id: string; name: string; deleted_at: Date; actor_username: string }
+  | { kind: "file"; id: string; name: string; deleted_at: Date; actor_username: string; size_bytes: number };
+
+export type TrashPage = { items: TrashItem[]; total: number; page: number; limit: number };
+
+export async function listTrashedItems({ page, limit }: { page: number; limit: number }): Promise<TrashPage> {
+  const offset = (page - 1) * limit;
+  const { rows } = await pool.query<{
+    kind: "folder" | "file";
+    id: string;
+    name: string;
+    deleted_at: Date;
+    actor_username: string;
+    size_bytes: string | null;
+  }>(
+    `WITH folder_rows AS (
+       SELECT 'folder'::text AS kind, f.id, f.name, f.deleted_at, u.username AS actor_username, NULL::bigint AS size_bytes
+         FROM folders f
+         JOIN users u ON u.id = f.created_by
+        WHERE f.deleted_at IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM folders p
+             WHERE p.id = f.parent_id AND p.deleted_at IS NOT NULL
+          )
+     ),
+     file_rows AS (
+       SELECT 'file'::text AS kind, fi.id, fi.original_name AS name, fi.deleted_at, u.username AS actor_username, fi.size_bytes::bigint
+         FROM files fi
+         JOIN users u ON u.id = fi.uploader_id
+        WHERE fi.deleted_at IS NOT NULL
+          AND (fi.folder_id IS NULL
+               OR NOT EXISTS (
+                 SELECT 1 FROM folders p
+                  WHERE p.id = fi.folder_id AND p.deleted_at IS NOT NULL
+               ))
+     )
+     SELECT * FROM (SELECT * FROM folder_rows UNION ALL SELECT * FROM file_rows) u
+      ORDER BY deleted_at DESC
+      LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  );
+
+  const { rows: countRows } = await pool.query<{ count: string }>(
+    `SELECT (
+       (SELECT count(*) FROM folders f WHERE f.deleted_at IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM folders p WHERE p.id = f.parent_id AND p.deleted_at IS NOT NULL))
+       +
+       (SELECT count(*) FROM files fi WHERE fi.deleted_at IS NOT NULL
+          AND (fi.folder_id IS NULL OR NOT EXISTS (SELECT 1 FROM folders p WHERE p.id = fi.folder_id AND p.deleted_at IS NOT NULL)))
+     )::text AS count`,
+  );
+
+  const items: TrashItem[] = rows.map((r) =>
+    r.kind === "folder"
+      ? { kind: "folder", id: r.id, name: r.name, deleted_at: r.deleted_at, actor_username: r.actor_username }
+      : {
+          kind: "file", id: r.id, name: r.name, deleted_at: r.deleted_at,
+          actor_username: r.actor_username, size_bytes: Number(r.size_bytes ?? 0),
+        },
+  );
+  return { items, total: parseInt(countRows[0].count, 10), page, limit };
+}
+
 export async function getExpiredTrashedFolders(daysOld: number): Promise<FolderRow[]> {
   const { rows } = await pool.query<FolderRow>(
     `SELECT * FROM folders
