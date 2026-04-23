@@ -1,0 +1,92 @@
+.message {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--vv-ink);
+  line-height: 1.5;
+}
+
+.error {
+  color: var(--vv-danger);
+  font-size: 13px;
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+}
+
+.input {
+  border: 1.5px solid var(--vv-ink);
+  background: var(--vv-bg-panel);
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+}
+
+.input:focus {
+  outline: 2px solid var(--vv-accent);
+  outline-offset: 1px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.cancel,
+.confirmPrimary,
+.confirmDanger {
+  border: 1.5px solid var(--vv-ink);
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+  box-shadow: var(--vv-shadow-sm);
+}
+
+.cancel {
+  background: var(--vv-bg);
+  color: var(--vv-ink);
+}
+
+.confirmPrimary {
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+}
+
+.confirmDanger {
+  background: var(--vv-danger);
+  color: var(--vv-bg);
+}
+
+.cancel:disabled,
+.confirmPrimary:disabled,
+.confirmDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: var(--vv-shadow-sm);
+  transform: none;
+}
+
+.cancel:not(:disabled):hover,
+.confirmPrimary:not(:disabled):hover,
+.confirmDanger:not(:disabled):hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--vv-shadow);
+}
