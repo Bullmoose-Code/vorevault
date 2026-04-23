@@ -1,0 +1,26 @@
+.stack {
+  position: fixed;
+  bottom: calc(16px + var(--vv-safe-bottom));
+  right: calc(16px + var(--vv-safe-right));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 10px 14px;
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius);
+  background: var(--vv-bg-panel);
+  color: var(--vv-ink);
+  font: 600 13px/1.3 var(--vv-font-ui);
+  box-shadow: var(--vv-shadow);
+  max-width: 320px;
+}
+
+.info    { background: var(--vv-bg-panel); }
+.success { background: var(--vv-success); color: var(--vv-ink); }
+.error   { background: var(--vv-danger); color: var(--vv-bg); }

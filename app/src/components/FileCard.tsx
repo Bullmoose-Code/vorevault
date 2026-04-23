@@ -1,6 +1,7 @@
 import type { FileWithUploader } from "@/lib/files";
 import { classifyFile } from "@/lib/fileKind";
 import { FileIcon } from "./FileIcon";
+import { FileContextMenu } from "./FileContextMenu";
 import styles from "./FileCard.module.css";
 
 function formatBytes(bytes: number): string {
@@ -42,25 +43,27 @@ export function FileCard({
   const hasThumb = file.thumbnail_path != null;
 
   return (
-    <a href={`/f/${file.id}`} className={styles.card}>
-      <div className={styles.thumb}>
-        {hasThumb ? (
-          <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
-        ) : (
-          <div className={`${styles.iconTile} ${styles[`kind_${kind.replaceAll("-", "_")}`]}`}>
-            <FileIcon kind={kind} size={48} />
-          </div>
-        )}
-        <span className={styles.typeBadge}>{label}</span>
-        {duration && <span className={styles.duration}>{duration}</span>}
-        {isShared && <span className={styles.sharedBadge}>✦ shared</span>}
-      </div>
-      <div className={styles.meta}>
-        <div className={styles.title}>{file.original_name}</div>
-        <div className={`vv-meta ${styles.sub}`}>
-          {file.uploader_name} · <strong>{formatBytes(file.size_bytes)}</strong> · <strong>{relativeTime(file.created_at)}</strong>
+    <FileContextMenu file={file}>
+      <a href={`/f/${file.id}`} className={styles.card}>
+        <div className={styles.thumb}>
+          {hasThumb ? (
+            <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
+          ) : (
+            <div className={`${styles.iconTile} ${styles[`kind_${kind.replaceAll("-", "_")}`]}`}>
+              <FileIcon kind={kind} size={48} />
+            </div>
+          )}
+          <span className={styles.typeBadge}>{label}</span>
+          {duration && <span className={styles.duration}>{duration}</span>}
+          {isShared && <span className={styles.sharedBadge}>✦ shared</span>}
         </div>
-      </div>
-    </a>
+        <div className={styles.meta}>
+          <div className={styles.title}>{file.original_name}</div>
+          <div className={`vv-meta ${styles.sub}`}>
+            {file.uploader_name} · <strong>{formatBytes(file.size_bytes)}</strong> · <strong>{relativeTime(file.created_at)}</strong>
+          </div>
+        </div>
+      </a>
+    </FileContextMenu>
   );
 }

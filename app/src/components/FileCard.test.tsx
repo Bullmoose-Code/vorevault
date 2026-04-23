@@ -1,9 +1,25 @@
 // @vitest-environment jsdom
 import "@/../tests/component-setup";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { FileCard } from "./FileCard";
 import type { FileWithUploader } from "@/lib/files";
+import { CurrentUserProvider } from "./CurrentUserContext";
+import { ItemActionProvider } from "./ItemActionProvider";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
+function renderWithProviders(ui: React.ReactElement) {
+  return render(
+    <CurrentUserProvider value={{ id: "u-test", isAdmin: false }}>
+      <ItemActionProvider>
+        {ui}
+      </ItemActionProvider>
+    </CurrentUserProvider>,
+  );
+}
 
 function makeFile(overrides: Partial<FileWithUploader> = {}): FileWithUploader {
   const base: FileWithUploader = {
@@ -29,7 +45,8 @@ function makeFile(overrides: Partial<FileWithUploader> = {}): FileWithUploader {
 
 describe("FileCard", () => {
   it("video with thumbnail: renders thumbnail img, duration badge, uppercased label", () => {
-    const { container } = render(<FileCard file={makeFile()} />);
+    const { container } = renderWithProviders(<FileCard file={makeFile()} />);
+
     const img = container.querySelector("img") as HTMLImageElement | null;
     expect(img).not.toBeNull();
     expect(img!.src).toContain("/api/thumbs/");
@@ -39,7 +56,7 @@ describe("FileCard", () => {
   });
 
   it("image file without thumbnail: renders icon tile with PNG label, no duration", () => {
-    render(
+    renderWithProviders(
       <FileCard
         file={makeFile({
           original_name: "pic.png",
@@ -55,7 +72,7 @@ describe("FileCard", () => {
   });
 
   it("iso file: renders disk-image icon tile with ISO label", () => {
-    render(
+    renderWithProviders(
       <FileCard
         file={makeFile({
           original_name: "ubuntu.iso",
@@ -70,7 +87,7 @@ describe("FileCard", () => {
   });
 
   it("readme.md: renders document icon tile with MD label", () => {
-    render(
+    renderWithProviders(
       <FileCard
         file={makeFile({
           original_name: "README.md",
@@ -85,7 +102,7 @@ describe("FileCard", () => {
   });
 
   it("audio without thumbnail: renders audio icon tile with duration", () => {
-    render(
+    renderWithProviders(
       <FileCard
         file={makeFile({
           original_name: "song.mp3",
@@ -101,7 +118,7 @@ describe("FileCard", () => {
   });
 
   it("non-video/audio never shows a duration badge even if duration_sec is set", () => {
-    render(
+    renderWithProviders(
       <FileCard
         file={makeFile({
           original_name: "weird.zip",
@@ -116,7 +133,7 @@ describe("FileCard", () => {
 
   it("card links to /f/:id", () => {
     const file = makeFile({ id: "abc-123" });
-    render(<FileCard file={file} />);
+    renderWithProviders(<FileCard file={file} />);
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toBe("/f/abc-123");
   });
