@@ -1,7 +1,12 @@
+"use client";
+
+import type { MouseEvent } from "react";
 import type { FileWithUploader } from "@/lib/files";
 import { classifyFile } from "@/lib/fileKind";
 import { FileIcon } from "./FileIcon";
 import { FileContextMenu } from "./FileContextMenu";
+import { useCurrentUser } from "./CurrentUserContext";
+import { useSelection, type SelectedItem } from "./SelectionContext";
 import styles from "./FileCard.module.css";
 
 function formatBytes(bytes: number): string {
@@ -38,13 +43,35 @@ export function FileCard({
   file: FileWithUploader;
   isShared?: boolean;
 }) {
+  const user = useCurrentUser();
+  const selection = useSelection();
+  const selected = selection.isSelected("file", file.id);
+  const canManage = user.isAdmin || file.uploader_id === user.id;
+
   const { kind, label } = classifyFile(file.mime_type, file.original_name);
   const duration = (kind === "video" || kind === "audio") ? formatDuration(file.duration_sec) : null;
   const hasThumb = file.thumbnail_path != null;
 
+  const descriptor: SelectedItem = {
+    kind: "file",
+    id: file.id,
+    name: file.original_name,
+    canManage,
+    folderId: file.folder_id,
+  };
+
+  function handleClick(e: MouseEvent<HTMLAnchorElement>) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      e.preventDefault();
+      selection.toggle(descriptor);
+    }
+  }
+
+  const className = selected ? `${styles.card} ${styles.selected}` : styles.card;
+
   return (
     <FileContextMenu file={file}>
-      <a href={`/f/${file.id}`} className={styles.card}>
+      <a href={`/f/${file.id}`} className={className} onClick={handleClick} aria-pressed={selected}>
         <div className={styles.thumb}>
           {hasThumb ? (
             <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />

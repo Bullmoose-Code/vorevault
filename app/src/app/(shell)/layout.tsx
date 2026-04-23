@@ -9,6 +9,9 @@ import { UploadProgressProvider } from "@/components/UploadProgressProvider";
 import { UploadProgressDrawer } from "@/components/UploadProgressDrawer";
 import { CurrentUserProvider } from "@/components/CurrentUserContext";
 import { ItemActionProvider } from "@/components/ItemActionProvider";
+import { SelectionProvider } from "@/components/SelectionContext";
+import { SelectionChrome } from "@/components/SelectionChrome";
+import { SelectionToolbar } from "@/components/SelectionToolbar";
 import styles from "./shell.module.css";
 
 export const dynamic = "force-dynamic";
@@ -31,16 +34,22 @@ export default async function ShellLayout({ children }: { children: React.ReactN
         <SidebarOpenClass>
           <CurrentUserProvider value={{ id: user.id, isAdmin: user.is_admin }}>
             <ItemActionProvider>
-              <div className={styles.shell}>
-                <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
-                <div className={styles.body}>
-                  <Sidebar isAdmin={user.is_admin} currentFolderId={currentFolderId} />
-                  <main className={styles.main}>{children}</main>
+              <SelectionProvider>
+                <SelectionChrome />
+                <div className={styles.shell}>
+                  <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
+                  <div className={styles.body}>
+                    <Sidebar isAdmin={user.is_admin} currentFolderId={currentFolderId} />
+                    <main className={styles.main}>
+                      <SelectionToolbar />
+                      {children}
+                    </main>
+                  </div>
+                  <SidebarBackdrop />
+                  <MobileFAB currentFolderId={currentFolderId} />
+                  <UploadProgressDrawer />
                 </div>
-                <SidebarBackdrop />
-                <MobileFAB currentFolderId={currentFolderId} />
-                <UploadProgressDrawer />
-              </div>
+              </SelectionProvider>
             </ItemActionProvider>
           </CurrentUserProvider>
         </SidebarOpenClass>

@@ -5,6 +5,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { FolderContextMenu } from "./FolderContextMenu";
 import { CurrentUserProvider } from "./CurrentUserContext";
 import { ItemActionProvider } from "./ItemActionProvider";
+import { SelectionProvider, useSelection } from "./SelectionContext";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -13,11 +14,13 @@ vi.mock("next/navigation", () => ({
 function wrap(createdBy: string, user: { id: string; isAdmin: boolean }) {
   return render(
     <CurrentUserProvider value={user}>
-      <ItemActionProvider>
-        <FolderContextMenu folder={{ id: "fo-1", name: "pics", createdBy, parentId: null }}>
-          <div data-testid="target">x</div>
-        </FolderContextMenu>
-      </ItemActionProvider>
+      <SelectionProvider>
+        <ItemActionProvider>
+          <FolderContextMenu folder={{ id: "fo-1", name: "pics", createdBy, parentId: null }}>
+            <div data-testid="target">x</div>
+          </FolderContextMenu>
+        </ItemActionProvider>
+      </SelectionProvider>
     </CurrentUserProvider>,
   );
 }
@@ -44,5 +47,34 @@ describe("FolderContextMenu", () => {
     wrap("u-o", { id: "u-a", isAdmin: true });
     fireEvent.contextMenu(screen.getByTestId("target"));
     expect(await screen.findByText(/^rename$/i)).toBeInTheDocument();
+  });
+
+  it("batch mode: right-click a selected folder when selection > 1 shows only move + trash", async () => {
+    function Seed() {
+      const sel = useSelection();
+      if (sel.size === 0) {
+        sel.toggle({ kind: "folder", id: "fo-1", name: "pics", canManage: true, parentId: null });
+        sel.toggle({ kind: "folder", id: "fo-2", name: "docs", canManage: true, parentId: null });
+      }
+      return null;
+    }
+    render(
+      <CurrentUserProvider value={{ id: "u", isAdmin: false }}>
+        <SelectionProvider>
+          <ItemActionProvider>
+            <Seed />
+            <FolderContextMenu folder={{ id: "fo-1", name: "pics", createdBy: "u", parentId: null }}>
+              <div data-testid="target">t</div>
+            </FolderContextMenu>
+          </ItemActionProvider>
+        </SelectionProvider>
+      </CurrentUserProvider>,
+    );
+    fireEvent.contextMenu(screen.getByTestId("target"));
+    expect(await screen.findByText(/^move to…$/i)).toBeInTheDocument();
+    expect(screen.getByText(/move to trash/i)).toBeInTheDocument();
+    expect(screen.queryByText(/^open$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^rename$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/download as zip/i)).not.toBeInTheDocument();
   });
 });
