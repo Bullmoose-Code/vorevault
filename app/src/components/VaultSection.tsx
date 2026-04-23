@@ -14,8 +14,8 @@ export function VaultSection({ children }: { children: ReactNode }) {
         aria-controls="vv-vault-tree"
         onClick={() => setOpen((o) => !o)}
       >
+        <span>vault</span>
         <span className={styles.caret} aria-hidden="true">{open ? "▾" : "▸"}</span>
-        vault
       </button>
       {open && (
         <div id="vv-vault-tree" className={styles.tree}>
