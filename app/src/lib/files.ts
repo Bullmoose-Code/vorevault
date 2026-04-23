@@ -1,4 +1,6 @@
 import { pool } from "@/lib/db";
+import { revokeAllForFile } from "@/lib/share-links";
+import type { PoolClient } from "pg";
 
 export type FileRow = {
   id: string;
@@ -238,4 +240,76 @@ export async function moveFile(args: MoveFileArgs): Promise<FileRow> {
     [args.folderId, args.fileId],
   );
   return updated[0];
+}
+
+export class FileNotTrashedError extends Error {
+  constructor() { super("file is not trashed"); this.name = "FileNotTrashedError"; }
+}
+
+export type TrashFileArgs = { fileId: string; actorId: string; isAdmin: boolean };
+
+export async function trashFile(args: TrashFileArgs): Promise<void> {
+  const file = await pool.query<FileRow>(`SELECT * FROM files WHERE id = $1`, [args.fileId]);
+  if (file.rowCount === 0) throw new FileNotFoundError();
+  const row = file.rows[0];
+  if (row.deleted_at) return;
+  if (!args.isAdmin && row.uploader_id !== args.actorId) throw new FileAuthError();
+  await revokeAllForFile(args.fileId);
+  await pool.query(`UPDATE files SET deleted_at = now() WHERE id = $1`, [args.fileId]);
+}
+
+export type RestoreFileArgs = { fileId: string; actorId: string };
+
+export async function restoreFile(args: RestoreFileArgs): Promise<void> {
+  const { rows } = await pool.query<FileRow>(`SELECT * FROM files WHERE id = $1`, [args.fileId]);
+  if (rows.length === 0) throw new FileNotFoundError();
+  const file = rows[0];
+  if (!file.deleted_at) return;
+
+  const targetTs = file.deleted_at;
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Walk up the parent chain, restoring ancestors trashed at the same ts.
+    if (file.folder_id) {
+      const { rows: chain } = await client.query<{ id: string }>(
+        `WITH RECURSIVE c AS (
+           SELECT id, parent_id, deleted_at FROM folders WHERE id = $1
+           UNION ALL
+           SELECT f.id, f.parent_id, f.deleted_at FROM folders f JOIN c ON f.id = c.parent_id
+         )
+         SELECT id FROM c WHERE deleted_at = $2`,
+        [file.folder_id, targetTs],
+      );
+      const ancestorIds = chain.map((r) => r.id);
+      if (ancestorIds.length > 0) {
+        await client.query(
+          `UPDATE folders SET deleted_at = NULL WHERE id = ANY($1::uuid[]) AND deleted_at = $2`,
+          [ancestorIds, targetTs],
+        );
+      }
+    }
+
+    await client.query(`UPDATE files SET deleted_at = NULL WHERE id = $1`, [args.fileId]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export type PermanentDeleteFileArgs = { fileId: string; actorId: string; isAdmin: boolean };
+
+export async function permanentDeleteFile(args: PermanentDeleteFileArgs): Promise<FileRow> {
+  const { rows } = await pool.query<FileRow>(`SELECT * FROM files WHERE id = $1`, [args.fileId]);
+  if (rows.length === 0) throw new FileNotFoundError();
+  const file = rows[0];
+  if (!file.deleted_at) throw new FileNotTrashedError();
+  if (!args.isAdmin && file.uploader_id !== args.actorId) throw new FileAuthError();
+  await pool.query(`DELETE FROM files WHERE id = $1`, [args.fileId]);
+  return file;
 }

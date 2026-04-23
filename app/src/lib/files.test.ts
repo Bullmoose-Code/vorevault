@@ -6,12 +6,14 @@ let pg: PgFixture;
 vi.mock("@/lib/db", () => {
   const pgLib = require("pg") as typeof import("pg");
   let pool: import("pg").Pool | undefined;
+  function getPool() {
+    if (!pool) pool = new pgLib.Pool({ connectionString: process.env.TEST_PG_URL, max: 2 });
+    return pool;
+  }
   return {
     pool: {
-      query: (text: string, params?: unknown[]) => {
-        if (!pool) pool = new pgLib.Pool({ connectionString: process.env.TEST_PG_URL, max: 2 });
-        return pool.query(text, params);
-      },
+      query: (text: string, params?: unknown[]) => getPool().query(text, params),
+      connect: () => getPool().connect(),
     },
   };
 });
@@ -368,5 +370,65 @@ describe("moveFile", () => {
     await expect(
       moveFile({ fileId: fileRows[0].id, actorId: userId, isAdmin: false, folderId: "00000000-0000-0000-0000-000000000000" }),
     ).rejects.toBeInstanceOf(FileFolderNotFoundError);
+  });
+});
+
+describe("trashFile", () => {
+  it("sets deleted_at and revokes share links", async () => {
+    const { insertFile, trashFile } = await import("./files");
+    const { createShareLink } = await import("./share-links");
+    const uid = await makeUser("qwe");
+    const f = await insertFile({ uploaderId: uid, originalName: "a", mimeType: "image/png", sizeBytes: 1, storagePath: "/a" });
+    await createShareLink(f.id, uid);
+    await trashFile({ fileId: f.id, actorId: uid, isAdmin: false });
+    const { rows } = await pg.pool.query<{ deleted_at: string | null }>(`SELECT deleted_at FROM files WHERE id = $1`, [f.id]);
+    expect(rows[0].deleted_at).not.toBeNull();
+    const { rows: shares } = await pg.pool.query<{ revoked_at: string | null }>(`SELECT revoked_at FROM share_links WHERE file_id = $1`, [f.id]);
+    expect(shares.every((s) => s.revoked_at !== null)).toBe(true);
+  });
+
+  it("rejects a non-owner non-admin actor", async () => {
+    const { insertFile, trashFile, FileAuthError } = await import("./files");
+    const owner = await makeUser("r_owner");
+    const other = await makeUser("r_other");
+    const f = await insertFile({ uploaderId: owner, originalName: "a", mimeType: "image/png", sizeBytes: 1, storagePath: "/a" });
+    await expect(trashFile({ fileId: f.id, actorId: other, isAdmin: false })).rejects.toBeInstanceOf(FileAuthError);
+  });
+});
+
+describe("restoreFile", () => {
+  it("restores ancestor folders trashed at the same timestamp", async () => {
+    const { insertFile, trashFile, restoreFile } = await import("./files");
+    const { createFolder, trashFolder } = await import("./folders");
+    const uid = await makeUser("stu");
+    const folder = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    const f = await insertFile({ uploaderId: uid, folderId: folder.id, originalName: "a", mimeType: "image/png", sizeBytes: 1, storagePath: "/a" });
+    // Trash the folder: cascades file's deleted_at to the same ts.
+    await trashFolder({ id: folder.id, actorId: uid, isAdmin: false });
+    await restoreFile({ fileId: f.id, actorId: uid });
+    const { rows } = await pg.pool.query<{ deleted_at: string | null }>(
+      `SELECT deleted_at FROM folders WHERE id = $1 UNION ALL SELECT deleted_at FROM files WHERE id = $2`,
+      [folder.id, f.id],
+    );
+    expect(rows.every((r) => r.deleted_at === null)).toBe(true);
+  });
+});
+
+describe("permanentDeleteFile", () => {
+  it("refuses if file is not trashed", async () => {
+    const { insertFile, permanentDeleteFile, FileNotTrashedError } = await import("./files");
+    const uid = await makeUser("tim");
+    const f = await insertFile({ uploaderId: uid, originalName: "x", mimeType: "image/png", sizeBytes: 1, storagePath: "/x" });
+    await expect(permanentDeleteFile({ fileId: f.id, actorId: uid, isAdmin: false })).rejects.toBeInstanceOf(FileNotTrashedError);
+  });
+
+  it("hard-deletes a trashed file row", async () => {
+    const { insertFile, trashFile, permanentDeleteFile } = await import("./files");
+    const uid = await makeUser("uma");
+    const f = await insertFile({ uploaderId: uid, originalName: "x", mimeType: "image/png", sizeBytes: 1, storagePath: "/x" });
+    await trashFile({ fileId: f.id, actorId: uid, isAdmin: false });
+    await permanentDeleteFile({ fileId: f.id, actorId: uid, isAdmin: false });
+    const { rowCount } = await pg.pool.query(`SELECT 1 FROM files WHERE id = $1`, [f.id]);
+    expect(rowCount).toBe(0);
   });
 });
