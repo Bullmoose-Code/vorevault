@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelection, type SelectedItem } from "./SelectionContext";
 import { useItemActions } from "./ItemActionProvider";
@@ -84,6 +84,17 @@ export function SelectionToolbar() {
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState<string | null>(null);
   const [moving, setMoving] = useState(false);
+
+  useEffect(() => {
+    function onMove() { setMoveOpen(true); }
+    function onTrash() { setTrashOpen(true); }
+    window.addEventListener("vv:batch-move", onMove);
+    window.addEventListener("vv:batch-trash", onTrash);
+    return () => {
+      window.removeEventListener("vv:batch-move", onMove);
+      window.removeEventListener("vv:batch-trash", onTrash);
+    };
+  }, []);
 
   if (selection.size === 0) return null;
 
