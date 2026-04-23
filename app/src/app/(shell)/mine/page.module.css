@@ -1,9 +1,9 @@
-.main { max-width: 1200px; margin: 0 auto; padding: 0; }
+.subheader { padding: 32px 32px 20px; }
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
-  padding: 20px 32px 32px;
+  padding: 0 32px 32px;
 }
 .pagination {
   display: flex; justify-content: center; gap: 20px;
@@ -11,5 +11,7 @@
 }
 .pagination a { color: var(--vv-accent); font-weight: 700; font-style: normal; }
 @media (max-width: 640px) {
-  .grid { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+  .subheader { padding: 20px 16px 16px; }
+  .grid { grid-template-columns: 1fr; gap: 16px; padding: 0 16px 24px; }
+  .pagination { padding: 0 16px 32px; gap: 14px; flex-wrap: wrap; }
 }

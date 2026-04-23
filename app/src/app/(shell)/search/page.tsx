@@ -14,9 +14,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const { q, folder } = await searchParams;
   if (!q || q.trim().length < 2) {
     return (
-      <div className={styles.page}>
+      <>
         <p className={styles.empty}>Query too short.</p>
-      </div>
+      </>
     );
   }
   const result = await searchEverything({ query: q, limit: 50, offset: 0, scopeFolderId: folder });
@@ -25,11 +25,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   }));
 
   return (
-    <div className={styles.page}>
-      <h1 className={`vv-title ${styles.title}`}>Search: <em>{q}</em></h1>
-      <p className="vv-meta">
-        <strong>{result.folders.length + fileCards.length}</strong> {result.folders.length + fileCards.length === 1 ? "result" : "results"} for <em>&ldquo;{q}&rdquo;</em>
-      </p>
+    <>
+      <div className={styles.subheader}>
+        <h1 className="vv-greeting">search: <em>{q}</em></h1>
+        <p className="vv-meta">
+          <strong>{result.folders.length + fileCards.length}</strong> {result.folders.length + fileCards.length === 1 ? "result" : "results"} for <em>&ldquo;{q}&rdquo;</em>
+        </p>
+      </div>
       {result.folders.length > 0 && (
         <>
           <h2 className={`vv-section-label ${styles.sectionLabel}`}>Folders</h2>
@@ -51,6 +53,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {result.folders.length + fileCards.length === 0 && (
         <p className={styles.empty}>No matches. Try a shorter or fuzzier query.</p>
       )}
-    </div>
+    </>
   );
 }
