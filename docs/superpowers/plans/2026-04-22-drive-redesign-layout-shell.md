@@ -94,16 +94,29 @@ describe("getStorageStats", () => {
       rows: [{ used_bytes: "1500" }],
     });
     (statfs as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      blocks: 100,
-      bsize: 4096,
+      blocks: 100n,
+      bsize: 4096n,
     });
 
     const stats = await getStorageStats();
     expect(stats).toEqual({
       used_bytes: 1500,
       total_bytes: 409600,
-      used_pct: 1500 / 409600,
+      used_fraction: 1500 / 409600,
     });
+  });
+
+  it("does not cache when total_bytes is zero (statfs anomaly)", async () => {
+    (pool.query as ReturnType<typeof vi.fn>).mockResolvedValue({
+      rows: [{ used_bytes: "100" }],
+    });
+    (statfs as ReturnType<typeof vi.fn>).mockResolvedValue({ blocks: 0n, bsize: 0n });
+
+    const a = await getStorageStats();
+    const b = await getStorageStats();
+    expect(a.total_bytes).toBe(0);
+    expect(b.total_bytes).toBe(0);
+    expect(pool.query).toHaveBeenCalledTimes(2);  // not cached
   });
 
   it("caches results for 60 seconds", async () => {
@@ -111,8 +124,8 @@ describe("getStorageStats", () => {
       rows: [{ used_bytes: "1000" }],
     });
     (statfs as ReturnType<typeof vi.fn>).mockResolvedValue({
-      blocks: 1,
-      bsize: 1000,
+      blocks: 1n,
+      bsize: 1000n,
     });
 
     await getStorageStats();
@@ -137,18 +150,29 @@ Expected: FAIL with "Cannot find module './storage-stats'".
 
 - [ ] **Step 3: Implement**
 
+First add a `totalBytes` helper next to the existing `freeBytes` in `app/src/lib/storage.ts` so the disk-capacity concept lives in one place:
+
+```ts
+// Append to app/src/lib/storage.ts
+export async function totalBytes(dir: string): Promise<bigint> {
+  const stats = await statfs(dir, { bigint: true });
+  return stats.blocks * stats.bsize;
+}
+```
+
+Then implement `storage-stats.ts` on top of it, reusing `DATA_ROOT` from the same module — no new env var:
+
 ```ts
 // app/src/lib/storage-stats.ts
-import { statfs } from "node:fs/promises";
 import { pool } from "@/lib/db";
+import { DATA_ROOT, totalBytes } from "@/lib/storage";
 
 export type StorageStats = {
   used_bytes: number;
   total_bytes: number;
-  used_pct: number;
+  used_fraction: number;  // 0..1; named "fraction" not "pct" because it's not multiplied by 100
 };
 
-const STORAGE_ROOT = process.env.VV_STORAGE_ROOT ?? "/data";
 const TTL_MS = 60_000;
 
 let cache: { value: StorageStats; expires: number } | null = null;
@@ -161,23 +185,34 @@ export async function getStorageStats(): Promise<StorageStats> {
   const now = Date.now();
   if (cache && cache.expires > now) return cache.value;
 
-  const [{ rows }, fs] = await Promise.all([
+  const [{ rows }, total] = await Promise.all([
     pool.query<{ used_bytes: string }>(
       `SELECT COALESCE(SUM(size_bytes), 0)::text AS used_bytes
          FROM files WHERE deleted_at IS NULL`,
     ),
-    statfs(STORAGE_ROOT),
+    totalBytes(DATA_ROOT),
   ]);
 
-  const used_bytes = parseInt(rows[0].used_bytes, 10);
-  const total_bytes = Number(fs.blocks) * Number(fs.bsize);
-  const used_pct = total_bytes > 0 ? used_bytes / total_bytes : 0;
+  const used_bytes = Number(rows[0].used_bytes);
+  const total_bytes = Number(total);
+  const used_fraction = total_bytes > 0 ? used_bytes / total_bytes : 0;
 
-  const value: StorageStats = { used_bytes, total_bytes, used_pct };
-  cache = { value, expires: now + TTL_MS };
+  const value: StorageStats = { used_bytes, total_bytes, used_fraction };
+
+  // Don't cache anomalous reads (e.g., transient mount issue returning 0 capacity).
+  // A real prod incident with `df` returning 0 should self-heal in <60s rather than
+  // being pinned by the cache.
+  if (total_bytes > 0) {
+    cache = { value, expires: now + TTL_MS };
+  }
   return value;
 }
 ```
+
+Notes for the implementer:
+- The test mocks now use `bigint` literals (`100n`, `4096n`) because `totalBytes` calls `statfs(dir, { bigint: true })`.
+- The `_resetStorageStatsCache` export remains test-only by convention (leading underscore); no `NODE_ENV` gate.
+- `Number(bigint)` is safe at VoreVault's scale (well under `Number.MAX_SAFE_INTEGER` / 2^53).
 
 - [ ] **Step 4: Run tests — expect pass**
 
@@ -225,11 +260,11 @@ describe("GET /api/storage/stats", () => {
   it("returns stats when authenticated", async () => {
     (getCurrentUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: "u1" });
     (getStorageStats as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      used_bytes: 100, total_bytes: 1000, used_pct: 0.1,
+      used_bytes: 100, total_bytes: 1000, used_fraction: 0.1,
     });
     const res = await GET();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ used_bytes: 100, total_bytes: 1000, used_pct: 0.1 });
+    expect(await res.json()).toEqual({ used_bytes: 100, total_bytes: 1000, used_fraction: 0.1 });
   });
 });
 ```
@@ -286,7 +321,7 @@ describe("StorageBar", () => {
   beforeEach(() => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ used_bytes: 3_000_000_000, total_bytes: 11_000_000_000_000, used_pct: 0.000273 }),
+      json: async () => ({ used_bytes: 3_000_000_000, total_bytes: 11_000_000_000_000, used_fraction: 0.000273 }),
     });
   });
   afterEach(() => { global.fetch = ORIG_FETCH; });
@@ -320,7 +355,7 @@ Note: the project's tests use `@testing-library/react` if installed. If not, thi
 import { useEffect, useState } from "react";
 import styles from "./StorageBar.module.css";
 
-type Stats = { used_bytes: number; total_bytes: number; used_pct: number };
+type Stats = { used_bytes: number; total_bytes: number; used_fraction: number };
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -356,7 +391,7 @@ export function StorageBar() {
     return <div className={styles.wrap} aria-label="storage usage" />;
   }
 
-  const pct = Math.max(0.005, Math.min(1, stats.used_pct));
+  const pct = Math.max(0.005, Math.min(1, stats.used_fraction));
   return (
     <div className={styles.wrap} aria-label="storage usage">
       <div className={styles.track}>
