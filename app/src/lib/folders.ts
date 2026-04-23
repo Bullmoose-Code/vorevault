@@ -339,76 +339,59 @@ export async function restoreFolder(args: RestoreFolderArgs): Promise<RestoreFol
   if (!folder.deleted_at) return { folders: 0, files: 0 };
   // Restore is permitted for any signed-in user per spec.
 
-  const targetTs = folder.deleted_at;
-
-  const client: PoolClient = await pool.connect();
+  // Do everything in a single statement so the cascade-group timestamp never
+  // round-trips through a JS Date (which truncates Postgres's microsecond
+  // precision, causing the = comparison to miss every row).
   try {
-    await client.query("BEGIN");
-
-    // Cascade group within the subtree + same timestamp.
-    const { rows: subtree } = await client.query<{ id: string }>(
-      `WITH RECURSIVE tree AS (
-         SELECT id FROM folders WHERE id = $1
-         UNION ALL
-         SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
-       )
-       SELECT id FROM tree`,
+    const { rows } = await pool.query<{ folder_count: number; file_count: number }>(
+      `WITH RECURSIVE
+         target AS (SELECT deleted_at AS ts FROM folders WHERE id = $1),
+         tree(id) AS (
+           SELECT id FROM folders WHERE id = $1
+           UNION ALL
+           SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
+         ),
+         chain(id, parent_id, deleted_at) AS (
+           SELECT id, parent_id, deleted_at FROM folders WHERE id = $1
+           UNION ALL
+           SELECT f.id, f.parent_id, f.deleted_at
+             FROM folders f JOIN chain c ON f.id = c.parent_id
+         ),
+         ancestors AS (SELECT id FROM chain WHERE deleted_at = (SELECT ts FROM target)),
+         all_ids AS (SELECT id FROM tree UNION SELECT id FROM ancestors),
+         folder_update AS (
+           UPDATE folders SET deleted_at = NULL
+             WHERE id IN (SELECT id FROM all_ids)
+               AND deleted_at = (SELECT ts FROM target)
+             RETURNING 1
+         ),
+         file_update AS (
+           UPDATE files SET deleted_at = NULL
+             WHERE folder_id IN (SELECT id FROM all_ids)
+               AND deleted_at = (SELECT ts FROM target)
+             RETURNING 1
+         )
+       SELECT
+         (SELECT count(*) FROM folder_update)::int AS folder_count,
+         (SELECT count(*) FROM file_update)::int AS file_count`,
       [args.id],
     );
-    const subtreeIds = subtree.map((r) => r.id);
-
-    // Also walk UP: any ancestor trashed at the same ts gets restored too.
-    const { rows: ancestors } = await client.query<{ id: string }>(
-      `WITH RECURSIVE chain AS (
-         SELECT id, parent_id, deleted_at FROM folders WHERE id = $1
-         UNION ALL
-         SELECT f.id, f.parent_id, f.deleted_at
-           FROM folders f JOIN chain c ON f.id = c.parent_id
-       )
-       SELECT id FROM chain WHERE deleted_at = $2`,
-      [args.id, targetTs],
-    );
-    const ancestorIds = ancestors.map((r) => r.id);
-
-    const allIds = Array.from(new Set([...subtreeIds, ...ancestorIds]));
-
-    try {
-      const { rowCount: folderCount } = await client.query(
-        `UPDATE folders SET deleted_at = NULL
-           WHERE id = ANY($1::uuid[]) AND deleted_at = $2`,
-        [allIds, targetTs],
-      );
-
-      const { rowCount: fileCount } = await client.query(
-        `UPDATE files SET deleted_at = NULL
-           WHERE folder_id = ANY($1::uuid[]) AND deleted_at = $2`,
-        [allIds, targetTs],
-      );
-
-      await client.query("COMMIT");
-      return { folders: folderCount ?? 0, files: fileCount ?? 0 };
-    } catch (err) {
-      if ((err as { code?: string }).code === "23505") {
-        await client.query("ROLLBACK");
-        // Find the existing active row that blocks us.
-        const { rows } = await pool.query<{ id: string }>(
-          `SELECT id FROM folders
-             WHERE deleted_at IS NULL
-               AND COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)
-                   = COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
-               AND LOWER(name) = LOWER($2)
-               AND id <> $3`,
-          [folder.parent_id, folder.name, folder.id],
-        );
-        throw new FolderCollisionError(rows[0]?.id ?? "");
-      }
-      throw err;
-    }
+    return { folders: rows[0].folder_count, files: rows[0].file_count };
   } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
+    if ((err as { code?: string }).code === "23505") {
+      // Find the existing active row that blocks us.
+      const { rows } = await pool.query<{ id: string }>(
+        `SELECT id FROM folders
+           WHERE deleted_at IS NULL
+             AND COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::uuid)
+                 = COALESCE($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)
+             AND LOWER(name) = LOWER($2)
+             AND id <> $3`,
+        [folder.parent_id, folder.name, folder.id],
+      );
+      throw new FolderCollisionError(rows[0]?.id ?? "");
+    }
     throw err;
-  } finally {
-    client.release();
   }
 }
 

@@ -266,30 +266,27 @@ export async function restoreFile(args: RestoreFileArgs): Promise<void> {
   const file = rows[0];
   if (!file.deleted_at) return;
 
-  const targetTs = file.deleted_at;
-
+  // Single statement: the target timestamp stays server-side so Postgres's
+  // microsecond precision isn't truncated by a JS Date round-trip.
   const client: PoolClient = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // Walk up the parent chain, restoring ancestors trashed at the same ts.
     if (file.folder_id) {
-      const { rows: chain } = await client.query<{ id: string }>(
-        `WITH RECURSIVE c AS (
-           SELECT id, parent_id, deleted_at FROM folders WHERE id = $1
-           UNION ALL
-           SELECT f.id, f.parent_id, f.deleted_at FROM folders f JOIN c ON f.id = c.parent_id
-         )
-         SELECT id FROM c WHERE deleted_at = $2`,
-        [file.folder_id, targetTs],
+      await client.query(
+        `WITH RECURSIVE
+           target AS (SELECT deleted_at AS ts FROM files WHERE id = $1),
+           chain(id, parent_id, deleted_at) AS (
+             SELECT id, parent_id, deleted_at FROM folders WHERE id = $2
+             UNION ALL
+             SELECT f.id, f.parent_id, f.deleted_at
+               FROM folders f JOIN chain c ON f.id = c.parent_id
+           )
+         UPDATE folders SET deleted_at = NULL
+           WHERE id IN (SELECT id FROM chain WHERE deleted_at = (SELECT ts FROM target))
+             AND deleted_at = (SELECT ts FROM target)`,
+        [args.fileId, file.folder_id],
       );
-      const ancestorIds = chain.map((r) => r.id);
-      if (ancestorIds.length > 0) {
-        await client.query(
-          `UPDATE folders SET deleted_at = NULL WHERE id = ANY($1::uuid[]) AND deleted_at = $2`,
-          [ancestorIds, targetTs],
-        );
-      }
     }
 
     await client.query(`UPDATE files SET deleted_at = NULL WHERE id = $1`, [args.fileId]);

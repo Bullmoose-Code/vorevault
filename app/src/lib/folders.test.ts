@@ -361,19 +361,22 @@ describe("trashFolder", () => {
     const counts = await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
     expect(counts).toEqual({ folders: 3, files: 2 });
 
-    const { rows: f } = await pg.pool.query<{ id: string; deleted_at: string | null }>(
+    // Compare timestamps by ISO string — Date instances have reference identity,
+    // so Set/=== on raw Date values would always report differences.
+    const { rows: f } = await pg.pool.query<{ id: string; deleted_at: Date | null }>(
       `SELECT id, deleted_at FROM folders WHERE id IN ($1, $2, $3) ORDER BY id`,
       [a.id, b.id, c.id],
     );
     expect(f.every((r) => r.deleted_at !== null)).toBe(true);
-    const ts = new Set(f.map((r) => r.deleted_at));
+    const ts = new Set(f.map((r) => r.deleted_at!.toISOString()));
     expect(ts.size).toBe(1); // same timestamp across cascade
 
-    const { rows: files } = await pg.pool.query<{ id: string; deleted_at: string | null }>(
+    const { rows: files } = await pg.pool.query<{ id: string; deleted_at: Date | null }>(
       `SELECT id, deleted_at FROM files WHERE id IN ($1, $2)`,
       [f1.id, f2.id],
     );
-    expect(files.every((r) => r.deleted_at === f[0].deleted_at)).toBe(true);
+    const cascadeTs = f[0].deleted_at!.toISOString();
+    expect(files.every((r) => r.deleted_at!.toISOString() === cascadeTs)).toBe(true);
   });
 
   it("rejects a non-owner non-admin actor", async () => {
