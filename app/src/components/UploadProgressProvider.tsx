@@ -6,14 +6,14 @@ import {
 import * as tus from "tus-js-client";
 import type { UploadState } from "./UploadRow";
 
-export type UploadRow = UploadState & {
+export type ActiveUpload = UploadState & {
   id: string;
   folderId: string | null;
   startedAt: number;
 };
 
 type Ctx = {
-  uploads: UploadRow[];
+  uploads: ActiveUpload[];
   enqueue: (file: File, folderId: string | null) => void;
   cancel: (id: string) => void;
   clearCompleted: () => void;
@@ -28,12 +28,12 @@ export function useUploadProgress(): Ctx {
 }
 
 export function UploadProgressProvider({ children }: { children: React.ReactNode }) {
-  const [uploads, setUploads] = useState<UploadRow[]>([]);
+  const [uploads, setUploads] = useState<ActiveUpload[]>([]);
   const instances = useRef<Map<string, tus.Upload>>(new Map());
 
   const enqueue = useCallback((file: File, folderId: string | null) => {
     const id = crypto.randomUUID();
-    const row: UploadRow = {
+    const row: ActiveUpload = {
       id,
       folderId,
       startedAt: Date.now(),
@@ -57,6 +57,7 @@ export function UploadProgressProvider({ children }: { children: React.ReactNode
         setUploads((s) =>
           s.map((u) => (u.id === id ? { ...u, status: "error", error: String(err) } : u)),
         );
+        instances.current.delete(id);
       },
       onProgress: (uploaded) => {
         setUploads((s) => s.map((u) => (u.id === id ? { ...u, uploaded } : u)));
@@ -66,6 +67,7 @@ export function UploadProgressProvider({ children }: { children: React.ReactNode
           s.map((u) => (u.id === id ? { ...u, status: "done", uploaded: u.size } : u)),
         );
         window.dispatchEvent(new CustomEvent("vorevault:upload-done", { detail: { id } }));
+        instances.current.delete(id);
       },
     });
     instances.current.set(id, upload);
