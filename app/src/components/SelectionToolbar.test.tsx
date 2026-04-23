@@ -101,4 +101,12 @@ describe("SelectionToolbar", () => {
     const btn = screen.getByRole("button", { name: /download as zip/i }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
   });
+
+  it("listens for vv:batch-trash and opens the trash dialog", async () => {
+    renderWith([fileItem]);
+    // Dispatch the bridge event
+    window.dispatchEvent(new CustomEvent("vv:batch-trash"));
+    // Dialog opens
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
 });
