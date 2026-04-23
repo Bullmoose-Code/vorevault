@@ -26,4 +26,20 @@ describe("Toast", () => {
     act(() => { vi.advanceTimersByTime(3100); });
     expect(onDismiss).toHaveBeenCalledWith("1");
   });
+
+  it("per-toast timer is NOT reset when new toasts arrive", () => {
+    const onDismiss = vi.fn();
+    const first: ToastItem[] = [{ id: "1", message: "first", variant: "info" }];
+    const both: ToastItem[] = [
+      { id: "1", message: "first", variant: "info" },
+      { id: "2", message: "second", variant: "info" },
+    ];
+    const { rerender } = render(<Toast items={first} onDismiss={onDismiss} />);
+    act(() => { vi.advanceTimersByTime(1000); });
+    // Second toast arrives 1s in
+    rerender(<Toast items={both} onDismiss={onDismiss} />);
+    // Advance another 2100ms — first toast should have dismissed at ~3s mark
+    act(() => { vi.advanceTimersByTime(2100); });
+    expect(onDismiss).toHaveBeenCalledWith("1");
+  });
 });
