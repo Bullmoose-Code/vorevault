@@ -64,6 +64,7 @@ describe("classifyFile", () => {
     ["application/octet-stream", "binary", "other", "BIN"],
     ["application/octet-stream", "", "other", "FILE"],
     ["application/x-weird-thing", "noext", "other", "WEIRD"],
+    ["APPLICATION/X-WEIRD-THING", "NOEXT", "other", "WEIRD"],
   ];
 
   it.each(cases)("classifies %s / %s → %s (%s)", (mime, filename, expectedKind, expectedLabel) => {

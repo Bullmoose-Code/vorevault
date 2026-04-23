@@ -87,7 +87,7 @@ function extOf(filename: string): string {
 function cleanMimeSubtype(mime: string): string {
   const slash = mime.indexOf("/");
   let sub = slash >= 0 ? mime.slice(slash + 1) : mime;
-  sub = sub.replace(/^x-/, "").replace(/^vnd\./, "");
+  sub = sub.toLowerCase().replace(/^x-/, "").replace(/^vnd\./, "");
   const cut = sub.search(/[^a-zA-Z0-9]/);
   if (cut >= 0) sub = sub.slice(0, cut);
   return sub.toUpperCase().slice(0, 5);
