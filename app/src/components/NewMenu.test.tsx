@@ -59,7 +59,8 @@ describe("NewMenu", () => {
     render(<NewMenu currentFolderId={null} />);
     fireEvent.click(screen.getByRole("button", { name: /\+ new/ }));
     fireEvent.click(screen.getByText("upload file"));
-    await waitFor(() => screen.getByRole("dialog", { name: /choose folder/i }));
+    // Wait for the picker's GET /api/folders/tree to resolve (loading → content).
+    await screen.findByText("clips");
     fireEvent.click(screen.getByText("clips"));
     fireEvent.click(screen.getByRole("button", { name: /^select$/i }));
 
@@ -88,7 +89,9 @@ describe("NewMenu", () => {
     render(<NewMenu currentFolderId={null} />);
     fireEvent.click(screen.getByRole("button", { name: /\+ new/ }));
     fireEvent.click(screen.getByText("upload folder"));
-    await waitFor(() => screen.getByRole("dialog", { name: /choose folder/i }));
+    // Wait for the picker's GET /api/folders/tree to resolve so the Select
+    // button is rendered (before that, only "Loading folders…" is visible).
+    await screen.findByRole("button", { name: /^select$/i });
     fireEvent.click(screen.getByRole("button", { name: /^select$/i })); // Home
 
     const dirInput = document.querySelector<HTMLInputElement>('input[webkitdirectory]');
