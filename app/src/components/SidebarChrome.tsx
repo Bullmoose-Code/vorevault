@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 
 type Ctx = { open: boolean; toggle: () => void; close: () => void };
 // Default is a no-op so consumers (e.g., TopBar) can render outside the provider
@@ -14,6 +15,12 @@ const SidebarContext = createContext<Ctx>({
 
 export function SidebarChromeProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Close drawer on route change (App Router soft navigations don't fire popstate).
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     function close() { setOpen(false); }

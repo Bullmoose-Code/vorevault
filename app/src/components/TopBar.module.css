@@ -109,6 +109,9 @@
   .brand {
     font-size: 22px;
     gap: 8px;
+    /* Drop the desktop min-width so brand is content-sized on mobile;
+       .actions uses margin-left: auto below to hug the right edge. */
+    min-width: 0;
   }
 
   .searchDesktop {
@@ -119,7 +122,10 @@
     display: inline-flex;
   }
 
-  .actions { gap: 10px; }
+  .actions {
+    gap: 10px;
+    margin-left: auto;
+  }
 }
 
 @media (min-width: 641px) {
