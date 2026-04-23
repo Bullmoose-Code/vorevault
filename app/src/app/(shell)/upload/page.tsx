@@ -11,7 +11,7 @@ export default async function UploadPage() {
 
   return (
     <>
-      <main className={styles.main}>
+      <div className={styles.main}>
         <div className={styles.back}><a href="/">← back to vault</a></div>
 
         <div className={styles.header}>
@@ -27,7 +27,7 @@ export default async function UploadPage() {
             <strong>Heads up:</strong> videos that aren&apos;t already h264 mp4 will auto-transcode in the background — you&apos;ll see a <em>&ldquo;Processing…&rdquo;</em> banner on the file page until it&apos;s ready. Originals are always playable in the meantime.
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

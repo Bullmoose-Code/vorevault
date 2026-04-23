@@ -12,7 +12,7 @@ export default async function StarredPage() {
   const { items } = await listBookmarksWithUploader(user.id, 100, 0);
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <h1 className={`vv-title ${styles.title}`}>starred</h1>
       {items.length === 0 ? (
         <p className={styles.empty}>nothing starred yet. tap ★ on any file to pin it here.</p>
@@ -21,6 +21,6 @@ export default async function StarredPage() {
           {items.map((b) => <FileCard key={b.file.id} file={b.file} />)}
         </div>
       )}
-    </main>
+    </div>
   );
 }

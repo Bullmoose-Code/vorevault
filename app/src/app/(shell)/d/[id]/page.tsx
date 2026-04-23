@@ -22,7 +22,7 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
   const canManage = user.is_admin || folder.created_by === user.id;
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
       <Breadcrumbs crumbs={breadcrumbs.map((f) => ({ id: f.id, name: f.name }))} />
 
       <div className={styles.folderHeader}>
@@ -57,6 +57,6 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
           </div>
         </>
       )}
-    </main>
+    </div>
   );
 }

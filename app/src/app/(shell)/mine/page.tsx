@@ -16,7 +16,7 @@ export default async function MinePage({ searchParams }: { searchParams: Promise
   const totalPages = Math.ceil(data.total / limit);
 
   return (
-    <main className={styles.main}>
+    <div className={styles.main}>
       <h1 className="vv-greeting">your uploads</h1>
       <div className={styles.grid}>
         {data.files.map((f) => <FileCard key={f.id} file={f} />)}
@@ -28,6 +28,6 @@ export default async function MinePage({ searchParams }: { searchParams: Promise
           {page < totalPages && <a href={`/mine?page=${page + 1}`}>next →</a>}
         </div>
       )}
-    </main>
+    </div>
   );
 }
