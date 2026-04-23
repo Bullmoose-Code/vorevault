@@ -1,8 +1,9 @@
 import { rm } from "node:fs/promises";
 import { getExpiredDeletedFiles, hardDeleteFile } from "@/lib/files";
+import { getExpiredTrashedFolders, permanentDeleteFolder } from "@/lib/folders";
 import { pool } from "@/lib/db";
 
-const RETENTION_DAYS = 7;
+const RETENTION_DAYS = 30;
 
 async function safeRm(path: string | null): Promise<void> {
   if (!path) return;
@@ -25,6 +26,22 @@ export async function cleanupExpiredFiles(): Promise<number> {
   return expired.length;
 }
 
+export async function cleanupExpiredFolders(): Promise<number> {
+  const expired = await getExpiredTrashedFolders(RETENTION_DAYS);
+  for (const folder of expired) {
+    const { deletedFiles } = await permanentDeleteFolder({
+      id: folder.id, actorId: "system", isAdmin: true,
+    });
+    for (const f of deletedFiles) {
+      await safeRm(f.storage_path.split("/").slice(0, -1).join("/"));
+      await safeRm(f.transcoded_path);
+      await safeRm(f.thumbnail_path);
+    }
+    console.log(`cleanup: permanent-deleted folder ${folder.id} (${folder.name}) + ${deletedFiles.length} files`);
+  }
+  return expired.length;
+}
+
 export async function cleanupOrphanUploads(): Promise<number> {
   const result = await pool.query(
     `DELETE FROM upload_sessions
@@ -38,6 +55,7 @@ export async function cleanupOrphanUploads(): Promise<number> {
 export async function runCleanup(): Promise<void> {
   try {
     await cleanupExpiredFiles();
+    await cleanupExpiredFolders();
     await cleanupOrphanUploads();
   } catch (err) {
     console.error("cleanup error:", err);
@@ -57,6 +75,5 @@ export function startCleanupWorker(): void {
     setTimeout(tick, CLEANUP_INTERVAL_MS);
   }
 
-  // Delay first run by 5 minutes so the app finishes booting
   setTimeout(tick, 5 * 60 * 1000);
 }
