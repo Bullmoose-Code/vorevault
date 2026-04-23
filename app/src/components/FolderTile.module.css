@@ -38,3 +38,8 @@
   }
   .name { font-size: 17px; }
 }
+
+.tile:focus-visible {
+  outline: 3px solid var(--vv-accent);
+  outline-offset: 2px;
+}
