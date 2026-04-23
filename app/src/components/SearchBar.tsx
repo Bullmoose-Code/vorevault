@@ -52,6 +52,7 @@ export function SearchBar({
     <form onSubmit={onSubmit} className={`${styles.form} ${formClass}`} role="search">
       <input
         type="search"
+        id="vv-search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         onFocus={() => setOpen(true)}
