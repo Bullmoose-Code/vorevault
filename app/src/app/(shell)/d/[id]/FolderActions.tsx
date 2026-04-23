@@ -56,12 +56,12 @@ export function FolderActions({
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        title="delete folder"
-        message={`Delete "${folder.name}"? Its contents will move to the parent.`}
-        confirmLabel="delete"
+        title="move folder to trash"
+        message={`Move "${folder.name}" and its contents to trash? Can be restored within 30 days.`}
+        confirmLabel="trash"
         variant="danger"
         onConfirm={async () => {
-          const res = await fetch(`/api/folders/${folder.id}`, { method: "DELETE" });
+          const res = await fetch(`/api/folders/${folder.id}/trash`, { method: "POST" });
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
             throw new Error((data as { error?: string }).error ?? res.statusText);

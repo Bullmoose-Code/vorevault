@@ -147,12 +147,12 @@ export function FileActions({
       <ConfirmDialog
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        title="delete file"
-        message="Delete this file? It can be recovered within 7 days."
-        confirmLabel="delete"
+        title="move to trash"
+        message="Move this file to trash? It can be restored within 30 days."
+        confirmLabel="trash"
         variant="danger"
         onConfirm={async () => {
-          const res = await fetch(`/api/files/${fileId}/delete`, { method: "POST" });
+          const res = await fetch(`/api/files/${fileId}/trash`, { method: "POST" });
           if (!res.ok) {
             throw new Error(`Delete failed: ${res.status}`);
           }
