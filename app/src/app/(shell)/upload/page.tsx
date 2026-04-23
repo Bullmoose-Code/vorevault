@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { TopBar } from "@/components/TopBar";
 import { UploadClient } from "./UploadClient";
 import styles from "./page.module.css";
 
@@ -12,11 +11,6 @@ export default async function UploadPage() {
 
   return (
     <>
-      <TopBar
-        username={user.username}
-        avatarUrl={user.avatar_url}
-        isAdmin={user.is_admin}
-      />
       <main className={styles.main}>
         <div className={styles.back}><a href="/">← back to vault</a></div>
 

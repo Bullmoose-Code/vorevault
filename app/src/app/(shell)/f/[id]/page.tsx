@@ -5,7 +5,6 @@ import { getActiveShareLink } from "@/lib/share-links";
 import { loadEnv } from "@/lib/env";
 import { getBreadcrumbs } from "@/lib/folders";
 import { isBookmarked } from "@/lib/bookmarks";
-import { TopBar } from "@/components/TopBar";
 import { MetaPanel, StatusPill } from "@/components/MetaPanel";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { StarButton } from "@/components/StarButton";
@@ -53,8 +52,6 @@ export default async function FilePage({ params }: Props) {
 
   return (
     <>
-      <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
-
       <div className={styles.back}><a href="/">← back to vault</a></div>
       {breadcrumbs.length > 0 && (
         <Breadcrumbs crumbs={breadcrumbs.map(f => ({ id: f.id, name: f.name }))} />

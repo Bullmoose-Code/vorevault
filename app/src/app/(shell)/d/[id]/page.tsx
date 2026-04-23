@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getFolderWithCreator, listChildrenWithUploader, getBreadcrumbs } from "@/lib/folders";
-import { TopBar } from "@/components/TopBar";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { FolderTile } from "@/components/FolderTile";
 import { FileCard } from "@/components/FileCard";
@@ -24,7 +23,6 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
 
   return (
     <main className={styles.page}>
-      <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
       <Breadcrumbs crumbs={breadcrumbs.map((f) => ({ id: f.id, name: f.name }))} />
 
       <div className={styles.folderHeader}>
