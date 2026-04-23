@@ -17,13 +17,6 @@
   border-radius: 4px;
 }
 .navItem:hover { background: var(--vv-bg-sunken); }
-.sectionLabel {
-  font: italic 700 12px var(--vv-font-display);
-  letter-spacing: 0.04em; text-transform: uppercase;
-  color: var(--vv-ink-muted);
-  padding: 14px 12px 6px;
-}
-.tree { padding: 0 4px 14px; }
 .spacer { flex: 1; }
 
 /* Mobile: hidden by default; opened via SidebarChrome */

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { NewMenu } from "./NewMenu";
 import { VaultTree } from "./VaultTree";
+import { VaultSection } from "./VaultSection";
 import { StorageBar } from "./StorageBar";
 import styles from "./Sidebar.module.css";
 
@@ -24,10 +25,9 @@ export function Sidebar({
         <Link href="/mine" className={styles.navItem}>my uploads</Link>
       </nav>
 
-      <div className={styles.sectionLabel}>vault</div>
-      <div className={styles.tree}>
+      <VaultSection>
         <VaultTree />
-      </div>
+      </VaultSection>
 
       {isAdmin && (
         <nav className={styles.nav}>
