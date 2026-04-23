@@ -7,6 +7,7 @@ import { FileIcon } from "./FileIcon";
 import { FileContextMenu } from "./FileContextMenu";
 import { useCurrentUser } from "./CurrentUserContext";
 import { useSelection, type SelectedItem } from "./SelectionContext";
+import { readNavItems, sliceBetween } from "@/lib/gridNav";
 import styles from "./FileCard.module.css";
 
 function formatBytes(bytes: number): string {
@@ -61,17 +62,34 @@ export function FileCard({
   };
 
   function handleClick(e: MouseEvent<HTMLAnchorElement>) {
-    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+    if (e.metaKey || e.ctrlKey) {
       e.preventDefault();
       selection.toggle(descriptor);
+      return;
     }
+    if (e.shiftKey) {
+      e.preventDefault();
+      if (!selection.anchorId) {
+        selection.toggle(descriptor);
+        return;
+      }
+      const items = readNavItems();
+      const range = sliceBetween(selection.anchorId, { kind: descriptor.kind, id: descriptor.id }, items);
+      if (range.length > 0) {
+        selection.addRange(range.map((r) => r.descriptor));
+      } else {
+        selection.toggle(descriptor);
+      }
+      return;
+    }
+    // plain click → navigate (default anchor behavior)
   }
 
   const className = selected ? `${styles.card} ${styles.selected}` : styles.card;
 
   return (
     <FileContextMenu file={file}>
-      <a href={`/f/${file.id}`} className={className} onClick={handleClick} aria-pressed={selected}>
+      <a href={`/f/${file.id}`} className={className} onClick={handleClick} aria-pressed={selected} data-nav-item data-nav-descriptor={JSON.stringify(descriptor)} tabIndex={0}>
         <div className={styles.thumb}>
           {hasThumb ? (
             <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
