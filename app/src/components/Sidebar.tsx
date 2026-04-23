@@ -29,6 +29,10 @@ export function Sidebar({
         <VaultTree />
       </VaultSection>
 
+      <nav className={styles.nav}>
+        <Link href="/trash" className={styles.navItem}>trash</Link>
+      </nav>
+
       {isAdmin && (
         <nav className={styles.nav}>
           <Link href="/admin" className={styles.navItem}>admin</Link>
