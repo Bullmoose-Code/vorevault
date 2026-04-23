@@ -44,7 +44,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
         <h1 className="vv-greeting">welcome back, <strong>{user.username}</strong>.</h1>
         {recent.length > 0 && (
           <div className="vv-meta">
-            <strong>{recent.length + data.total}</strong> clips · last upload <strong>{relativeTime(lastUpload)}</strong>
+            <strong>{recent.length + data.total}</strong> files · last upload <strong>{relativeTime(lastUpload)}</strong>
           </div>
         )}
       </div>
@@ -70,7 +70,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
 
       {data.files.length > 0 ? (
         <>
-          <h2 className={`vv-section-label ${styles.sectionLabel}`}>all clips</h2>
+          <h2 className={`vv-section-label ${styles.sectionLabel}`}>all files</h2>
           <div className={styles.grid}>
             {data.files.map((f) => <FileCard key={f.id} file={f} />)}
           </div>
@@ -84,7 +84,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
         </>
       ) : recent.length === 0 ? (
         <div className={styles.empty}>
-          <h2 className="vv-title">drop the first clip in the vault.</h2>
+          <h2 className="vv-title">drop the first file in the vault.</h2>
         </div>
       ) : null}
     </>

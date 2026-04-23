@@ -10,7 +10,7 @@ export default function LoginPage() {
         <MooseLogo size="hero" />
         <h1 className={`vv-brand ${styles.brand}`}>vorevault</h1>
         <p className={styles.tagline}>
-          the <strong>bullmoose</strong> clip archive
+          the <strong>bullmoose</strong> file archive
         </p>
         <a className={styles.discordBtn} href="/api/auth/discord">
           <svg width="18" height="14" viewBox="0 0 71 55" fill="#fff" aria-hidden="true">

@@ -27,7 +27,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "vorevault",
-  description: "The Bullmoose clip archive",
+  description: "The Bullmoose file archive",
   manifest: "/manifest.webmanifest",
   applicationName: "VoreVault",
   appleWebApp: {
