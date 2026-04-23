@@ -27,9 +27,10 @@ export function TrashRow({ item, currentUserIsAdmin, currentUserId: _currentUser
   const router = useRouter();
   const [deleteOpen, setDeleteOpen] = useState(false);
 
-  // The trash list doesn't carry owner id; show delete-forever only when admin.
-  // Owners can still delete-forever via the file/folder detail page after trashing.
-  // Server-side checks in the DELETE routes are the source of truth.
+  // Non-admin owners currently have no UI path to delete-forever — the file/folder
+  // detail pages 404 on trashed items. Server-side auth (permanentDeleteFile,
+  // permanentDeleteFolder) does allow owner-or-admin; surfacing the button to owners
+  // would require adding the uploader/created_by id to TrashItem. Tracked as a follow-up.
   const canDeleteForever = currentUserIsAdmin;
 
   async function onRestore() {
