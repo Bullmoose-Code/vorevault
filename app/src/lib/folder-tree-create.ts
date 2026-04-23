@@ -19,7 +19,7 @@ export async function createFolderTree(
   try {
     await client.query("BEGIN");
 
-    if (args.parentId) {
+    if (args.parentId !== null) {
       const parent = await client.query<{ id: string }>(
         `SELECT id FROM folders WHERE id = $1 AND deleted_at IS NULL`,
         [args.parentId],
@@ -31,7 +31,18 @@ export async function createFolderTree(
       const slash = path.lastIndexOf("/");
       const parentPath = slash === -1 ? "" : path.slice(0, slash);
       const name = slash === -1 ? path : path.slice(slash + 1);
-      const parentId = parentPath === "" ? args.parentId : (map[parentPath] ?? null);
+      let parentId: string | null;
+      if (parentPath === "") {
+        parentId = args.parentId;
+      } else {
+        const resolved = map[parentPath];
+        if (!resolved) {
+          throw new Error(
+            `createFolderTree: path "${path}" references parent "${parentPath}" which was not in the input set (violates normalizePaths contract)`,
+          );
+        }
+        parentId = resolved;
+      }
 
       const existing = await client.query<{ id: string }>(
         `SELECT id FROM folders
