@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import "@/../tests/component-setup";
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { FileCard } from "./FileCard";
 import type { FileWithUploader } from "@/lib/files";
 import { CurrentUserProvider } from "./CurrentUserContext";
 import { ItemActionProvider } from "./ItemActionProvider";
+import { SelectionProvider } from "./SelectionContext";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -14,9 +15,9 @@ vi.mock("next/navigation", () => ({
 function renderWithProviders(ui: React.ReactElement) {
   return render(
     <CurrentUserProvider value={{ id: "u-test", isAdmin: false }}>
-      <ItemActionProvider>
-        {ui}
-      </ItemActionProvider>
+      <SelectionProvider>
+        <ItemActionProvider>{ui}</ItemActionProvider>
+      </SelectionProvider>
     </CurrentUserProvider>,
   );
 }
@@ -136,5 +137,27 @@ describe("FileCard", () => {
     renderWithProviders(<FileCard file={file} />);
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toBe("/f/abc-123");
+  });
+
+  it("plain click does not preventDefault (navigation proceeds)", () => {
+    const { container } = renderWithProviders(<FileCard file={makeFile()} />);
+    const link = container.querySelector("a")!;
+    const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
+  });
+
+  it("meta-click toggles the card into selection (prevents navigation)", () => {
+    const { container } = renderWithProviders(<FileCard file={makeFile()} />);
+    const link = container.querySelector("a")!;
+    fireEvent.click(link, { metaKey: true });
+    expect(container.querySelector("a")!.className).toMatch(/selected/);
+  });
+
+  it("ctrl-click also toggles (Windows/Linux)", () => {
+    const { container } = renderWithProviders(<FileCard file={makeFile()} />);
+    const link = container.querySelector("a")!;
+    fireEvent.click(link, { ctrlKey: true });
+    expect(container.querySelector("a")!.className).toMatch(/selected/);
   });
 });
