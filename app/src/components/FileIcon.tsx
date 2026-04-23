@@ -15,7 +15,7 @@ const LABELS: Record<FileKind, string> = {
   code: "code file",
   archive: "archive file",
   executable: "executable file",
-  "disk-image": "disk-image file",
+  "disk-image": "disk image file",
   font: "font file",
   data: "data file",
   other: "other file",
