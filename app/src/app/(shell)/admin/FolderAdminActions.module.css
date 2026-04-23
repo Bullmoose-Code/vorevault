@@ -1,0 +1,27 @@
+/* Inline action buttons sized for the admin table (12px cells). */
+.action {
+  background: none;
+  border: 1.5px solid var(--vv-ink-subtle);
+  border-radius: var(--vv-radius-sm);
+  color: var(--vv-ink);
+  cursor: pointer;
+  font: 700 11px/1 var(--vv-font-ui);
+  padding: 2px 7px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.action:hover {
+  background: var(--vv-ink);
+  color: var(--vv-bg);
+  border-color: var(--vv-ink);
+}
+
+.danger {
+  border-color: var(--vv-danger);
+  color: var(--vv-danger);
+}
+
+.danger:hover {
+  background: var(--vv-danger);
+  color: var(--vv-bg);
+}

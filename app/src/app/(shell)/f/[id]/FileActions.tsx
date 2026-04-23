@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/Button";
+import { ConfirmDialog, PromptDialog } from "@/components/Dialogs";
 import { FolderPicker } from "@/components/FolderPicker";
 import { ShareBanner } from "@/components/ShareBanner";
 import styles from "./FileActions.module.css";
@@ -19,35 +20,14 @@ export function FileActions({
   fileId, fileName, initialFolderId, isOwnerOrAdmin, initialShareUrl,
 }: Props) {
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
-  const [renaming, setRenaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState(initialShareUrl);
   const [sharing, setSharing] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [moveTarget, setMoveTarget] = useState<string | null>(initialFolderId);
   const [moving, setMoving] = useState(false);
-
-  async function handleRename() {
-    const next = window.prompt("Rename file:", fileName);
-    if (next === null) return;
-    const trimmed = next.trim();
-    if (!trimmed || trimmed === fileName) return;
-    setRenaming(true);
-    setError(null);
-    const res = await fetch(`/api/files/${fileId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: trimmed }),
-    });
-    if (res.ok) {
-      router.refresh();
-    } else {
-      const data = await res.json().catch(() => ({}));
-      setError(`Rename failed: ${(data as { error?: string }).error ?? res.statusText}`);
-    }
-    setRenaming(false);
-  }
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   async function handleMoveSave() {
     setMoving(true);
@@ -65,19 +45,6 @@ export function FileActions({
       setError(`Move failed: ${(data as { error?: string }).error ?? res.statusText}`);
     }
     setMoving(false);
-  }
-
-  async function handleDelete() {
-    if (!confirm("Delete this file? It can be recovered within 7 days.")) return;
-    setDeleting(true);
-    setError(null);
-    const res = await fetch(`/api/files/${fileId}/delete`, { method: "POST" });
-    if (res.ok) {
-      router.push("/");
-    } else {
-      setError(`Delete failed: ${res.status}`);
-      setDeleting(false);
-    }
   }
 
   async function handleToggleShare() {
@@ -124,24 +91,22 @@ export function FileActions({
           <>
             <Button
               type="button"
-              onClick={handleRename}
-              disabled={renaming}
+              onClick={() => setRenameOpen(true)}
             >
-              {renaming ? "…" : "Rename"}
+              rename
             </Button>
             <Button
               type="button"
               onClick={() => setMoveOpen((o) => !o)}
             >
-              {moveOpen ? "Cancel move" : "Move"}
+              {moveOpen ? "cancel move" : "move"}
             </Button>
             <Button
               variant="danger"
               type="button"
-              onClick={handleDelete}
-              disabled={deleting}
+              onClick={() => setDeleteOpen(true)}
             >
-              {deleting ? "Deleting…" : "Delete"}
+              delete
             </Button>
           </>
         )}
@@ -156,6 +121,45 @@ export function FileActions({
         </div>
       )}
       {shareUrl && <ShareBanner url={shareUrl} />}
+
+      <PromptDialog
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        title="rename file"
+        label="file name"
+        initialValue={fileName}
+        confirmLabel="save"
+        onConfirm={async (next) => {
+          const res = await fetch(`/api/files/${fileId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: next }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error((data as { error?: string }).error ?? res.statusText);
+          }
+          setRenameOpen(false);
+          router.refresh();
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="delete file"
+        message="Delete this file? It can be recovered within 7 days."
+        confirmLabel="delete"
+        variant="danger"
+        onConfirm={async () => {
+          const res = await fetch(`/api/files/${fileId}/delete`, { method: "POST" });
+          if (!res.ok) {
+            throw new Error(`Delete failed: ${res.status}`);
+          }
+          setDeleteOpen(false);
+          router.push("/");
+        }}
+      />
     </>
   );
 }
