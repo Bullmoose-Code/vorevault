@@ -43,7 +43,8 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
           <div className={styles.folderGrid}>
             {children.subfolders.map((f) => (
               <FolderTile key={f.id} id={f.id} name={f.name}
-                fileCount={f.direct_file_count} subfolderCount={f.direct_subfolder_count} />
+                fileCount={f.direct_file_count} subfolderCount={f.direct_subfolder_count}
+                createdBy={f.created_by} parentId={folder.id} />
             ))}
           </div>
         </>

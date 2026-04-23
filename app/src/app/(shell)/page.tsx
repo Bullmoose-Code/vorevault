@@ -62,7 +62,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
           <div className={styles.folderGrid}>
             {folders.map((f) => (
               <FolderTile key={f.id} id={f.id} name={f.name}
-                fileCount={f.direct_file_count} subfolderCount={f.direct_subfolder_count} />
+                fileCount={f.direct_file_count} subfolderCount={f.direct_subfolder_count}
+                createdBy={f.created_by} parentId={null} />
             ))}
           </div>
         )}

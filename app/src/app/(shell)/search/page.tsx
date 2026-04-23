@@ -37,7 +37,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <h2 className={`vv-section-label ${styles.sectionLabel}`}>Folders</h2>
           <div className={styles.folderGrid}>
             {result.folders.map((f) => (
-              <FolderTile key={f.id} id={f.id} name={f.name} fileCount={0} subfolderCount={0} />
+              <FolderTile key={f.id} id={f.id} name={f.name} fileCount={0} subfolderCount={0}
+                createdBy={f.created_by} parentId={f.parent_id} />
             ))}
           </div>
         </>
