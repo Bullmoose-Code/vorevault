@@ -1,0 +1,19 @@
+.fab {
+  display: none;
+  position: fixed; bottom: 24px; right: 24px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--vv-ink);
+  color: var(--vv-bg);
+  font: 700 28px var(--vv-font-ui);
+  align-items: center; justify-content: center;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--vv-bg-sunken);
+  z-index: 25;
+}
+
+@media (max-width: 768px) {
+  .fab {
+    display: inline-flex;
+  }
+}

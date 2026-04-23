@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { TopBar } from "@/components/TopBar";
 import { Sidebar } from "@/components/Sidebar";
 import { SidebarChromeProvider, SidebarBackdrop, SidebarOpenClass } from "@/components/SidebarChrome";
+import { MobileFAB } from "@/components/MobileFAB";
 import styles from "./shell.module.css";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <main className={styles.main}>{children}</main>
           </div>
           <SidebarBackdrop />
+          <MobileFAB />
         </div>
       </SidebarOpenClass>
     </SidebarChromeProvider>
