@@ -15,7 +15,6 @@ export default async function UploadPage() {
       <TopBar
         username={user.username}
         avatarUrl={user.avatar_url}
-        showUpload={false}
         isAdmin={user.is_admin}
       />
       <main className={styles.main}>
