@@ -60,6 +60,21 @@ async function batchMove(
   return { succeeded, failed };
 }
 
+const MAX_ZIP = 50;
+
+function startZipDownload(items: SelectedItem[]) {
+  const ids = items.filter((it) => it.kind === "file").map((it) => it.id);
+  if (ids.length === 0) return;
+  const url = `/api/files/zip?ids=${encodeURIComponent(ids.join(","))}`;
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 export function SelectionToolbar() {
   const selection = useSelection();
   const { showToast } = useItemActions();
@@ -73,6 +88,8 @@ export function SelectionToolbar() {
   if (selection.size === 0) return null;
 
   const allManageable = selection.items.every((it) => it.canManage);
+  const onlyFiles = selection.items.every((it) => it.kind === "file");
+  const zipDisabled = !onlyFiles || selection.size > MAX_ZIP;
 
   async function runTrash() {
     setTrashing(true);
@@ -124,6 +141,17 @@ export function SelectionToolbar() {
           <strong>{selection.size}</strong> selected
         </span>
         <div className={styles.spacer} />
+        {onlyFiles && (
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => startZipDownload(selection.items)}
+            disabled={zipDisabled}
+            title={selection.size > MAX_ZIP ? `max ${MAX_ZIP} files` : undefined}
+          >
+            download as zip
+          </Button>
+        )}
         {allManageable && (
           <>
             <Button
