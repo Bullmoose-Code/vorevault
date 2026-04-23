@@ -329,3 +329,48 @@ export async function getFolderIncludingTrashed(id: string): Promise<FolderRow |
   const { rows } = await pool.query<FolderRow>(`SELECT * FROM folders WHERE id = $1`, [id]);
   return rows[0] ?? null;
 }
+
+export type TrashFolderArgs = { id: string; actorId: string; isAdmin: boolean };
+export type TrashFolderResult = { folders: number; files: number };
+
+export async function trashFolder(args: TrashFolderArgs): Promise<TrashFolderResult> {
+  const folder = await getFolderIncludingTrashed(args.id);
+  if (!folder) throw new FolderNotFoundError("folder");
+  if (folder.deleted_at) return { folders: 0, files: 0 };
+  if (!args.isAdmin && folder.created_by !== args.actorId) throw new FolderAuthError();
+
+  const client: PoolClient = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    // Find every descendant folder id (includes the folder itself).
+    const { rows: ids } = await client.query<{ id: string }>(
+      `WITH RECURSIVE tree AS (
+         SELECT id FROM folders WHERE id = $1
+         UNION ALL
+         SELECT f.id FROM folders f JOIN tree t ON f.parent_id = t.id
+       )
+       SELECT id FROM tree`,
+      [args.id],
+    );
+    const folderIds = ids.map((r) => r.id);
+    // Stamp all folders with the same now().
+    const { rowCount: folderCount } = await client.query(
+      `UPDATE folders SET deleted_at = now()
+         WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`,
+      [folderIds],
+    );
+    // Match the timestamp for files in those folders.
+    const { rowCount: fileCount } = await client.query(
+      `UPDATE files SET deleted_at = (SELECT deleted_at FROM folders WHERE id = $1)
+         WHERE folder_id = ANY($2::uuid[]) AND deleted_at IS NULL`,
+      [args.id, folderIds],
+    );
+    await client.query("COMMIT");
+    return { folders: folderCount ?? 0, files: fileCount ?? 0 };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
