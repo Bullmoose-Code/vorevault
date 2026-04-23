@@ -1,0 +1,42 @@
+.content {
+  min-width: 200px;
+  background: var(--vv-bg-panel);
+  color: var(--vv-ink);
+  border: 2.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  box-shadow: var(--vv-shadow-md);
+  padding: 6px;
+  font: 600 13px/1.2 var(--vv-font-ui);
+  z-index: 900;
+}
+
+.item {
+  padding: 8px 10px;
+  border-radius: var(--vv-radius-sm);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.item[data-highlighted],
+.item:focus-visible {
+  background: var(--vv-ink);
+  color: var(--vv-bg);
+}
+
+.danger {
+  color: var(--vv-danger);
+}
+
+.danger[data-highlighted],
+.danger:focus-visible {
+  background: var(--vv-danger);
+  color: var(--vv-bg);
+}
+
+.sep {
+  height: 1px;
+  background: var(--vv-ink);
+  margin: 4px 0;
+  opacity: 0.2;
+}
