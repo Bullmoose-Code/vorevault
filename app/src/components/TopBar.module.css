@@ -12,6 +12,10 @@
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  /* Match the sidebar's right edge: sidebar is 240px wide; topbar has 32px
+     left padding and a 16px gap to the next child. So the brand box ends at
+     32 + 192 + 16 = 240px from the viewport left. */
+  min-width: 192px;
   font-family: var(--vv-font-display);
   font-style: italic;
   font-weight: 900;
