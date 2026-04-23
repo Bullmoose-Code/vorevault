@@ -34,7 +34,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               <main className={styles.main}>{children}</main>
             </div>
             <SidebarBackdrop />
-            <MobileFAB />
+            <MobileFAB currentFolderId={currentFolderId} />
             <UploadProgressDrawer />
           </div>
         </SidebarOpenClass>
