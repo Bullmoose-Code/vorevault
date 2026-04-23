@@ -4,12 +4,18 @@ import {
   createContext, useCallback, useContext, useMemo, useRef, useState,
 } from "react";
 import * as tus from "tus-js-client";
-import type { UploadState } from "./UploadRow";
 
-export type ActiveUpload = UploadState & {
+export type UploadStatus = "pending" | "uploading" | "done" | "error";
+
+export type ActiveUpload = {
   id: string;
   folderId: string | null;
   startedAt: number;
+  name: string;
+  size: number;
+  uploaded: number;
+  status: UploadStatus;
+  error?: string;
 };
 
 type Ctx = {
