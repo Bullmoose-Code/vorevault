@@ -1,39 +1,63 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ConfirmDialog, PromptDialog } from "@/components/Dialogs";
 import type { FolderRow } from "@/lib/folders";
+import styles from "./FolderAdminActions.module.css";
 
 export function FolderAdminActions({ folder }: { folder: FolderRow }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
-
-  async function onRename() {
-    const name = window.prompt("New folder name:", folder.name);
-    if (!name || name === folder.name) return;
-    setBusy(true);
-    const res = await fetch(`/api/folders/${folder.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ name }),
-      headers: { "Content-Type": "application/json" },
-    });
-    setBusy(false);
-    if (res.ok) router.refresh();
-    else window.alert(`Rename failed: ${res.status}`);
-  }
-
-  async function onDelete() {
-    if (!window.confirm(`Delete folder "${folder.name}"? Contents move to the parent folder.`)) return;
-    setBusy(true);
-    const res = await fetch(`/api/folders/${folder.id}`, { method: "DELETE" });
-    setBusy(false);
-    if (res.ok) router.refresh();
-    else window.alert(`Delete failed: ${res.status}`);
-  }
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <>
-      <button type="button" onClick={onRename} disabled={busy}>rename</button>{" "}
-      <button type="button" onClick={onDelete} disabled={busy}>delete</button>
+      <button type="button" className={styles.action} onClick={() => setRenameOpen(true)}>
+        rename
+      </button>{" "}
+      <button type="button" className={`${styles.action} ${styles.danger}`} onClick={() => setDeleteOpen(true)}>
+        delete
+      </button>
+
+      <PromptDialog
+        open={renameOpen}
+        onClose={() => setRenameOpen(false)}
+        title="rename folder"
+        label="folder name"
+        initialValue={folder.name}
+        confirmLabel="save"
+        onConfirm={async (next) => {
+          const res = await fetch(`/api/folders/${folder.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({ name: next }),
+            headers: { "Content-Type": "application/json" },
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error((data as { error?: string }).error ?? `${res.status}`);
+          }
+          setRenameOpen(false);
+          router.refresh();
+        }}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="delete folder"
+        message={`Delete "${folder.name}"? Its contents will move to the parent.`}
+        confirmLabel="delete"
+        variant="danger"
+        onConfirm={async () => {
+          const res = await fetch(`/api/folders/${folder.id}`, { method: "DELETE" });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error((data as { error?: string }).error ?? `${res.status}`);
+          }
+          setDeleteOpen(false);
+          router.refresh();
+        }}
+      />
     </>
   );
 }

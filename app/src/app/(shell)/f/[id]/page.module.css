@@ -3,8 +3,6 @@
   font-size: 13px;
   color: var(--vv-ink-muted);
   font-style: italic;
-  max-width: 1200px;
-  margin: 0 auto;
 }
 
 .back a {
@@ -15,8 +13,6 @@
 }
 
 .content {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 20px 32px 48px;
   display: grid;
   grid-template-columns: 2fr 1fr;

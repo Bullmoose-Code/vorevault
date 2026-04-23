@@ -94,7 +94,7 @@ export default async function FilePage({ params }: Props) {
             </div>
           )}
 
-          <h1 className={`vv-title ${styles.title}`}>{file.original_name}</h1>
+          <h1 className={`vv-greeting ${styles.title}`}>{file.original_name}</h1>
           <div className="vv-meta">
             uploaded by <strong>{file.uploader_name}</strong> · <strong>{new Date(file.created_at).toLocaleString("en-US", {
               timeZone: "America/New_York",

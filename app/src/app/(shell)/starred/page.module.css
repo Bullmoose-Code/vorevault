@@ -1,9 +1,14 @@
-.page { padding: 32px 32px 48px; max-width: 1200px; margin: 0 auto; }
-.title { margin: 0 0 12px; }
-.empty { font-size: 14px; color: var(--vv-ink-muted); padding: 24px 0; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.subheader { padding: 32px 32px 20px; }
+.empty { font-size: 14px; color: var(--vv-ink-muted); padding: 24px 32px; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+  padding: 0 32px 32px;
+}
 
 @media (max-width: 640px) {
-  .page { padding: 20px 16px 32px; }
-  .grid { grid-template-columns: 1fr; gap: 16px; }
+  .subheader { padding: 20px 16px 16px; }
+  .empty { padding: 24px 16px; }
+  .grid { grid-template-columns: 1fr; gap: 16px; padding: 0 16px 24px; }
 }

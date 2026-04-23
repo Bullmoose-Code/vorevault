@@ -16,8 +16,10 @@ export default async function RecentPage({ searchParams }: { searchParams: Promi
   const totalPages = Math.ceil(data.total / limit);
 
   return (
-    <div className={styles.main}>
-      <h1 className="vv-greeting">recent uploads</h1>
+    <>
+      <div className={styles.subheader}>
+        <h1 className="vv-greeting">recent uploads</h1>
+      </div>
       <div className={styles.grid}>
         {data.files.map((f) => <FileCard key={f.id} file={f} />)}
       </div>
@@ -28,6 +30,6 @@ export default async function RecentPage({ searchParams }: { searchParams: Promi
           {page < totalPages && <a href={`/recent?page=${page + 1}`}>next →</a>}
         </div>
       )}
-    </div>
+    </>
   );
 }
