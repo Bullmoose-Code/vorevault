@@ -18,6 +18,14 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
+  // /upload removed — inline + new menu in the sidebar replaces it.
+  if (pathname === "/upload" || pathname.startsWith("/upload/")) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url, 308);
+  }
+
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return withPathname(req, NextResponse.next());
   }
