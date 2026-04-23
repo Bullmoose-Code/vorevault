@@ -304,3 +304,45 @@ describe("folders — queries", () => {
     expect(files[0].uploader_name).toBe("bob");
   });
 });
+
+describe("folder read paths skip trashed", () => {
+  it("listTopLevelFolders excludes trashed folders", async () => {
+    const { createFolder, listTopLevelFolders } = await import("./folders");
+    const uid = await makeUser("alice");
+    const keep = await createFolder({ name: "keep", parentId: null, createdBy: uid });
+    const trash = await createFolder({ name: "trash", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [trash.id]);
+    const rows = await listTopLevelFolders();
+    expect(rows.map((r) => r.id)).toEqual([keep.id]);
+  });
+
+  it("listChildren excludes trashed subfolders", async () => {
+    const { createFolder, listChildren } = await import("./folders");
+    const uid = await makeUser("bob");
+    const root = await createFolder({ name: "root", parentId: null, createdBy: uid });
+    const keep = await createFolder({ name: "keep", parentId: root.id, createdBy: uid });
+    const trash = await createFolder({ name: "trash", parentId: root.id, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [trash.id]);
+    const { subfolders } = await listChildren(root.id);
+    expect(subfolders.map((r) => r.id)).toEqual([keep.id]);
+  });
+
+  it("getFolder returns null for trashed folders, getFolderIncludingTrashed returns them", async () => {
+    const { createFolder, getFolder, getFolderIncludingTrashed } = await import("./folders");
+    const uid = await makeUser("carol");
+    const f = await createFolder({ name: "x", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [f.id]);
+    expect(await getFolder(f.id)).toBeNull();
+    const including = await getFolderIncludingTrashed(f.id);
+    expect(including?.id).toBe(f.id);
+  });
+
+  it("createFolder allows reusing a trashed sibling's name", async () => {
+    const { createFolder } = await import("./folders");
+    const uid = await makeUser("dan");
+    const a = await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [a.id]);
+    const b = await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    expect(b.id).not.toBe(a.id);
+  });
+});
