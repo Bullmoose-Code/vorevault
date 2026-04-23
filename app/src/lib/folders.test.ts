@@ -393,3 +393,54 @@ describe("trashFolder", () => {
     expect(second).toEqual({ folders: 0, files: 0 });
   });
 });
+
+describe("restoreFolder", () => {
+  it("restores the cascade group by matching deleted_at timestamp", async () => {
+    const { createFolder, trashFolder, restoreFolder } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("jen");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    const f1 = await insertFile({ uploaderId: uid, folderId: a.id, originalName: "f1", mimeType: "image/png", sizeBytes: 1, storagePath: "/x/f1" });
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+
+    const counts = await restoreFolder({ id: a.id, actorId: uid });
+    expect(counts).toEqual({ folders: 2, files: 1 });
+
+    const { rows } = await pg.pool.query<{ deleted_at: string | null }>(
+      `SELECT deleted_at FROM folders WHERE id IN ($1, $2) UNION ALL SELECT deleted_at FROM files WHERE id = $3`,
+      [a.id, b.id, f1.id],
+    );
+    expect(rows.every((r) => r.deleted_at === null)).toBe(true);
+  });
+
+  it("leaves items trashed at a different timestamp still trashed", async () => {
+    const { createFolder, trashFolder, restoreFolder } = await import("./folders");
+    const uid = await makeUser("kit");
+    const a = await createFolder({ name: "a", parentId: null, createdBy: uid });
+    const b = await createFolder({ name: "b", parentId: a.id, createdBy: uid });
+    // Trash b alone (first timestamp).
+    await trashFolder({ id: b.id, actorId: uid, isAdmin: false });
+    // Now trash a (second timestamp). a's deleted_at differs from b's.
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+
+    await restoreFolder({ id: a.id, actorId: uid });
+    const { rows } = await pg.pool.query<{ id: string; deleted_at: string | null }>(
+      `SELECT id, deleted_at FROM folders WHERE id IN ($1, $2)`,
+      [a.id, b.id],
+    );
+    const aRow = rows.find((r) => r.id === a.id)!;
+    const bRow = rows.find((r) => r.id === b.id)!;
+    expect(aRow.deleted_at).toBeNull();
+    expect(bRow.deleted_at).not.toBeNull();
+  });
+
+  it("throws FolderCollisionError when restore would collide with an active sibling", async () => {
+    const { createFolder, trashFolder, restoreFolder, FolderCollisionError } = await import("./folders");
+    const uid = await makeUser("leo");
+    const a = await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    await trashFolder({ id: a.id, actorId: uid, isAdmin: false });
+    await createFolder({ name: "dup", parentId: null, createdBy: uid });
+    await expect(restoreFolder({ id: a.id, actorId: uid })).rejects.toBeInstanceOf(FolderCollisionError);
+  });
+});
