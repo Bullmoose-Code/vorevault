@@ -35,9 +35,10 @@ export async function GET(req: NextRequest) {
 
   const entries: ZipEntry[] = [];
   for (const id of ids) {
+    // getFile already filters `deleted_at IS NULL`, so a missing/trashed id
+    // returns null here and is silently skipped.
     const file = await getFile(id);
     if (!file) continue;
-    if (file.deleted_at != null) continue;
     entries.push({
       name: file.original_name,
       // Use the stored path, never the transcoded copy — users want the original upload.
