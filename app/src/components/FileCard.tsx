@@ -45,7 +45,7 @@ export function FileCard({
     <a href={`/f/${file.id}`} className={styles.card}>
       <div className={styles.thumb}>
         {hasThumb ? (
-          <img src={`/api/thumbs/${file.id}`} alt={file.original_name} loading="lazy" />
+          <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
         ) : (
           <div className={`${styles.iconTile} ${styles[`kind_${kind.replace("-", "_")}`]}`}>
             <FileIcon kind={kind} size={48} />

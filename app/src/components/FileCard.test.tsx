@@ -29,9 +29,11 @@ function makeFile(overrides: Partial<FileWithUploader> = {}): FileWithUploader {
 
 describe("FileCard", () => {
   it("video with thumbnail: renders thumbnail img, duration badge, uppercased label", () => {
-    render(<FileCard file={makeFile()} />);
-    const img = screen.getByRole("img", { hidden: true }) as HTMLImageElement;
-    expect(img.src).toContain("/api/thumbs/");
+    const { container } = render(<FileCard file={makeFile()} />);
+    const img = container.querySelector("img") as HTMLImageElement | null;
+    expect(img).not.toBeNull();
+    expect(img!.src).toContain("/api/thumbs/");
+    expect(img!.alt).toBe(""); // intentionally empty: title is rendered below
     expect(screen.getByText("2:05")).toBeInTheDocument();
     expect(screen.getByText("MP4")).toBeInTheDocument();
   });
