@@ -16,11 +16,28 @@ type DragState = {
   armed: boolean; // true after threshold exceeded
 };
 
-function isInteractiveTarget(target: EventTarget | null): boolean {
+// Only start a marquee if the mousedown happens in the main content body,
+// not on a card/button/input (existing rules) and not on text the user
+// might want to select/copy. Sidebar + topbar live outside <main>, so the
+// closest("main") check alone keeps the marquee off chrome.
+function canStartMarquee(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
-  return target.closest(
-    "[data-nav-item], a, button, input, textarea, select, label, [role='menu'], [role='dialog'], [role='toolbar']",
-  ) != null;
+  if (!target.closest("main")) return false;
+  if (
+    target.closest(
+      "[data-nav-item], a, button, input, textarea, select, label, [role='menu'], [role='dialog'], [role='toolbar']",
+    )
+  ) {
+    return false;
+  }
+  if (
+    target.closest(
+      "h1, h2, h3, h4, h5, h6, p, pre, code, strong, em, blockquote, figcaption",
+    )
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function collectOverlaps(rect: MarqueeRect): SelectedItem[] {
@@ -55,7 +72,7 @@ export function GridMarquee() {
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (e.button !== 0) return;
-      if (isInteractiveTarget(e.target)) return;
+      if (!canStartMarquee(e.target)) return;
       dragRef.current = {
         start: { x: e.clientX, y: e.clientY },
         current: { x: e.clientX, y: e.clientY },

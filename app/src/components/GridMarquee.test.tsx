@@ -17,12 +17,14 @@ function rect(x: number, y: number, w = 100, h = 100): Rect {
   };
 }
 
+let main: HTMLElement;
+
 function makeAnchor(descriptor: object, r: Rect): HTMLAnchorElement {
   const a = document.createElement("a");
   a.setAttribute("data-nav-item", "");
   a.setAttribute("data-nav-descriptor", JSON.stringify(descriptor));
   a.getBoundingClientRect = () => r as DOMRect;
-  document.body.appendChild(a);
+  main.appendChild(a);
   return a;
 }
 
@@ -50,6 +52,8 @@ function mouse(type: string, init: MouseEventInit) {
 describe("GridMarquee", () => {
   beforeEach(() => {
     document.body.replaceChildren();
+    main = document.createElement("main");
+    document.body.appendChild(main);
   });
 
   it("mouse-drag across two cards selects both", () => {
@@ -57,7 +61,7 @@ describe("GridMarquee", () => {
     makeAnchor({ kind: "file", id: "b", name: "b", canManage: true, folderId: null }, rect(200, 10, 100, 100));
     const sel = mount();
     act(() => {
-      document.dispatchEvent(mouse("mousedown", { clientX: 0, clientY: 0, button: 0 }));
+      main.dispatchEvent(mouse("mousedown", { clientX: 0, clientY: 0, button: 0 }));
       document.dispatchEvent(mouse("mousemove", { clientX: 350, clientY: 150, button: 0 }));
       document.dispatchEvent(mouse("mouseup", { clientX: 350, clientY: 150, button: 0 }));
     });
@@ -79,7 +83,7 @@ describe("GridMarquee", () => {
     makeAnchor({ kind: "file", id: "a", name: "a", canManage: true, folderId: null }, rect(10, 10, 100, 100));
     const sel = mount();
     act(() => {
-      document.dispatchEvent(mouse("mousedown", { clientX: 0, clientY: 0, button: 2 }));
+      main.dispatchEvent(mouse("mousedown", { clientX: 0, clientY: 0, button: 2 }));
       document.dispatchEvent(mouse("mousemove", { clientX: 200, clientY: 200, button: 2 }));
       document.dispatchEvent(mouse("mouseup", { clientX: 200, clientY: 200, button: 2 }));
     });
@@ -95,10 +99,37 @@ describe("GridMarquee", () => {
     });
     // Tiny mousedown + mouseup inside the drag threshold
     act(() => {
-      document.dispatchEvent(mouse("mousedown", { clientX: 500, clientY: 500, button: 0 }));
+      main.dispatchEvent(mouse("mousedown", { clientX: 500, clientY: 500, button: 0 }));
       document.dispatchEvent(mouse("mouseup", { clientX: 500, clientY: 500, button: 0 }));
     });
     expect(sel.current?.size).toBe(1);
+  });
+
+  it("mousedown outside <main> (sidebar/header) does not start a marquee", () => {
+    makeAnchor({ kind: "file", id: "a", name: "a", canManage: true, folderId: null }, rect(10, 10, 100, 100));
+    const sel = mount();
+    const sidebar = document.createElement("aside");
+    document.body.appendChild(sidebar);
+    act(() => {
+      sidebar.dispatchEvent(mouse("mousedown", { clientX: 0, clientY: 0, button: 0 }));
+      document.dispatchEvent(mouse("mousemove", { clientX: 400, clientY: 400, button: 0 }));
+      document.dispatchEvent(mouse("mouseup", { clientX: 400, clientY: 400, button: 0 }));
+    });
+    expect(sel.current?.size).toBe(0);
+  });
+
+  it("mousedown on text (<p>, <h1>) does not start a marquee", () => {
+    makeAnchor({ kind: "file", id: "a", name: "a", canManage: true, folderId: null }, rect(10, 10, 100, 100));
+    const sel = mount();
+    const heading = document.createElement("h1");
+    heading.textContent = "welcome back";
+    main.appendChild(heading);
+    act(() => {
+      heading.dispatchEvent(mouse("mousedown", { clientX: 100, clientY: 100, button: 0 }));
+      document.dispatchEvent(mouse("mousemove", { clientX: 400, clientY: 400, button: 0 }));
+      document.dispatchEvent(mouse("mouseup", { clientX: 400, clientY: 400, button: 0 }));
+    });
+    expect(sel.current?.size).toBe(0);
   });
 
   it("shift-drag adds to existing selection instead of replacing", () => {
@@ -108,7 +139,7 @@ describe("GridMarquee", () => {
       sel.current!.toggle({ kind: "file", id: "pre", name: "pre", canManage: true, folderId: null });
     });
     act(() => {
-      document.dispatchEvent(mouse("mousedown", { clientX: 150, clientY: 0, button: 0, shiftKey: true }));
+      main.dispatchEvent(mouse("mousedown", { clientX: 150, clientY: 0, button: 0, shiftKey: true }));
       document.dispatchEvent(mouse("mousemove", { clientX: 350, clientY: 150, button: 0, shiftKey: true }));
       document.dispatchEvent(mouse("mouseup", { clientX: 350, clientY: 150, button: 0, shiftKey: true }));
     });
