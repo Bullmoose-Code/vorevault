@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { listFiles } from "@/lib/files";
 import { FileCard } from "@/components/FileCard";
+import { PaginationLink } from "@/components/PaginationLink";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +26,9 @@ export default async function MinePage({ searchParams }: { searchParams: Promise
       </div>
       {totalPages > 1 && (
         <div className={styles.pagination}>
-          {page > 1 && <a href={`/mine?page=${page - 1}`}>← prev</a>}
+          {page > 1 && <PaginationLink href={`/mine?page=${page - 1}`}>← prev</PaginationLink>}
           <span>page {page} of {totalPages}</span>
-          {page < totalPages && <a href={`/mine?page=${page + 1}`}>next →</a>}
+          {page < totalPages && <PaginationLink href={`/mine?page=${page + 1}`}>next →</PaginationLink>}
         </div>
       )}
     </>

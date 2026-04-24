@@ -1,0 +1,8 @@
+.marquee {
+  position: fixed;
+  border: 2px dashed var(--vv-accent);
+  background: color-mix(in srgb, var(--vv-accent) 15%, transparent);
+  pointer-events: none;
+  z-index: 800;
+  border-radius: var(--vv-radius-sm);
+}
