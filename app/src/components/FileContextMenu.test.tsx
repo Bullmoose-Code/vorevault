@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "@/../tests/component-setup";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { useEffect } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FileContextMenu } from "./FileContextMenu";
 import { CurrentUserProvider } from "./CurrentUserContext";
@@ -90,10 +91,12 @@ describe("FileContextMenu", () => {
     const file = makeFile({ id: "f-1" });
     function Seed() {
       const sel = useSelection();
-      if (sel.size === 0) {
+      useEffect(() => {
         sel.toggle({ kind: "file", id: file.id, name: file.original_name, canManage: true, folderId: null });
         sel.toggle({ kind: "file", id: "other", name: "other.mp4", canManage: true, folderId: null });
-      }
+        // run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
       return null;
     }
     render(

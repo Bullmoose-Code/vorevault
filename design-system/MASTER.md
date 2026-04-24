@@ -299,7 +299,7 @@ Text inputs take priority — all the "when not typing" handlers check `document
 
 ### 9.4 Permission gating
 
-`canManage = user.isAdmin || item.owner_id === user.id`. Rename / Move / Trash actions are gated on this everywhere — context menu, selection toolbar, drag source. Download and "Copy public link" are available to all authenticated users per the shared-pool principle (see `DESIGN.md`).
+`canManage = user.isAdmin || item.owner_id === user.id`. Rename / Move / Trash actions are gated on this everywhere — context menu, selection toolbar, drag source. Download and "Copy public link" are **intentionally available to all authenticated group members** per the shared-pool principle (`DESIGN.md`). This is not a bug — do not add owner-only gating to `POST /api/files/:id/share` or `GET /api/stream/:id`.
 
 ---
 
@@ -312,7 +312,7 @@ Text inputs take priority — all the "when not typing" handlers check `document
 - **`aria-live="polite"`** on toast region; individual toasts have `role="status"`.
 - **Keyboard reachable**: every action is reachable without a mouse (Tab + arrow + modifiers + shortcuts from §9.2).
 - **`prefers-color-scheme`** respected as the default; explicit toggle overrides.
-- **TODO** — not yet wired: `prefers-reduced-motion` for hover transforms and drag animations.
+- **`prefers-reduced-motion`** — globally wired in `globals.css`: transitions and animations drop to `0.01ms` when the user prefers reduced motion. Hover color changes still land; movement is suppressed.
 
 ---
 
@@ -370,7 +370,7 @@ Any new raw color needs an entry here with a justification — otherwise tokeniz
 
 ## 14. What's intentionally NOT specified (open questions)
 
-- **`prefers-reduced-motion` support** for hover transforms, drag/drop visuals, toast animations. Currently ignored. Add when we ship motion-heavy features.
+- ~~`prefers-reduced-motion` support~~ — shipped. Global override in `globals.css`.
 - **Motion/easing tokens** (`--vv-ease`, `--vv-duration-short`, etc.). Today we inline `100ms` / `150ms` / `transition: transform 0.1s`. Tokenize if motion becomes a larger concern.
 - **Iconography scale** (sm / md / lg icon sizes). Today FileIcon defaults to 24 and accepts a `size` prop. Formalize if more sizes proliferate.
 - **Empty states**. No shared empty-state component; each page rolls its own. Candidate for extraction.

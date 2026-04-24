@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "@/../tests/component-setup";
 import { describe, it, expect, vi } from "vitest";
+import { useEffect } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { FolderContextMenu } from "./FolderContextMenu";
 import { CurrentUserProvider } from "./CurrentUserContext";
@@ -60,10 +61,12 @@ describe("FolderContextMenu", () => {
   it("batch mode: right-click a selected folder when selection > 1 shows only move + trash", async () => {
     function Seed() {
       const sel = useSelection();
-      if (sel.size === 0) {
+      useEffect(() => {
         sel.toggle({ kind: "folder", id: "fo-1", name: "pics", canManage: true, parentId: null });
         sel.toggle({ kind: "folder", id: "fo-2", name: "docs", canManage: true, parentId: null });
-      }
+        // run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
       return null;
     }
     render(
