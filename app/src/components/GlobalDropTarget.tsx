@@ -3,17 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useUploadProgress } from "./UploadProgressProvider";
 import { FolderPickerModal } from "./FolderPickerModal";
+import { Modal } from "./Modal";
 import { VV_DRAG_MIME } from "@/lib/dragDrop";
+import { collectDroppedItems } from "@/lib/dropEntries";
+import { uploadItemsWithTree, type UploadItem } from "@/lib/uploadTree";
 import styles from "./GlobalDropTarget.module.css";
 
-// MVP: files only. Directory drops fall through to ignored / filesystem-dependent
-// behavior. If users ask for recursive drop later, hook into NewMenu's
-// webkitGetAsEntry tree path.
-export function GlobalDropTarget() {
+export function GlobalDropTarget({ currentFolderId }: { currentFolderId: string | null }) {
   const { enqueue } = useUploadProgress();
   const [scrim, setScrim] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const pendingFilesRef = useRef<File[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const pendingItemsRef = useRef<UploadItem[]>([]);
   const depthRef = useRef(0);
 
   useEffect(() => {
@@ -35,20 +36,23 @@ export function GlobalDropTarget() {
     }
     function onDragOver(e: DragEvent) {
       if (!isExternalFileDrag(e.dataTransfer)) return;
-      e.preventDefault(); // required to allow drop
+      e.preventDefault();
     }
     function onDragLeave() {
       depthRef.current = Math.max(0, depthRef.current - 1);
       if (depthRef.current === 0) setScrim(false);
     }
-    function onDrop(e: DragEvent) {
+    async function onDrop(e: DragEvent) {
       if (!isExternalFileDrag(e.dataTransfer)) return;
       e.preventDefault();
       depthRef.current = 0;
       setScrim(false);
-      const files = Array.from(e.dataTransfer?.files ?? []);
-      if (files.length === 0) return;
-      pendingFilesRef.current = files;
+      const dt = e.dataTransfer;
+      if (!dt) return;
+      const items = await collectDroppedItems(dt);
+      if (items.length === 0) return;
+      pendingItemsRef.current = items;
+      setError(null);
       setPickerOpen(true);
     }
 
@@ -71,17 +75,29 @@ export function GlobalDropTarget() {
           <div className={styles.message}>drop files to upload</div>
         </div>
       )}
-      {pickerOpen && (
+      <Modal
+        open={pickerOpen}
+        onClose={() => { pendingItemsRef.current = []; setPickerOpen(false); }}
+        title="choose folder"
+        size="md"
+      >
         <FolderPickerModal
-          initialFolderId={null}
-          onCancel={() => { pendingFilesRef.current = []; setPickerOpen(false); }}
-          onSelect={(folderId) => {
+          initialFolderId={currentFolderId}
+          onCancel={() => { pendingItemsRef.current = []; setPickerOpen(false); }}
+          onSelect={async (folderId) => {
             setPickerOpen(false);
-            for (const file of pendingFilesRef.current) enqueue(file, folderId);
-            pendingFilesRef.current = [];
+            const items = pendingItemsRef.current;
+            pendingItemsRef.current = [];
+            await uploadItemsWithTree({
+              items,
+              destFolderId: folderId,
+              enqueue,
+              setError,
+            });
           }}
         />
-      )}
+      </Modal>
+      {error && <div role="alert" className={styles.error}>{error}</div>}
     </>
   );
 }

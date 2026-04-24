@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listFiles, listRecentFiles } from "@/lib/files";
+import { listTopLevelItems, listRecentTopLevelItems } from "@/lib/files";
 import { listTopLevelFolders } from "@/lib/folders";
 import { FileCard } from "@/components/FileCard";
 import { FolderTile } from "@/components/FolderTile";
@@ -31,9 +31,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   const limit = 24;
 
   const [recent, folders, data] = await Promise.all([
-    listRecentFiles(RECENT_STRIP_COUNT, true),
+    listRecentTopLevelItems(RECENT_STRIP_COUNT),
     listTopLevelFolders(),
-    listFiles(page, limit, undefined, RECENT_STRIP_COUNT, true),
+    listTopLevelItems(page, limit, RECENT_STRIP_COUNT),
   ]);
 
   const lastUpload = recent[0]?.created_at ?? null;
@@ -45,12 +45,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
         <h1 className="vv-greeting">welcome back, <strong>{user.username}</strong>.</h1>
         {recent.length > 0 && (
           <div className="vv-meta">
-            <strong>{recent.length + data.total}</strong> files · last upload <strong>{relativeTime(lastUpload)}</strong>
+            <strong>{recent.length + data.total}</strong> items · last upload <strong>{relativeTime(lastUpload)}</strong>
           </div>
         )}
       </div>
 
-      <RecentStrip files={recent} />
+      <RecentStrip items={recent} />
 
       <section className={styles.foldersSection}>
         <div className={styles.foldersHeader}>
@@ -70,11 +70,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
         )}
       </section>
 
-      {data.files.length > 0 ? (
+      {data.items.length > 0 ? (
         <>
           <h2 className={`vv-section-label ${styles.sectionLabel}`}>all files</h2>
           <div className={styles.grid}>
-            {data.files.map((f) => <FileCard key={f.id} file={f} />)}
+            {data.items.map((it) => it.kind === "folder" ? (
+              <FolderTile key={`f-${it.id}`} id={it.id} name={it.name}
+                fileCount={it.direct_file_count} subfolderCount={it.direct_subfolder_count}
+                createdBy={it.created_by} parentId={null} />
+            ) : (
+              <FileCard key={`x-${it.id}`} file={it} />
+            ))}
           </div>
           {totalPages > 1 && (
             <div className={styles.pagination}>

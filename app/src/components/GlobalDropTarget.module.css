@@ -20,3 +20,17 @@
   border-radius: var(--vv-radius-md);
   box-shadow: var(--vv-shadow);
 }
+.error {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--vv-danger);
+  color: var(--vv-bg);
+  padding: 10px 16px;
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  box-shadow: var(--vv-shadow-sm);
+  z-index: 950;
+  font-size: 13px;
+}

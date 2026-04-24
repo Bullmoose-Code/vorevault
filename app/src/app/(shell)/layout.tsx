@@ -44,7 +44,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                   <GridKeyboard />
                   <GridMarquee />
                 </GridChromeGate>
-                <GlobalDropTarget />
+                <GlobalDropTarget currentFolderId={currentFolderId} />
                 <div className={styles.shell}>
                   <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
                   <div className={styles.body}>
