@@ -13,15 +13,18 @@ export type SearchArgs = {
 
 export type SearchFileHit = FileRow & { uploader_username: string };
 
+export type SearchTagHit = { id: string; name: string; file_count: number };
+
 export type SearchResult = {
   folders: FolderRow[];
   files: SearchFileHit[];
+  tags: SearchTagHit[];
   total: number;
 };
 
 export async function searchEverything(args: SearchArgs): Promise<SearchResult> {
   if (args.query.trim().length < 2) {
-    return { folders: [], files: [], total: 0 };
+    return { folders: [], files: [], tags: [], total: 0 };
   }
 
   // Folders: fuzzy match on name, optionally scoped to descendants of a folder.
@@ -78,11 +81,19 @@ export async function searchEverything(args: SearchArgs): Promise<SearchResult> 
        JOIN users u ON u.id = fi.uploader_id
        LEFT JOIN folders fo ON fo.id = fi.folder_id
       WHERE fi.deleted_at IS NULL
-        AND GREATEST(
-              similarity(fi.original_name, $1),
-              COALESCE(similarity(fo.name, $1), 0),
-              similarity(u.username, $1)
-            ) > ${SIMILARITY_THRESHOLD}
+        AND (
+          GREATEST(
+            similarity(fi.original_name, $1),
+            COALESCE(similarity(fo.name, $1), 0),
+            similarity(u.username, $1)
+          ) > ${SIMILARITY_THRESHOLD}
+          OR EXISTS (
+            SELECT 1 FROM file_tags ft
+              JOIN tags t ON t.id = ft.tag_id
+             WHERE ft.file_id = fi.id
+               AND t.name ILIKE '%' || $1 || '%'
+          )
+        )
         AND (fi.folder_id IS NULL OR NOT EXISTS (
           SELECT 1 FROM folders fo_t WHERE fo_t.id = fi.folder_id AND fo_t.deleted_at IS NOT NULL
         ))
@@ -96,5 +107,24 @@ export async function searchEverything(args: SearchArgs): Promise<SearchResult> 
     fileParams,
   );
 
-  return { folders, files, total: folders.length + files.length };
+  // Tag hits — standalone so the dropdown can surface `#valheim` as its own
+  // clickable entry that routes to /?tag=<id>. Substring match is deliberate:
+  // tags are short, lowercase, and normalized, so users expect partial-word
+  // matching rather than trigram similarity.
+  const { rows: tags } = await pool.query<SearchTagHit>(
+    `SELECT t.id, t.name,
+            COALESCE(
+              (SELECT count(*)::int FROM file_tags ft
+                 JOIN files f ON f.id = ft.file_id
+                WHERE ft.tag_id = t.id AND f.deleted_at IS NULL),
+              0
+            ) AS file_count
+       FROM tags t
+      WHERE t.name ILIKE '%' || $1 || '%'
+      ORDER BY t.name ASC
+      LIMIT 10`,
+    [args.query],
+  );
+
+  return { folders, files, tags, total: folders.length + files.length + tags.length };
 }

@@ -21,7 +21,9 @@ vi.mock("@/lib/db", () => {
 beforeAll(async () => { pg = await startPg(); process.env.TEST_PG_URL = pg.container.getConnectionUri(); });
 afterAll(async () => { await stopPg(pg); });
 beforeEach(async () => {
-  await pg.pool.query("TRUNCATE bookmarks, folders, files, upload_sessions, sessions, users RESTART IDENTITY CASCADE");
+  await pg.pool.query(
+    "TRUNCATE file_tags, tags, bookmarks, folders, files, upload_sessions, upload_batches, sessions, users RESTART IDENTITY CASCADE",
+  );
 });
 
 async function seed() {
@@ -83,5 +85,29 @@ describe("search", () => {
     const res = await searchEverything({ query: "a", limit: 10, offset: 0 });
     expect(res.files).toHaveLength(0);
     expect(res.folders).toHaveLength(0);
+    expect(res.tags).toHaveLength(0);
+  });
+
+  it("tag-name substring match: surfaces matching tags AND files tagged with them", async () => {
+    const { searchEverything } = await import("./search");
+    const { userId } = await seed();
+    // Add a file with a filename that would NOT match 'valheim' on its own,
+    // tag it, and verify the query picks it up through the tag join.
+    const { rows: f } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path, transcode_status)
+       VALUES ($1, NULL, 'clip-xyz.mp4', 'video/mp4', 1, 'uploads/c/z.mp4', 'skipped') RETURNING id`,
+      [userId],
+    );
+    const { rows: t } = await pg.pool.query<{ id: string }>(
+      `INSERT INTO tags (name) VALUES ('valheim') RETURNING id`,
+    );
+    await pg.pool.query(
+      `INSERT INTO file_tags (file_id, tag_id, created_by) VALUES ($1, $2, $3)`,
+      [f[0].id, t[0].id, userId],
+    );
+
+    const res = await searchEverything({ query: "valheim", limit: 10, offset: 0 });
+    expect(res.tags.map((x) => x.name)).toEqual(["valheim"]);
+    expect(res.files.map((x) => x.original_name)).toContain("clip-xyz.mp4");
   });
 });
