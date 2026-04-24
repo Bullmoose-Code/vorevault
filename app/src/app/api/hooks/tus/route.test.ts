@@ -49,6 +49,11 @@ vi.mock("@/lib/users", () => ({
   getUserById: (...a: unknown[]) => getUserById(...a),
 }));
 
+const attachTagToFile = vi.fn();
+vi.mock("@/lib/tags", () => ({
+  attachTagToFile: (...a: unknown[]) => attachTagToFile(...a),
+}));
+
 const generateThumbnail = vi.fn();
 vi.mock("@/lib/thumbnails", () => ({
   generateThumbnail: (...a: unknown[]) => generateThumbnail(...a),
@@ -85,6 +90,7 @@ beforeEach(() => {
   folderExists.mockReset();
   getOrCreateUserHomeFolder.mockReset();
   getUserById.mockReset();
+  attachTagToFile.mockReset();
   generateThumbnail.mockReset();
   execFileMock.mockReset();
   renameMock.mockReset();
@@ -166,6 +172,7 @@ describe("POST /api/hooks/tus post-finish", () => {
     getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
     getOrCreateUserHomeFolder.mockResolvedValueOnce("home-folder-id");
     insertFile.mockResolvedValueOnce({ id: "file-uuid" });
+    attachTagToFile.mockResolvedValueOnce({ id: "t1", name: "ryan", created_at: new Date() });
     generateThumbnail.mockResolvedValueOnce({ width: 1920, height: 1080, durationSec: 5 });
 
     const res = await POST(hookReq("post-finish", {
@@ -191,6 +198,11 @@ describe("POST /api/hooks/tus post-finish", () => {
       }),
     );
     expect(finalizeUploadSession).toHaveBeenCalledWith("tus-1", "file-uuid");
+    expect(attachTagToFile).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringMatching(/^[a-z0-9][a-z0-9-]{0,31}$/),
+      expect.any(String),
+    );
   });
 
   it("preserves leading-dot usernames (.ryan) as the home folder name — no hidden-folder logic", async () => {
