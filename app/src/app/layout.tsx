@@ -61,6 +61,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        <script src="/theme-init.js" />
+      </head>
       <body>
         <SWRegister />
         {children}
