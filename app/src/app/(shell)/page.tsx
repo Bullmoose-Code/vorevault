@@ -5,6 +5,7 @@ import { listTopLevelFolders } from "@/lib/folders";
 import { FileCard } from "@/components/FileCard";
 import { FolderTile } from "@/components/FolderTile";
 import { NewFolderButton } from "@/components/NewFolderButton";
+import { PaginationLink } from "@/components/PaginationLink";
 import { RecentStrip } from "@/components/RecentStrip";
 import styles from "./page.module.css";
 
@@ -77,9 +78,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
           </div>
           {totalPages > 1 && (
             <div className={styles.pagination}>
-              {page > 1 && <a href={`/?page=${page - 1}`}>← prev</a>}
+              {page > 1 && <PaginationLink href={`/?page=${page - 1}`}>← prev</PaginationLink>}
               <span>page {page} of {totalPages}</span>
-              {page < totalPages && <a href={`/?page=${page + 1}`}>next →</a>}
+              {page < totalPages && <PaginationLink href={`/?page=${page + 1}`}>next →</PaginationLink>}
             </div>
           )}
         </>

@@ -12,6 +12,7 @@ import { ItemActionProvider } from "@/components/ItemActionProvider";
 import { SelectionProvider } from "@/components/SelectionContext";
 import { SelectionChrome } from "@/components/SelectionChrome";
 import { GridKeyboard } from "@/components/GridKeyboard";
+import { GridMarquee } from "@/components/GridMarquee";
 import { SelectionToolbar } from "@/components/SelectionToolbar";
 import styles from "./shell.module.css";
 
@@ -38,6 +39,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
               <SelectionProvider>
                 <SelectionChrome />
                 <GridKeyboard />
+                <GridMarquee />
                 <div className={styles.shell}>
                   <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
                   <div className={styles.body}>
