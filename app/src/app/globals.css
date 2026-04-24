@@ -33,6 +33,38 @@
   --vv-radius-xl: 16px;
 }
 
+:root[data-theme="dark"] {
+  --vv-bg: #1a0f08;
+  --vv-bg-panel: #2a1c12;
+  --vv-bg-sunken: #120a05;
+  --vv-ink: #f4ead5;
+  --vv-ink-muted: #c9a87a;
+  --vv-ink-subtle: #8a7353;
+  --vv-accent: #ea580c;
+  --vv-accent-soft: #fb923c;
+  --vv-success: #a3e635;
+  --vv-info: #22d3ee;
+  --vv-danger: #f472b6;
+  --vv-ink-warn: #fcd34d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --vv-bg: #1a0f08;
+    --vv-bg-panel: #2a1c12;
+    --vv-bg-sunken: #120a05;
+    --vv-ink: #f4ead5;
+    --vv-ink-muted: #c9a87a;
+    --vv-ink-subtle: #8a7353;
+    --vv-accent: #ea580c;
+    --vv-accent-soft: #fb923c;
+    --vv-success: #a3e635;
+    --vv-info: #22d3ee;
+    --vv-danger: #f472b6;
+    --vv-ink-warn: #fcd34d;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
