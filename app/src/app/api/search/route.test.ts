@@ -39,14 +39,14 @@ describe("GET /api/search", () => {
 
   it("200 with results", async () => {
     getCurrentUser.mockResolvedValueOnce({ id: "u" });
-    searchEverything.mockResolvedValueOnce({ folders: [], files: [], total: 0 });
+    searchEverything.mockResolvedValueOnce({ folders: [], files: [], tags: [], total: 0 });
     const res = await GET(new NextRequest("https://app.test/api/search?q=apex"));
     expect(res.status).toBe(200);
   });
 
   it("passes scope folder + pagination to lib", async () => {
     getCurrentUser.mockResolvedValueOnce({ id: "u" });
-    searchEverything.mockResolvedValueOnce({ folders: [], files: [], total: 0 });
+    searchEverything.mockResolvedValueOnce({ folders: [], files: [], tags: [], total: 0 });
     const folder = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
     const res = await GET(new NextRequest(`https://app.test/api/search?q=apex&folder=${folder}&limit=5&offset=10`));
     expect(res.status).toBe(200);

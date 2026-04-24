@@ -14,6 +14,13 @@
   padding: 0 32px 16px;
 }
 
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 32px 16px;
+}
+
 .fileGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -39,6 +46,10 @@
   .folderGrid {
     padding: 0 16px 16px;
     grid-template-columns: 1fr;
+  }
+
+  .tagRow {
+    padding: 0 16px 16px;
   }
 
   .fileGrid {

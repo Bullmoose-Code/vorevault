@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./SearchBar.module.css";
 
-type Hit = { type: "folder" | "file"; id: string; name: string };
+type Hit =
+  | { type: "folder"; id: string; name: string }
+  | { type: "file"; id: string; name: string }
+  | { type: "tag"; id: string; name: string; file_count: number };
 
 type Props = {
   variant?: "inline" | "overlay";
@@ -29,8 +32,12 @@ export function SearchBar({
       if (!res.ok) return;
       const body = await res.json();
       setHits([
-        ...body.folders.map((f: { id: string; name: string }) => ({ type: "folder" as const, id: f.id, name: f.name })),
-        ...body.files.map((f: { id: string; original_name: string }) => ({ type: "file" as const, id: f.id, name: f.original_name })),
+        ...(body.tags ?? []).map((t: { id: string; name: string; file_count: number }) =>
+          ({ type: "tag" as const, id: t.id, name: t.name, file_count: t.file_count })),
+        ...body.folders.map((f: { id: string; name: string }) =>
+          ({ type: "folder" as const, id: f.id, name: f.name })),
+        ...body.files.map((f: { id: string; original_name: string }) =>
+          ({ type: "file" as const, id: f.id, name: f.original_name })),
       ]);
     }, 150);
     return () => clearTimeout(t);
@@ -64,16 +71,21 @@ export function SearchBar({
       />
       {open && hits.length > 0 && (
         <ul className={`${styles.dropdown} ${dropdownClass}`} role="listbox">
-          {hits.map((h) => (
-            <li key={`${h.type}-${h.id}`}>
-              <Link
-                href={h.type === "folder" ? `/d/${h.id}` : `/f/${h.id}`}
-                onClick={() => onHitSelected?.()}
-              >
-                <span className={styles.kind}>{h.type}</span> {h.name}
-              </Link>
-            </li>
-          ))}
+          {hits.map((h) => {
+            const href =
+              h.type === "folder" ? `/d/${h.id}` :
+              h.type === "file"   ? `/f/${h.id}` :
+              /* tag */             `/?tag=${h.id}`;
+            const label = h.type === "tag" ? `#${h.name}` : h.name;
+            const suffix = h.type === "tag" ? ` (${h.file_count})` : "";
+            return (
+              <li key={`${h.type}-${h.id}`}>
+                <Link href={href} onClick={() => onHitSelected?.()}>
+                  <span className={styles.kind}>{h.type}</span> {label}{suffix}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </form>
