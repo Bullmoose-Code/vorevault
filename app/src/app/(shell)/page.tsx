@@ -33,7 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
   const [recent, folders, data] = await Promise.all([
     listRecentTopLevelItems(RECENT_STRIP_COUNT),
     listTopLevelFolders(),
-    listTopLevelItems(page, limit, RECENT_STRIP_COUNT),
+    listTopLevelItems(page, limit, { extraOffset: RECENT_STRIP_COUNT }),
   ]);
 
   const lastUpload = recent[0]?.created_at ?? null;

@@ -14,7 +14,7 @@ export default async function RecentPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const limit = 24;
-  const data = await listTopLevelItems(page, limit);
+  const data = await listTopLevelItems(page, limit, {});
   const totalPages = Math.ceil(data.total / limit);
 
   return (
