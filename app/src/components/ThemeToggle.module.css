@@ -1,0 +1,31 @@
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: var(--vv-ink);
+  font: 600 13px/1 var(--vv-font-ui);
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--vv-radius-sm);
+}
+
+.toggle:hover,
+.toggle:focus-visible {
+  background: var(--vv-bg-sunken);
+  outline: none;
+}
+
+.glyph {
+  font-size: 16px;
+  width: 18px;
+  display: inline-block;
+  text-align: center;
+}
+
+.text {
+  flex: 1;
+}
