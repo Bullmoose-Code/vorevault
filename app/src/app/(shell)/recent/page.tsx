@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { listTopLevelItems } from "@/lib/files";
+import { listFiles } from "@/lib/files";
 import { FileCard } from "@/components/FileCard";
-import { FolderTile } from "@/components/FolderTile";
 import { PaginationLink } from "@/components/PaginationLink";
 import styles from "./page.module.css";
 
@@ -14,7 +13,7 @@ export default async function RecentPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const limit = 24;
-  const data = await listTopLevelItems(page, limit);
+  const data = await listFiles(page, limit, undefined, 0, true);
   const totalPages = Math.ceil(data.total / limit);
 
   return (
@@ -23,13 +22,7 @@ export default async function RecentPage({ searchParams }: { searchParams: Promi
         <h1 className="vv-greeting">recent uploads</h1>
       </div>
       <div className={styles.grid}>
-        {data.items.map((it) => it.kind === "folder" ? (
-          <FolderTile key={`f-${it.id}`} id={it.id} name={it.name}
-            fileCount={it.direct_file_count} subfolderCount={it.direct_subfolder_count}
-            createdBy={it.created_by} parentId={null} />
-        ) : (
-          <FileCard key={`x-${it.id}`} file={it} />
-        ))}
+        {data.files.map((f) => <FileCard key={f.id} file={f} />)}
       </div>
       {totalPages > 1 && (
         <div className={styles.pagination}>

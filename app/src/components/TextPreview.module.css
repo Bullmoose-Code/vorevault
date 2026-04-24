@@ -1,0 +1,24 @@
+.box {
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  background: var(--vv-bg-panel);
+  box-shadow: var(--vv-shadow-sm);
+  overflow: hidden;
+}
+.status {
+  padding: 16px;
+  font-family: var(--vv-font-mono);
+  font-size: 13px;
+  color: var(--vv-ink-muted);
+}
+.pre {
+  margin: 0;
+  padding: 16px;
+  font-family: var(--vv-font-mono);
+  font-size: 13px;
+  line-height: 1.55;
+  max-height: 640px;
+  overflow: auto;
+  white-space: pre;
+  color: var(--vv-ink);
+}

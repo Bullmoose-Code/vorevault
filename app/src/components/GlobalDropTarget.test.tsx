@@ -57,4 +57,32 @@ describe("GlobalDropTarget", () => {
     });
     expect(screen.queryByTestId("global-drop-scrim")).toBeNull();
   });
+
+  it("ignores internal vorevault drags (e.g. moving a file card)", () => {
+    render(<GlobalDropTarget />);
+    act(() => {
+      const ev = new DragEvent("dragenter", { bubbles: true, cancelable: true });
+      // Chromium includes "Files" on drags that originate from <a draggable>
+      // anchors pointing at /f/:id URLs. Our custom MIME is the reliable signal
+      // that this came from inside the app, not the OS.
+      Object.defineProperty(ev, "dataTransfer", {
+        value: { types: ["Files", "application/x-vorevault-drag"] },
+      });
+      document.dispatchEvent(ev);
+    });
+    expect(screen.queryByTestId("global-drop-scrim")).toBeNull();
+  });
+
+  it("does not enqueue if a drop is internal vorevault drag", () => {
+    render(<GlobalDropTarget />);
+    const f = new File(["hi"], "hi.txt", { type: "text/plain" });
+    act(() => {
+      const ev = new DragEvent("drop", { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, "dataTransfer", {
+        value: { types: ["Files", "application/x-vorevault-drag"], files: [f] },
+      });
+      document.dispatchEvent(ev);
+    });
+    expect(enqueueSpy).not.toHaveBeenCalled();
+  });
 });

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useUploadProgress } from "./UploadProgressProvider";
 import { FolderPickerModal } from "./FolderPickerModal";
+import { VV_DRAG_MIME } from "@/lib/dragDrop";
 import styles from "./GlobalDropTarget.module.css";
 
 // MVP: files only. Directory drops fall through to ignored / filesystem-dependent
@@ -16,17 +17,24 @@ export function GlobalDropTarget() {
   const depthRef = useRef(0);
 
   useEffect(() => {
-    function hasFiles(dt: DataTransfer | null) {
-      return !!dt && Array.from(dt.types || []).includes("Files");
+    // Only react to OS-level file drops. Internal drags (FileCard/FolderTile
+    // reorganization) carry VV_DRAG_MIME and must pass through untouched so
+    // the card-level dropzones can handle them.
+    function isExternalFileDrag(dt: DataTransfer | null) {
+      if (!dt) return false;
+      const types = Array.from(dt.types || []);
+      if (!types.includes("Files")) return false;
+      if (types.includes(VV_DRAG_MIME)) return false;
+      return true;
     }
 
     function onDragEnter(e: DragEvent) {
-      if (!hasFiles(e.dataTransfer)) return;
+      if (!isExternalFileDrag(e.dataTransfer)) return;
       depthRef.current += 1;
       setScrim(true);
     }
     function onDragOver(e: DragEvent) {
-      if (!hasFiles(e.dataTransfer)) return;
+      if (!isExternalFileDrag(e.dataTransfer)) return;
       e.preventDefault(); // required to allow drop
     }
     function onDragLeave() {
@@ -34,7 +42,7 @@ export function GlobalDropTarget() {
       if (depthRef.current === 0) setScrim(false);
     }
     function onDrop(e: DragEvent) {
-      if (!hasFiles(e.dataTransfer)) return;
+      if (!isExternalFileDrag(e.dataTransfer)) return;
       e.preventDefault();
       depthRef.current = 0;
       setScrim(false);

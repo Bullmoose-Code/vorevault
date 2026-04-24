@@ -15,6 +15,7 @@ import { GridKeyboard } from "@/components/GridKeyboard";
 import { GridMarquee } from "@/components/GridMarquee";
 import { SelectionToolbar } from "@/components/SelectionToolbar";
 import { GlobalDropTarget } from "@/components/GlobalDropTarget";
+import { GridChromeGate } from "@/components/GridChromeGate";
 import styles from "./shell.module.css";
 
 export const dynamic = "force-dynamic";
@@ -39,15 +40,19 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <ItemActionProvider>
               <SelectionProvider>
                 <SelectionChrome />
-                <GridKeyboard />
-                <GridMarquee />
+                <GridChromeGate>
+                  <GridKeyboard />
+                  <GridMarquee />
+                </GridChromeGate>
                 <GlobalDropTarget />
                 <div className={styles.shell}>
                   <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
                   <div className={styles.body}>
                     <Sidebar isAdmin={user.is_admin} currentFolderId={currentFolderId} />
                     <main className={styles.main}>
-                      <SelectionToolbar />
+                      <GridChromeGate>
+                        <SelectionToolbar />
+                      </GridChromeGate>
                       {children}
                     </main>
                   </div>

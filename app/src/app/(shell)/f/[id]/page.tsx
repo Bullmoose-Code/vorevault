@@ -9,7 +9,8 @@ import { MetaPanel, StatusPill } from "@/components/MetaPanel";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { StarButton } from "@/components/StarButton";
 import { FileActions } from "./FileActions";
-import { isPreviewableTextMime, readTextPreview } from "@/lib/text-preview";
+import { isPreviewableTextMime } from "@/lib/text-preview";
+import { TextPreview } from "@/components/TextPreview";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -51,11 +52,7 @@ export default async function FilePage({ params }: Props) {
   const isAudio = file.mime_type.startsWith("audio/");
   const isImage = file.mime_type.startsWith("image/");
 
-  const TEXT_PREVIEW_CAP_BYTES = 256 * 1024;
   const isText = isPreviewableTextMime(file.mime_type);
-  const textPreview = isText
-    ? await readTextPreview(file.storage_path, TEXT_PREVIEW_CAP_BYTES)
-    : null;
 
   return (
     <>
@@ -88,21 +85,7 @@ export default async function FilePage({ params }: Props) {
               No preview available for <code>{file.mime_type}</code>.
             </div>
           )}
-          {isText && textPreview && !textPreview.error && (
-            <div className={styles.textPreview}>
-              {textPreview.truncated && (
-                <div className={styles.textPreviewTruncated}>
-                  showing first 256 KB — download for the full file
-                </div>
-              )}
-              <pre>{textPreview.text}</pre>
-            </div>
-          )}
-          {isText && textPreview?.error && (
-            <div className={styles.noPreview}>
-              Couldn&apos;t read this file from storage.
-            </div>
-          )}
+          {isText && <TextPreview fileId={file.id} />}
 
           {file.transcode_status === "pending" && isVideo && (
             <div className={`${styles.banner} ${styles.processing}`}>
