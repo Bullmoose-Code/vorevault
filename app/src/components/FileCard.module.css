@@ -144,3 +144,7 @@
   background-repeat: no-repeat;
   background-position: center;
 }
+
+.dragging {
+  opacity: 0.4;
+}

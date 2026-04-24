@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { useState, type MouseEvent, type DragEvent } from "react";
 import type { FileWithUploader } from "@/lib/files";
 import { classifyFile } from "@/lib/fileKind";
 import { FileIcon } from "./FileIcon";
@@ -8,6 +8,7 @@ import { FileContextMenu } from "./FileContextMenu";
 import { useCurrentUser } from "./CurrentUserContext";
 import { useSelection, type SelectedItem } from "./SelectionContext";
 import { readNavItems, sliceBetween } from "@/lib/gridNav";
+import { encodeDragPayload, resolveDraggedItems } from "@/lib/dragDrop";
 import styles from "./FileCard.module.css";
 
 function formatBytes(bytes: number): string {
@@ -61,6 +62,18 @@ export function FileCard({
     folderId: file.folder_id,
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+
+  function handleDragStart(e: DragEvent<HTMLAnchorElement>) {
+    const items = resolveDraggedItems(descriptor, selection.items);
+    encodeDragPayload(e.dataTransfer, items);
+    setIsDragging(true);
+  }
+
+  function handleDragEnd() {
+    setIsDragging(false);
+  }
+
   function handleClick(e: MouseEvent<HTMLAnchorElement>) {
     if (e.metaKey || e.ctrlKey) {
       e.preventDefault();
@@ -85,11 +98,14 @@ export function FileCard({
     // plain click → navigate (default anchor behavior)
   }
 
-  const className = selected ? `${styles.card} ${styles.selected}` : styles.card;
+  const classes = [styles.card];
+  if (selected) classes.push(styles.selected);
+  if (isDragging) classes.push(styles.dragging);
+  const className = classes.join(" ");
 
   return (
     <FileContextMenu file={file}>
-      <a href={`/f/${file.id}`} className={className} onClick={handleClick} aria-pressed={selected} data-nav-item data-nav-descriptor={JSON.stringify(descriptor)} tabIndex={0}>
+      <a href={`/f/${file.id}`} className={className} onClick={handleClick} draggable={canManage} onDragStart={handleDragStart} onDragEnd={handleDragEnd} aria-pressed={selected} data-nav-item data-nav-descriptor={JSON.stringify(descriptor)} tabIndex={0}>
         <div className={styles.thumb}>
           {hasThumb ? (
             <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />
