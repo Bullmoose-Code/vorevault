@@ -2,8 +2,15 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  /* Match page gutters (32px desktop, 16px mobile) so the filter input
+     aligns with the section labels and tile grids above/below it. */
+  padding: 0 32px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .bar { padding: 0 16px; }
 }
 
 .comboWrap {
