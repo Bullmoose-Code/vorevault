@@ -1,4 +1,11 @@
-.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; }
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 12px;
+  margin-bottom: 20px;
+}
 .addGroup { display: inline-flex; gap: 4px; }
 .input {
   font-family: var(--vv-font-ui);
