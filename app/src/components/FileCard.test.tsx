@@ -179,4 +179,27 @@ describe("FileCard", () => {
     expect(linkA.className).toMatch(/selected/);
     expect(linkB.className).toMatch(/selected/);
   });
+
+  it("is draggable when canManage is true", () => {
+    const { container } = renderWithProviders(<FileCard file={makeFile({ uploader_id: "u-test" })} />);
+    const link = container.querySelector("a")!;
+    expect(link.getAttribute("draggable")).toBe("true");
+  });
+
+  it("is NOT draggable when canManage is false (non-owner)", () => {
+    const { container } = renderWithProviders(<FileCard file={makeFile({ uploader_id: "someone-else" })} />);
+    const link = container.querySelector("a")!;
+    expect(link.getAttribute("draggable")).toBe("false");
+  });
+
+  it("dragstart encodes a single-item payload when origin not in selection", () => {
+    const { container } = renderWithProviders(<FileCard file={makeFile({ uploader_id: "u-test" })} />);
+    const link = container.querySelector("a")!;
+    const dt = new DataTransfer();
+    link.dispatchEvent(new DragEvent("dragstart", { dataTransfer: dt, bubbles: true }));
+    const raw = dt.getData("application/x-vorevault-drag");
+    const parsed = JSON.parse(raw);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].kind).toBe("file");
+  });
 });

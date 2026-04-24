@@ -27,4 +27,16 @@ if (typeof globalThis.DataTransfer === "undefined") {
     DataTransferPolyfill;
 }
 
+// Minimal DragEvent polyfill for jsdom (jsdom does not implement it)
+if (typeof globalThis.DragEvent === "undefined") {
+  class DragEventPolyfill extends Event {
+    readonly dataTransfer: DataTransfer | null;
+    constructor(type: string, init?: DragEventInit) {
+      super(type, init);
+      this.dataTransfer = (init?.dataTransfer as DataTransfer | undefined) ?? null;
+    }
+  }
+  (globalThis as unknown as { DragEvent: typeof DragEventPolyfill }).DragEvent = DragEventPolyfill;
+}
+
 export {};
