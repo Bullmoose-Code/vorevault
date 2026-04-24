@@ -1,15 +1,97 @@
-.bar { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
-.field { display: inline-flex; gap: 6px; align-items: center; }
-.select {
+.bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.comboWrap {
+  position: relative;
+  min-width: 220px;
+}
+
+.input {
   font-family: var(--vv-font-ui);
   font-size: 13px;
   border: 1.5px solid var(--vv-ink);
   border-radius: var(--vv-radius-sm);
   background: var(--vv-bg-panel);
   color: var(--vv-ink);
-  padding: 2px 6px;
+  padding: 4px 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
-.clear {
-  font: inherit; font-size: 12px; text-decoration: underline;
-  background: transparent; border: 0; cursor: pointer; color: var(--vv-accent);
+.input:focus {
+  outline: none;
+  box-shadow: 2px 2px 0 var(--vv-ink);
 }
+
+.list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--vv-bg-panel);
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+  box-shadow: 2px 2px 0 var(--vv-ink);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  font-size: 13px;
+  color: var(--vv-ink);
+  cursor: pointer;
+}
+.optionActive {
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+}
+.optionName { font-weight: 600; }
+.count { font-size: 11px; opacity: 0.7; }
+.optionActive .count { opacity: 0.85; }
+
+.empty {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--vv-ink-muted);
+  font-style: italic;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: var(--vv-font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-xl);
+  background: var(--vv-accent);
+  color: var(--vv-bg);
+  cursor: pointer;
+}
+.chipLabel { line-height: 1; }
+.chipX {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.chip:hover .chipX { opacity: 1; }
