@@ -45,6 +45,7 @@
   --vv-success: #a3e635;
   --vv-info: #22d3ee;
   --vv-danger: #f472b6;
+  --vv-warn: #78350f;
   --vv-ink-warn: #fcd34d;
 }
 
@@ -61,6 +62,7 @@
     --vv-success: #a3e635;
     --vv-info: #22d3ee;
     --vv-danger: #f472b6;
+    --vv-warn: #78350f;
     --vv-ink-warn: #fcd34d;
   }
 }

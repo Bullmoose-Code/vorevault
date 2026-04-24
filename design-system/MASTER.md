@@ -58,7 +58,7 @@
 | `--vv-success` | `#a3e635` | |
 | `--vv-info` | `#22d3ee` | |
 | `--vv-danger` | `#f472b6` | |
-| `--vv-warn` | `#fde68a` | Unchanged |
+| `--vv-warn` | `#78350f` | Dark amber; cream ink sits on it at AAA contrast |
 | `--vv-ink-warn` | `#fcd34d` | |
 | `--vv-discord` | `#5865F2` | Unchanged (Discord brand) |
 
