@@ -1,9 +1,9 @@
 import Link from "next/link";
-import type { FileWithUploader } from "@/lib/files";
+import type { TopLevelItem } from "@/lib/files";
 import styles from "./RecentStrip.module.css";
 
-export function RecentStrip({ files }: { files: FileWithUploader[] }) {
-  if (files.length === 0) return null;
+export function RecentStrip({ items }: { items: TopLevelItem[] }) {
+  if (items.length === 0) return null;
   return (
     <section className={styles.section} aria-label="recent uploads">
       <div className={styles.header}>
@@ -11,14 +11,19 @@ export function RecentStrip({ files }: { files: FileWithUploader[] }) {
         <Link href="/recent" className={styles.viewAll}>view all</Link>
       </div>
       <div className={styles.strip}>
-        {files.map((f) => (
-          <Link key={f.id} href={`/f/${f.id}`} className={styles.tile}>
-            {f.thumbnail_path ? (
-              <img src={`/api/thumbs/${f.id}`} alt={f.original_name} loading="lazy" />
+        {items.map((it) => it.kind === "folder" ? (
+          <Link key={it.id} href={`/d/${it.id}`} className={`${styles.tile} ${styles.folderTile}`}>
+            <div className={styles.folderGlyph} aria-hidden="true">▤</div>
+            <div className={styles.tileLabel} title={it.name}>{it.name}</div>
+          </Link>
+        ) : (
+          <Link key={it.id} href={`/f/${it.id}`} className={styles.tile}>
+            {it.thumbnail_path ? (
+              <img src={`/api/thumbs/${it.id}`} alt={it.original_name} loading="lazy" />
             ) : (
-              <div className={styles.tilePlaceholder} aria-hidden="true">{f.original_name.slice(0, 1)}</div>
+              <div className={styles.tilePlaceholder} aria-hidden="true">{it.original_name.slice(0, 1)}</div>
             )}
-            <div className={styles.tileLabel} title={f.original_name}>{f.original_name}</div>
+            <div className={styles.tileLabel} title={it.original_name}>{it.original_name}</div>
           </Link>
         ))}
       </div>

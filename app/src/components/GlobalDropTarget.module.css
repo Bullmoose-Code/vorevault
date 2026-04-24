@@ -1,0 +1,22 @@
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--vv-accent) 25%, transparent);
+  border: 4px dashed var(--vv-accent);
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.message {
+  font-family: var(--vv-font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--vv-ink);
+  background: var(--vv-bg-panel);
+  padding: 16px 28px;
+  border: 2px solid var(--vv-ink);
+  border-radius: var(--vv-radius-md);
+  box-shadow: var(--vv-shadow);
+}

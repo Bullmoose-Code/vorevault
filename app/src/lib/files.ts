@@ -310,3 +310,142 @@ export async function permanentDeleteFile(args: PermanentDeleteFileArgs): Promis
   await pool.query(`DELETE FROM files WHERE id = $1`, [args.fileId]);
   return file;
 }
+
+// ---------------------------------------------------------------------------
+// Top-level mixed listing (folders + root-level files)
+// ---------------------------------------------------------------------------
+
+export type TopLevelFolderItem = {
+  kind: "folder";
+  id: string;
+  name: string;
+  parent_id: null;
+  created_by: string;
+  created_at: Date;
+  direct_file_count: number;
+  direct_subfolder_count: number;
+};
+
+export type TopLevelFileItem = FileWithUploader & { kind: "file" };
+export type TopLevelItem = TopLevelFolderItem | TopLevelFileItem;
+
+export type TopLevelPage = {
+  items: TopLevelItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export async function listTopLevelItems(
+  page: number,
+  limit: number,
+  extraOffset: number = 0,
+): Promise<TopLevelPage> {
+  const offset = (page - 1) * limit + extraOffset;
+  const dataSql = `
+    SELECT * FROM (
+      SELECT
+        'folder'::text AS kind,
+        f.id::text AS id,
+        f.name AS name,
+        NULL::text AS original_name,
+        NULL::text AS mime_type,
+        NULL::text AS thumbnail_path,
+        NULL::text AS uploader_name,
+        f.created_by::text AS created_by,
+        f.created_at AS created_at,
+        (SELECT count(*)::int FROM files x WHERE x.folder_id = f.id AND x.deleted_at IS NULL) AS direct_file_count,
+        (SELECT count(*)::int FROM folders s WHERE s.parent_id = f.id AND s.deleted_at IS NULL) AS direct_subfolder_count,
+        NULL::bigint AS size_bytes,
+        NULL::text AS storage_path,
+        NULL::text AS transcode_status,
+        NULL::text AS transcoded_path,
+        NULL::int AS duration_sec,
+        NULL::int AS width,
+        NULL::int AS height
+      FROM folders f
+      WHERE f.parent_id IS NULL AND f.deleted_at IS NULL
+      UNION ALL
+      SELECT
+        'file'::text AS kind,
+        ff.id::text AS id,
+        NULL::text AS name,
+        ff.original_name AS original_name,
+        ff.mime_type AS mime_type,
+        ff.thumbnail_path AS thumbnail_path,
+        u.username AS uploader_name,
+        ff.uploader_id::text AS created_by,
+        ff.created_at AS created_at,
+        NULL::int AS direct_file_count,
+        NULL::int AS direct_subfolder_count,
+        ff.size_bytes AS size_bytes,
+        ff.storage_path AS storage_path,
+        ff.transcode_status AS transcode_status,
+        ff.transcoded_path AS transcoded_path,
+        ff.duration_sec AS duration_sec,
+        ff.width AS width,
+        ff.height AS height
+      FROM files ff JOIN users u ON u.id = ff.uploader_id
+      WHERE ff.folder_id IS NULL AND ff.deleted_at IS NULL
+    ) t
+    ORDER BY created_at DESC
+    LIMIT $1 OFFSET $2
+  `;
+  const countSql = `
+    SELECT
+      (SELECT count(*)::int FROM folders WHERE parent_id IS NULL AND deleted_at IS NULL)
+      + (SELECT count(*)::int FROM files WHERE folder_id IS NULL AND deleted_at IS NULL)
+      AS total
+  `;
+  const [dataRes, countRes] = await Promise.all([
+    pool.query(dataSql, [limit, offset]),
+    pool.query<{ total: number }>(countSql),
+  ]);
+
+  const items = dataRes.rows.map(mapTopLevelRow);
+  return {
+    items,
+    total: Math.max(0, countRes.rows[0].total - extraOffset),
+    page,
+    limit,
+  };
+}
+
+function mapTopLevelRow(r: Record<string, unknown>): TopLevelItem {
+  if (r.kind === "folder") {
+    return {
+      kind: "folder",
+      id: r.id as string,
+      name: r.name as string,
+      parent_id: null,
+      created_by: r.created_by as string,
+      created_at: r.created_at as Date,
+      direct_file_count: (r.direct_file_count as number) ?? 0,
+      direct_subfolder_count: (r.direct_subfolder_count as number) ?? 0,
+    };
+  }
+  return {
+    kind: "file",
+    id: r.id as string,
+    uploader_id: r.created_by as string,
+    uploader_name: r.uploader_name as string,
+    original_name: r.original_name as string,
+    mime_type: r.mime_type as string,
+    size_bytes: Number(r.size_bytes),
+    storage_path: r.storage_path as string,
+    thumbnail_path: (r.thumbnail_path as string) ?? null,
+    transcoded_path: (r.transcoded_path as string) ?? null,
+    transcode_status: (r.transcode_status as FileRow["transcode_status"]) ?? "pending",
+    duration_sec: (r.duration_sec as number) ?? null,
+    width: (r.width as number) ?? null,
+    height: (r.height as number) ?? null,
+    folder_id: null,
+    created_at: r.created_at as Date,
+    deleted_at: null,
+  };
+}
+
+export async function listRecentTopLevelItems(limit: number): Promise<TopLevelItem[]> {
+  const page = await listTopLevelItems(1, limit, 0);
+  return page.items;
+}

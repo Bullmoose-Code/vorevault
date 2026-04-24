@@ -25,3 +25,13 @@
 }
 @media (max-width: 768px) { .strip { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 480px) { .strip { grid-template-columns: repeat(2, 1fr); } }
+.folderTile { background: var(--vv-bg-sunken); }
+.folderGlyph {
+  font-family: var(--vv-font-display);
+  font-size: 32px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  color: var(--vv-ink-muted);
+}
