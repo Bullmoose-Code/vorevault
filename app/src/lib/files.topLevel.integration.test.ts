@@ -99,4 +99,23 @@ describe("listTopLevelItems (batch-aware)", () => {
     const page = await listTopLevelItems(1, 50, {});
     expect(page.total).toBe(page.items.length);
   });
+
+  it("tagId filter drops folder branches and returns only tagged files", async () => {
+    const tagRow = await fx.pool.query<{ id: string }>(
+      `INSERT INTO tags (name) VALUES ('funny') RETURNING id`,
+    );
+    const soloFile = await fx.pool.query<{ id: string }>(
+      `SELECT id FROM files WHERE original_name = 'solo.mp4'`,
+    );
+    await fx.pool.query(
+      `INSERT INTO file_tags (file_id, tag_id, created_by) VALUES ($1, $2, $3)`,
+      [soloFile.rows[0].id, tagRow.rows[0].id, userId],
+    );
+
+    const page = await listTopLevelItems(1, 50, { tagId: tagRow.rows[0].id });
+    expect(page.items.every((i) => i.kind === "file")).toBe(true);
+    expect(page.items).toHaveLength(1);
+    expect((page.items[0] as { original_name: string }).original_name).toBe("solo.mp4");
+    expect(page.total).toBe(1);
+  });
 });

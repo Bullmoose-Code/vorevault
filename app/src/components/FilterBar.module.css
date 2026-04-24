@@ -1,0 +1,15 @@
+.bar { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.field { display: inline-flex; gap: 6px; align-items: center; }
+.select {
+  font-family: var(--vv-font-ui);
+  font-size: 13px;
+  border: 1.5px solid var(--vv-ink);
+  border-radius: var(--vv-radius-sm);
+  background: var(--vv-bg-panel);
+  color: var(--vv-ink);
+  padding: 2px 6px;
+}
+.clear {
+  font: inherit; font-size: 12px; text-decoration: underline;
+  background: transparent; border: 0; cursor: pointer; color: var(--vv-accent);
+}
