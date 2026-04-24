@@ -55,8 +55,8 @@ export function FolderTile({ id, name, fileCount, subfolderCount, createdBy, par
     setDropHover(false);
     const items = decodeDragPayload(e.dataTransfer);
     if (!items) return;
-    if (!dropTargetIsValid(id, items)) return;
     e.preventDefault();
+    if (!dropTargetIsValid(id, items)) return;
     const result = await moveItems(items, id);
     if (result.failed === 0) {
       showToast({ message: `moved ${result.succeeded}`, variant: "success" });

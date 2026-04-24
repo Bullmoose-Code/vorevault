@@ -58,8 +58,8 @@ function TreeNode({
     setDropHover(false);
     const items = decodeDragPayload(e.dataTransfer);
     if (!items) return;
-    if (!dropTargetIsValid(node.id, items)) return;
     e.preventDefault();
+    if (!dropTargetIsValid(node.id, items)) return;
     const result = await moveItems(items, node.id);
     if (result.failed === 0) {
       showToast({ message: `moved ${result.succeeded}`, variant: "success" });
