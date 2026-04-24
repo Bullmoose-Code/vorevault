@@ -61,12 +61,18 @@ export async function listTagsForFile(fileId: string): Promise<Tag[]> {
 }
 
 export async function listAllTagsWithCounts(): Promise<TagWithCount[]> {
+  // file_count only counts loose files (upload_batch_id IS NULL), which
+  // matches what listTopLevelItems returns when the tag filter is active —
+  // keeps the "#alice (12)" label in the FilterBar dropdown consistent with
+  // the grid after selection.
   const { rows } = await pool.query<TagWithCount>(
     `SELECT t.id, t.name, t.created_at,
             COALESCE(
               (SELECT count(*)::int FROM file_tags ft
                  JOIN files f ON f.id = ft.file_id
-                WHERE ft.tag_id = t.id AND f.deleted_at IS NULL),
+                WHERE ft.tag_id = t.id
+                  AND f.deleted_at IS NULL
+                  AND f.upload_batch_id IS NULL),
               0
             ) AS file_count
        FROM tags t

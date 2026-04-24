@@ -28,11 +28,14 @@ See [`VOREVAULT_MASTER_CONTEXT.md`](./VOREVAULT_MASTER_CONTEXT.md) for the full 
 
 ## Non-goals (YAGNI list — reject PRs that add these without discussion)
 - Per-user quotas
-- Folders / tags / full-text search
+- Full-text search
 - Virus scanning
 - 2FA
 - Mobile app
 - Object storage (S3/MinIO)
+
+(Folders + flat lowercase tags are in-scope as of 2026-04-24; see
+`docs/superpowers/specs/2026-04-24-home-feed-and-tagging-design.md`.)
 
 ## Decision rules
 - **If in doubt about scope:** say no. YAGNI wins.

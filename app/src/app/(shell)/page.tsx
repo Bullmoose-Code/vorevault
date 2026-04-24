@@ -35,7 +35,9 @@ export default async function Home({
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10) || 1);
   const limit = 24;
-  const tagId = params.tag || undefined;
+  // Ignore a non-UUID ?tag= so a query-param typo doesn't 500 the page.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const tagId = params.tag && UUID_RE.test(params.tag) ? params.tag : undefined;
   const hasFilter = !!tagId;
 
   const [recent, folders, data, tags] = await Promise.all([
