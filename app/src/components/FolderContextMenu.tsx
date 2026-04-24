@@ -12,6 +12,16 @@ type FolderProp = { id: string; name: string; createdBy: string; parentId: strin
 
 type Props = { folder: FolderProp; children: ReactNode };
 
+function downloadFolderZip(folderId: string) {
+  const a = document.createElement("a");
+  a.href = `/api/folders/${folderId}/zip`;
+  a.download = "";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 function BatchFolderItems() {
   const selection = useSelection();
   const allManageable = selection.items.every((it) => it.canManage);
@@ -55,6 +65,12 @@ export function FolderContextMenu({ folder, children }: Props) {
             <>
               <ContextMenu.Item className={styles.item} onSelect={() => router.push(`/d/${folder.id}`)}>
                 open
+              </ContextMenu.Item>
+              <ContextMenu.Item
+                className={styles.item}
+                onSelect={() => downloadFolderZip(folder.id)}
+              >
+                download as zip
               </ContextMenu.Item>
               {canManage && (
                 <>

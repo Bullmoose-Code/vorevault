@@ -1,6 +1,7 @@
 import { pool } from "@/lib/db";
 import type { PoolClient } from "pg";
 import type { FileRow, FileWithUploader } from "@/lib/files";
+import type { ZipEntry } from "@/lib/zip";
 
 export type FolderRow = {
   id: string;
@@ -556,4 +557,43 @@ export async function trashFolder(args: TrashFolderArgs): Promise<TrashFolderRes
   } finally {
     client.release();
   }
+}
+
+// ---- Phase 2d: recursive tree walk for zip download ----
+
+export class FolderEmptyError extends Error {
+  constructor() { super("folder has no downloadable files"); this.name = "FolderEmptyError"; }
+}
+
+/**
+ * Walk the non-trashed subtree rooted at folderId and return one ZipEntry per
+ * file, with a zip-relative path built from folder names. Folder and file
+ * names have '/' replaced with '_' in SQL so nothing escapes the zip tree.
+ * Throws FolderNotFoundError if the root doesn't exist or is trashed.
+ */
+export async function collectFolderTreeFiles(folderId: string): Promise<ZipEntry[]> {
+  const root = await getFolder(folderId);
+  if (!root) throw new FolderNotFoundError("folder");
+
+  const { rows } = await pool.query<{ zip_path: string; storage_path: string }>(
+    `WITH RECURSIVE tree AS (
+       SELECT id, parent_id, REPLACE(name, '/', '_') AS path
+         FROM folders
+        WHERE id = $1 AND deleted_at IS NULL
+       UNION ALL
+       SELECT f.id, f.parent_id, t.path || '/' || REPLACE(f.name, '/', '_') AS path
+         FROM folders f
+         JOIN tree t ON f.parent_id = t.id
+        WHERE f.deleted_at IS NULL
+     )
+     SELECT (t.path || '/' || REPLACE(f.original_name, '/', '_')) AS zip_path,
+            f.storage_path
+       FROM files f
+       JOIN tree t ON f.folder_id = t.id
+      WHERE f.deleted_at IS NULL
+      ORDER BY zip_path`,
+    [folderId],
+  );
+
+  return rows.map((r) => ({ name: r.zip_path, path: r.storage_path }));
 }
