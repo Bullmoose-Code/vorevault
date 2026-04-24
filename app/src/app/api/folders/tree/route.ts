@@ -5,6 +5,7 @@ import { pool } from "@/lib/db";
 import { FolderNotFoundError } from "@/lib/folders";
 import { normalizePaths, InvalidFolderPathError } from "@/lib/folder-paths";
 import { createFolderTree } from "@/lib/folder-tree-create";
+import { setBatchTopFolder } from "@/lib/upload-batches";
 
 export async function GET(_req: NextRequest): Promise<NextResponse> {
   const user = await getCurrentUser();
@@ -18,6 +19,7 @@ export async function GET(_req: NextRequest): Promise<NextResponse> {
 const PostBody = z.object({
   parent_id: z.string().uuid().nullable(),
   paths: z.array(z.string().min(1).max(512)).min(1).max(5000),
+  batch_id: z.string().uuid().optional(),
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -46,7 +48,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       parentId: parsed.data.parent_id,
       paths,
       actorId: user.id,
+      batchId: parsed.data.batch_id ?? null,
     });
+    if (parsed.data.batch_id) {
+      const topPath = paths.find((p) => !p.includes("/"));
+      if (topPath && folders[topPath]) {
+        await setBatchTopFolder(parsed.data.batch_id, folders[topPath]);
+      }
+    }
     return NextResponse.json({ folders });
   } catch (err) {
     if (err instanceof FolderNotFoundError) {

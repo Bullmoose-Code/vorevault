@@ -16,6 +16,7 @@ export type FileRow = {
   width: number | null;
   height: number | null;
   folder_id: string | null;
+  upload_batch_id: string | null;
   created_at: Date;
   deleted_at: Date | null;
 };
@@ -31,19 +32,20 @@ export type InsertFileArgs = {
   durationSec?: number | null;
   width?: number | null;
   height?: number | null;
+  uploadBatchId?: string | null;
 };
 
 export async function insertFile(args: InsertFileArgs): Promise<FileRow> {
   const { rows } = await pool.query<FileRow>(
     `INSERT INTO files
        (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path,
-        thumbnail_path, duration_sec, width, height)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        thumbnail_path, duration_sec, width, height, upload_batch_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
     [
       args.uploaderId, args.folderId ?? null, args.originalName, args.mimeType, args.sizeBytes,
       args.storagePath, args.thumbnailPath ?? null, args.durationSec ?? null,
-      args.width ?? null, args.height ?? null,
+      args.width ?? null, args.height ?? null, args.uploadBatchId ?? null,
     ],
   );
   return rows[0];
@@ -328,7 +330,7 @@ export type TopLevelFolderItem = {
   direct_subfolder_count: number;
 };
 
-export type TopLevelFileItem = FileWithUploader & { kind: "file" };
+export type TopLevelFileItem = FileWithUploader & { kind: "file"; tags: string[] };
 export type TopLevelItem = TopLevelFolderItem | TopLevelFileItem;
 
 export type TopLevelPage = {
@@ -338,74 +340,142 @@ export type TopLevelPage = {
   limit: number;
 };
 
+export type TopLevelOptions = {
+  extraOffset?: number;
+  tagId?: string;
+};
+
 export async function listTopLevelItems(
   page: number,
   limit: number,
-  extraOffset: number = 0,
+  opts: TopLevelOptions = {},
 ): Promise<TopLevelPage> {
+  const extraOffset = opts.extraOffset ?? 0;
+  const tagId = opts.tagId;
   const offset = (page - 1) * limit + extraOffset;
-  const dataSql = `
-    SELECT * FROM (
-      SELECT
-        'folder'::text AS kind,
-        f.id::text AS id,
-        f.name AS name,
-        NULL::text AS original_name,
-        NULL::text AS mime_type,
-        NULL::text AS thumbnail_path,
-        NULL::text AS uploader_name,
-        f.created_by::text AS created_by,
-        f.created_at AS created_at,
-        (SELECT count(*)::int FROM files x WHERE x.folder_id = f.id AND x.deleted_at IS NULL) AS direct_file_count,
-        (SELECT count(*)::int FROM folders s WHERE s.parent_id = f.id AND s.deleted_at IS NULL) AS direct_subfolder_count,
-        NULL::bigint AS size_bytes,
-        NULL::text AS storage_path,
-        NULL::text AS transcode_status,
-        NULL::text AS transcoded_path,
-        NULL::int AS duration_sec,
-        NULL::int AS width,
-        NULL::int AS height
-      FROM folders f
-      WHERE f.parent_id IS NULL AND f.deleted_at IS NULL
-      UNION ALL
-      SELECT
-        'file'::text AS kind,
-        ff.id::text AS id,
-        NULL::text AS name,
-        ff.original_name AS original_name,
-        ff.mime_type AS mime_type,
-        ff.thumbnail_path AS thumbnail_path,
-        u.username AS uploader_name,
-        ff.uploader_id::text AS created_by,
-        ff.created_at AS created_at,
-        NULL::int AS direct_file_count,
-        NULL::int AS direct_subfolder_count,
-        ff.size_bytes AS size_bytes,
-        ff.storage_path AS storage_path,
-        ff.transcode_status AS transcode_status,
-        ff.transcoded_path AS transcoded_path,
-        ff.duration_sec AS duration_sec,
-        ff.width AS width,
-        ff.height AS height
-      FROM files ff JOIN users u ON u.id = ff.uploader_id
-      WHERE ff.folder_id IS NULL AND ff.deleted_at IS NULL
-    ) t
-    ORDER BY created_at DESC
-    LIMIT $1 OFFSET $2
-  `;
-  const countSql = `
+
+  const hasTagFilter = !!tagId;
+  const params: unknown[] = [];
+  const tagParamIdx = (() => {
+    if (!hasTagFilter) return null;
+    params.push(tagId);
+    return params.length;
+  })();
+
+  // Branch A (batch) — one row per batch with a live top folder.
+  const branchBatch = `
     SELECT
-      (SELECT count(*)::int FROM folders WHERE parent_id IS NULL AND deleted_at IS NULL)
-      + (SELECT count(*)::int FROM files WHERE folder_id IS NULL AND deleted_at IS NULL)
-      AS total
+      'folder'::text AS kind,
+      f.id::text AS id,
+      f.name AS name,
+      NULL::text AS original_name,
+      NULL::text AS mime_type,
+      NULL::text AS thumbnail_path,
+      NULL::text AS uploader_name,
+      f.created_by::text AS created_by,
+      b.created_at AS created_at,
+      (SELECT count(*)::int FROM files x WHERE x.folder_id = f.id AND x.deleted_at IS NULL) AS direct_file_count,
+      (SELECT count(*)::int FROM folders s WHERE s.parent_id = f.id AND s.deleted_at IS NULL) AS direct_subfolder_count,
+      NULL::bigint AS size_bytes,
+      NULL::text AS storage_path,
+      NULL::text AS transcode_status,
+      NULL::text AS transcoded_path,
+      NULL::int AS duration_sec,
+      NULL::int AS width,
+      NULL::int AS height,
+      '{}'::text[] AS tags
+    FROM upload_batches b
+    JOIN folders f ON f.id = b.top_folder_id
+    WHERE f.deleted_at IS NULL
   `;
+
+  // Branch A-legacy — top-level folders without a batch.
+  const branchLegacyFolder = `
+    SELECT
+      'folder'::text, f.id::text, f.name,
+      NULL::text, NULL::text, NULL::text, NULL::text,
+      f.created_by::text, f.created_at,
+      (SELECT count(*)::int FROM files x WHERE x.folder_id = f.id AND x.deleted_at IS NULL),
+      (SELECT count(*)::int FROM folders s WHERE s.parent_id = f.id AND s.deleted_at IS NULL),
+      NULL::bigint, NULL::text, NULL::text, NULL::text,
+      NULL::int, NULL::int, NULL::int,
+      '{}'::text[]
+    FROM folders f
+    WHERE f.parent_id IS NULL
+      AND f.deleted_at IS NULL
+      AND f.upload_batch_id IS NULL
+  `;
+
+  // Branch B — loose files (not part of a folder upload).
+  // Aliases match branchBatch so the tag-filter-only path (standalone branchFile)
+  // still produces correctly-named result columns for mapTopLevelRow.
+  // tags literal is '{}'::text[] for now; Task 6 will replace with real join.
+  const branchFile = `
+    SELECT
+      'file'::text AS kind,
+      ff.id::text AS id,
+      NULL::text AS name,
+      ff.original_name AS original_name,
+      ff.mime_type AS mime_type,
+      ff.thumbnail_path AS thumbnail_path,
+      u.username AS uploader_name,
+      ff.uploader_id::text AS created_by,
+      ff.created_at AS created_at,
+      NULL::int AS direct_file_count,
+      NULL::int AS direct_subfolder_count,
+      ff.size_bytes AS size_bytes,
+      ff.storage_path AS storage_path,
+      ff.transcode_status AS transcode_status,
+      ff.transcoded_path AS transcoded_path,
+      ff.duration_sec AS duration_sec,
+      ff.width AS width,
+      ff.height AS height,
+      '{}'::text[] AS tags
+    FROM files ff
+    JOIN users u ON u.id = ff.uploader_id
+    WHERE ff.deleted_at IS NULL
+      AND ff.upload_batch_id IS NULL
+      ${hasTagFilter
+        ? `AND EXISTS (SELECT 1 FROM file_tags ft2 WHERE ft2.file_id = ff.id AND ft2.tag_id = $${tagParamIdx})`
+        : ""}
+  `;
+
+  const unionSql = hasTagFilter
+    ? branchFile
+    : `${branchBatch} UNION ALL ${branchLegacyFolder} UNION ALL ${branchFile}`;
+
+  params.push(limit, offset);
+  const dataSql = `
+    SELECT * FROM (${unionSql}) t
+    ORDER BY created_at DESC
+    LIMIT $${params.length - 1} OFFSET $${params.length}
+  `;
+
+  const countParams: unknown[] = [];
+  if (hasTagFilter) countParams.push(tagId);
+  const countSql = hasTagFilter
+    ? `SELECT (SELECT count(*)::int FROM files ff
+                WHERE ff.deleted_at IS NULL
+                  AND ff.upload_batch_id IS NULL
+                  AND EXISTS (SELECT 1 FROM file_tags ft WHERE ft.file_id = ff.id AND ft.tag_id = $1)
+              ) AS total`
+    : `SELECT
+         (SELECT count(*)::int FROM upload_batches b
+            JOIN folders f ON f.id = b.top_folder_id
+            WHERE f.deleted_at IS NULL)
+         + (SELECT count(*)::int FROM folders
+              WHERE parent_id IS NULL AND deleted_at IS NULL AND upload_batch_id IS NULL)
+         + (SELECT count(*)::int FROM files
+              WHERE deleted_at IS NULL AND upload_batch_id IS NULL)
+         AS total`;
+
   const [dataRes, countRes] = await Promise.all([
-    pool.query(dataSql, [limit, offset]),
-    pool.query<{ total: number }>(countSql),
+    pool.query(dataSql, params),
+    pool.query<{ total: number }>(countSql, countParams),
   ]);
-  const items = dataRes.rows.map(mapTopLevelRow);
+
   return {
-    items,
+    items: dataRes.rows.map(mapTopLevelRow),
     total: Math.max(0, countRes.rows[0].total - extraOffset),
     page,
     limit,
@@ -441,13 +511,15 @@ function mapTopLevelRow(r: Record<string, unknown>): TopLevelItem {
     width: (r.width as number) ?? null,
     height: (r.height as number) ?? null,
     folder_id: null,
+    upload_batch_id: (r.upload_batch_id as string) ?? null,
     created_at: r.created_at as Date,
     deleted_at: null,
+    tags: (r.tags as string[]) ?? [],
   };
 }
 
 export async function listRecentTopLevelItems(limit: number): Promise<TopLevelItem[]> {
-  const page = await listTopLevelItems(1, limit, 0);
+  const page = await listTopLevelItems(1, limit, {});
   return page.items;
 }
 

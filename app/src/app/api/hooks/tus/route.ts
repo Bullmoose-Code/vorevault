@@ -14,6 +14,8 @@ import { insertFile, updateTranscodeStatus } from "@/lib/files";
 import { folderExists, getOrCreateUserHomeFolder } from "@/lib/folders";
 import { getUserById } from "@/lib/users";
 import { generateThumbnail } from "@/lib/thumbnails";
+import { attachTagToFile } from "@/lib/tags";
+import { usernameToTag } from "@/lib/username-to-tag";
 
 export const dynamic = "force-dynamic";
 
@@ -112,12 +114,21 @@ async function postFinish(body: HookBody) {
   if (typeof rawFolderId === "string" && uuidRegex.test(rawFolderId)) {
     if (await folderExists(rawFolderId)) folderId = rawFolderId;
   }
+
+  const rawBatchId = body.Event.Upload.MetaData?.upload_batch_id;
+  let uploadBatchId: string | null = null;
+  if (typeof rawBatchId === "string" && uuidRegex.test(rawBatchId)) {
+    uploadBatchId = rawBatchId;
+  }
+
+  // Fetch the owner once; used both for home-folder fallback and auto-tagging.
+  const owner = await getUserById(session.user_id);
+
   // No explicit folder (or explicit folder was invalid): drop the file into the
   // user's home folder, creating it on first upload so their username acts as
   // a personal root. Leading-dot usernames (e.g. ".ryan") are stored verbatim
   // — there is no hidden-folder concept in this app.
   if (folderId === null) {
-    const owner = await getUserById(session.user_id);
     if (owner) folderId = await getOrCreateUserHomeFolder(owner.id, owner.username);
   }
 
@@ -145,8 +156,22 @@ async function postFinish(body: HookBody) {
     durationSec: meta?.durationSec ?? null,
     width: meta?.width ?? null,
     height: meta?.height ?? null,
+    uploadBatchId,
   });
   await finalizeUploadSession(tusId, inserted.id);
+
+  // Best-effort: auto-tag with uploader's normalized username.
+  if (owner) {
+    const tagName = usernameToTag(owner.username);
+    if (tagName) {
+      try {
+        await attachTagToFile(inserted.id, tagName, owner.id);
+      } catch (err) {
+        console.error(`auto-tag failed for ${inserted.id} (${tagName}):`, err);
+      }
+    }
+  }
+
   if (!mimeType.startsWith("video/")) {
     await updateTranscodeStatus(inserted.id, "skipped", dst);
   }

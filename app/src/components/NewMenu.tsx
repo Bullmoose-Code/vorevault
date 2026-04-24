@@ -62,12 +62,12 @@ export function NewMenu({ currentFolderId }: { currentFolderId: string | null })
 
     if (mode === "file") {
       for (const file of Array.from(files)) {
-        enqueue(file, dest);
+        enqueue(file, dest, null);
       }
       return;
     }
 
-    // mode === "folder": build tree, POST, then enqueue per file with mapped id.
+    // mode === "folder": create a batch, build tree, POST, then enqueue per file with mapped id.
     const fileArr = Array.from(files);
     const dirs: string[] = [];
     const relDirs: string[] = [];
@@ -86,13 +86,28 @@ export function NewMenu({ currentFolderId }: { currentFolderId: string | null })
       return;
     }
 
+    // Create an upload batch so the Recent feed can group this folder upload.
+    // Non-fatal: if the endpoint fails, fall back to batchId = null.
+    let batchId: string | null = null;
+    try {
+      const batchRes = await fetch("/api/upload-batches", { method: "POST" });
+      if (batchRes.ok) {
+        const batchData = await batchRes.json();
+        batchId = (batchData as { batchId: string }).batchId ?? null;
+      } else {
+        console.warn("upload-batch create failed; uploads will not be grouped");
+      }
+    } catch {
+      console.warn("upload-batch create failed; uploads will not be grouped");
+    }
+
     let map: Record<string, string> = {};
     if (paths.length > 0) {
       try {
         const res = await fetch("/api/folders/tree", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ parent_id: dest, paths }),
+          body: JSON.stringify({ parent_id: dest, paths, batch_id: batchId }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -111,7 +126,7 @@ export function NewMenu({ currentFolderId }: { currentFolderId: string | null })
       const file = fileArr[i];
       const dir = relDirs[i];
       const target = dir ? (map[dir] ?? dest) : dest;
-      enqueue(file, target);
+      enqueue(file, target, batchId);
     }
     router.refresh();
   }

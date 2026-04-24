@@ -5,9 +5,11 @@ import { getActiveShareLink } from "@/lib/share-links";
 import { loadEnv } from "@/lib/env";
 import { getBreadcrumbs } from "@/lib/folders";
 import { isBookmarked } from "@/lib/bookmarks";
+import { listTagsForFile } from "@/lib/tags";
 import { MetaPanel, StatusPill } from "@/components/MetaPanel";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { StarButton } from "@/components/StarButton";
+import { FileTagsEditor } from "@/components/FileTagsEditor";
 import { FileActions } from "./FileActions";
 import { isPreviewableTextMime } from "@/lib/text-preview";
 import { TextPreview } from "@/components/TextPreview";
@@ -38,9 +40,10 @@ export default async function FilePage({ params }: Props) {
   const file = await getFileWithUploader(id);
   if (!file) notFound();
 
-  const [breadcrumbs, bookmarked] = await Promise.all([
+  const [breadcrumbs, bookmarked, tags] = await Promise.all([
     file.folder_id ? getBreadcrumbs(file.folder_id) : Promise.resolve([]),
     isBookmarked(user.id, file.id),
+    listTagsForFile(file.id),
   ]);
 
   const isOwnerOrAdmin = file.uploader_id === user.id || user.is_admin;
@@ -107,6 +110,11 @@ export default async function FilePage({ params }: Props) {
               timeStyle: "short",
             })}</strong>
           </div>
+
+          <FileTagsEditor
+            fileId={file.id}
+            initialTags={tags.map((t) => ({ id: t.id, name: t.name }))}
+          />
 
           <StarButton fileId={file.id} initialBookmarked={bookmarked} />
           <FileActions

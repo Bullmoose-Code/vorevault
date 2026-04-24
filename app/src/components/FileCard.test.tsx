@@ -38,6 +38,7 @@ function makeFile(overrides: Partial<FileWithUploader> = {}): FileWithUploader {
     width: 1920,
     height: 1080,
     folder_id: null,
+    upload_batch_id: null,
     created_at: new Date(Date.now() - 60_000) as unknown as Date,
     deleted_at: null,
   };

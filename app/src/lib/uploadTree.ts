@@ -2,7 +2,7 @@ import { splitRelativeDir, normalizePaths } from "./folder-paths";
 
 export type UploadItem = { file: File; relPath: string };
 
-export type UploadEnqueue = (file: File, folderId: string | null) => void;
+export type UploadEnqueue = (file: File, folderId: string | null, batchId: string | null) => void;
 
 export type UploadTreeOptions = {
   items: UploadItem[];
@@ -31,13 +31,28 @@ export async function uploadItemsWithTree(opts: UploadTreeOptions): Promise<void
     return;
   }
 
+  let batchId: string | null = null;
+  if (paths.length > 0) {
+    try {
+      const batchRes = await fetch("/api/upload-batches", { method: "POST" });
+      if (batchRes.ok) {
+        const { batchId: bid } = (await batchRes.json()) as { batchId?: string };
+        batchId = bid ?? null;
+      } else {
+        console.warn("upload-batch create failed; uploads will not be grouped");
+      }
+    } catch {
+      console.warn("upload-batch create failed; uploads will not be grouped");
+    }
+  }
+
   let map: Record<string, string> = {};
   if (paths.length > 0) {
     try {
       const res = await fetch("/api/folders/tree", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ parent_id: destFolderId, paths }),
+        body: JSON.stringify({ parent_id: destFolderId, paths, batch_id: batchId }),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -55,6 +70,6 @@ export async function uploadItemsWithTree(opts: UploadTreeOptions): Promise<void
   for (let i = 0; i < items.length; i++) {
     const dir = relDirs[i];
     const target = dir ? (map[dir] ?? destFolderId) : destFolderId;
-    enqueue(items[i].file, target);
+    enqueue(items[i].file, target, batchId);
   }
 }

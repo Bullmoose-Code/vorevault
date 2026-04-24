@@ -56,7 +56,7 @@
 | **v1.0.0 — production-ready, live** | ✅ | **2026-04-16** |
 
 **In design:**
-- Folders + per-user bookmarks (replaces "folders/tags/FTS" on the original YAGNI list; tags explicitly rejected). Brainstorm in progress as of 2026-04-18.
+- Home feed (batch-aware) + flat lowercase tagging (uploader auto-tag). Spec `docs/superpowers/specs/2026-04-24-home-feed-and-tagging-design.md`, approved 2026-04-24.
 
 ---
 
@@ -71,7 +71,7 @@ The full principle list lives in [`DESIGN.md`](./DESIGN.md). It is the north sta
 5. **Unlisted public links are opt-in per file.** Default private.
 6. **Revocable.** Sessions and share links are both server-side rows that can be killed instantly.
 
-**Non-goals (permanent YAGNI — reject PRs that add these without discussion):** per-user quotas, virus scanning, 2FA, native mobile app (the PWA covers it), object storage. Folders and bookmarks are planned; tags and FTS are off the table.
+**Non-goals (permanent YAGNI — reject PRs that add these without discussion):** per-user quotas, virus scanning, 2FA, native mobile app (the PWA covers it), object storage, full-text search. Folders, bookmarks, and flat lowercase tags are in-scope; tag rename/merge admin and polymorphic folder-tags remain out of scope.
 
 **Decision rules when in doubt:**
 - **Scope:** say no. YAGNI wins.
@@ -584,6 +584,63 @@ DNS inside the compose network uses Docker's embedded resolver. If your Docker b
 
 The reference setup terminates TLS at Cloudflare via a tunnel, so Caddy runs HTTP-only and the host never opens port 443. If you'd rather expose directly, change Caddy to listen on `:443` with `auto_https` — Let's Encrypt issuance is one-line in a Caddyfile.
 
+### Migration scripts
+
+#### Deploying the home-feed-and-tagging feature (first deploy only)
+
+Postgres's `docker-entrypoint-initdb.d/*` scripts run **only on an empty
+PGDATA**. The live DB will silently skip `db/init/07-upload-batches.sql` and
+`db/init/08-tags.sql` when the new image rolls in. Apply them by hand
+**before** the new app container starts handling traffic, or you'll see 500s
+on `/` (missing `upload_batches`/`tags`) and — worse — silent upload data
+loss in the tus finalize hook (tmp file is renamed to its permanent path
+before `insertFile` runs, so a failed INSERT orphans the file on disk).
+
+```bash
+# 1. Pause auto-deploy so the new image doesn't start before the schema is there
+#    (skip on hosts without watchtower — just apply the SQL before the next
+#    `docker compose pull && up`).
+docker stop watchtower   # or equivalent
+
+# 2. Apply the two new init files against the live DB
+docker exec -i <postgres-container> psql -U "$POSTGRES_USER" "$POSTGRES_DB" \
+  < db/init/07-upload-batches.sql
+docker exec -i <postgres-container> psql -U "$POSTGRES_USER" "$POSTGRES_DB" \
+  < db/init/08-tags.sql
+
+# 3. Roll the app
+docker compose pull app && docker compose up -d app
+
+# 4. Un-pause auto-deploy
+docker start watchtower
+
+# 5. Run the backfill (optional but recommended — see below)
+docker exec <app-container> npx tsx scripts/backfill-batches-and-tags.ts
+```
+
+The `.sql` files are idempotent (`CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF
+NOT EXISTS`), so re-running them is safe. Back up `pgdata/` before starting.
+
+#### Backfill: upload batches + uploader auto-tags
+
+```bash
+docker exec <app-container> npx tsx scripts/backfill-batches-and-tags.ts
+```
+
+Idempotent — safe to re-run. It:
+- Creates `upload_batches` rows for any top-level folder with 2+ files clustered
+  within 60 seconds of the folder's `created_at`, then stamps the folder's
+  descendants (within the same time window) and clustered files with the batch
+  id. Folders uploaded slower than 60s end-to-end will stay "loose" — best-
+  effort for legacy data only; new uploads use exact tracking.
+- Attaches an `#<uploader-username>` tag (normalized via `usernameToTag`) to
+  every live file that doesn't already have it.
+
+Skipping the backfill is OK — legacy top-level folders continue to show as
+folder tiles via the Branch A-legacy query path. The backfill just makes the
+activity-feed semantics exact for pre-migration data and populates the tag
+list with existing uploaders.
+
 ### Operator runbook
 
 Host-specific operational detail (exact IPs, container IDs, bind-mount paths, shell commands for starting/stopping, backup cron, recovery procedures, known issues) belongs in an operator-local runbook, **not** this document. The `.ops-private/` directory in this repo is gitignored for that purpose — keep your site's runbook there, or in a separate private repository.
@@ -600,10 +657,9 @@ Two orthogonal features:
 
 - **Folders** — shared organizational hierarchy on shared files. Example target layout: a `Clips` folder with game-specific subfolders (`Apex`, `Valorant`, …) and a `Golf` folder with outing-specific subfolders. Files live in one folder at a time; a file's folder can be changed by its uploader or an admin. This does not affect who can see the file — principle #1 still holds.
 - **Bookmarks** — per-user saved-list of files, independent of folder structure. A private "my saved clips" view without introducing per-file ACLs.
+- **Tags** — flat lowercase namespace (1–32 chars, `[a-z0-9-]`). Any member can attach or detach any tag on any file. Uploader username is auto-attached as a tag at upload time, so "by user" filtering and "by game/category" filtering share one mechanism. Design spec: `docs/superpowers/specs/2026-04-24-home-feed-and-tagging-design.md`.
 
-**Explicitly rejected:** tags (deliberate — folders + bookmarks cover the "find it again" use cases without the tagging UX debt), full-text search (may revisit if file count grows past the point where folders are enough).
-
-Design spec will land in `docs/superpowers/specs/` before any code ships.
+**Explicitly rejected:** full-text search (may revisit if file count grows past the point where folders + tags are enough), tag rename/merge admin UI, polymorphic folder-tags.
 
 ### Nice-to-have, no active plan
 
