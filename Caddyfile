@@ -1,5 +1,5 @@
 {
-    # Allow large uploads (matches tusd -max-size=10 GiB)
+    # Allow large uploads (matches tusd -max-size=100 GiB; ~1 GiB headroom below)
     servers {
         max_header_size 64KB
     }
@@ -29,6 +29,6 @@
     }
 
     request_body {
-        max_size 11GB
+        max_size 101GB
     }
 }
