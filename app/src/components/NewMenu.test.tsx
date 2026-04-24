@@ -75,11 +75,16 @@ describe("NewMenu", () => {
       fireEvent.change(fileInput!);
     });
 
-    expect(enqueue).toHaveBeenCalledWith(file, "root-1");
+    expect(enqueue).toHaveBeenCalledWith(file, "root-1", null);
   });
 
   it("upload folder POSTs the tree then enqueues with mapped folder ids", async () => {
     mockTree(); // folder picker GET
+    // POST /api/upload-batches response
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ batchId: "batch-abc" }),
+    });
     // createFolderTree POST response
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -108,7 +113,7 @@ describe("NewMenu", () => {
     });
 
     await waitFor(() => expect(enqueue).toHaveBeenCalledTimes(2));
-    expect(enqueue).toHaveBeenCalledWith(file1, "new-root");
-    expect(enqueue).toHaveBeenCalledWith(file2, "new-sub");
+    expect(enqueue).toHaveBeenCalledWith(file1, "new-root", "batch-abc");
+    expect(enqueue).toHaveBeenCalledWith(file2, "new-sub", "batch-abc");
   });
 });
