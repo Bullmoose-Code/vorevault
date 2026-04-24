@@ -30,17 +30,25 @@ describe("FolderContextMenu", () => {
     wrap("u-o", { id: "u-o", isAdmin: false });
     fireEvent.contextMenu(screen.getByTestId("target"));
     expect(await screen.findByText(/^open$/i)).toBeInTheDocument();
+    expect(screen.getByText(/download as zip/i)).toBeInTheDocument();
     expect(screen.getByText(/^rename$/i)).toBeInTheDocument();
     expect(screen.getByText(/^move to…$/i)).toBeInTheDocument();
     expect(screen.getByText(/move to trash/i)).toBeInTheDocument();
   });
 
-  it("non-owner non-admin only sees open", async () => {
+  it("non-owner non-admin sees open and download as zip", async () => {
     wrap("u-o", { id: "u-x", isAdmin: false });
     fireEvent.contextMenu(screen.getByTestId("target"));
     expect(await screen.findByText(/^open$/i)).toBeInTheDocument();
+    expect(screen.getByText(/download as zip/i)).toBeInTheDocument();
     expect(screen.queryByText(/^rename$/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/move to trash/i)).not.toBeInTheDocument();
+  });
+
+  it("single mode: shows Download as zip action", async () => {
+    wrap("u", { id: "u", isAdmin: false });
+    fireEvent.contextMenu(screen.getByTestId("target"));
+    expect(await screen.findByText(/download as zip/i)).toBeInTheDocument();
   });
 
   it("admin sees all actions", async () => {
