@@ -46,6 +46,10 @@ export async function runBackfill(pool: Pool): Promise<void> {
       [batchId, c.folder_id],
     );
 
+    // $3 is bound from a JS Date with no explicit type; cast to timestamptz so
+    // Postgres can resolve `$3 - interval '…'` as timestamptz minus interval
+    // rather than defaulting the parameter to interval and erroring with
+    // "operator does not exist: timestamp with time zone >= interval".
     await pool.query(
       `WITH RECURSIVE tree(id) AS (
          SELECT id FROM folders WHERE parent_id = $2
@@ -55,8 +59,8 @@ export async function runBackfill(pool: Pool): Promise<void> {
        UPDATE folders SET upload_batch_id = $1
         WHERE id IN (SELECT id FROM tree)
           AND upload_batch_id IS NULL
-          AND created_at BETWEEN $3 - interval '60 seconds'
-                             AND $3 + interval '60 seconds'`,
+          AND created_at BETWEEN $3::timestamptz - interval '60 seconds'
+                             AND $3::timestamptz + interval '60 seconds'`,
       [batchId, c.folder_id, c.created_at],
     );
 
@@ -69,8 +73,8 @@ export async function runBackfill(pool: Pool): Promise<void> {
        UPDATE files SET upload_batch_id = $1
         WHERE folder_id IN (SELECT id FROM tree)
           AND upload_batch_id IS NULL
-          AND created_at BETWEEN $3 - interval '60 seconds'
-                             AND $3 + interval '60 seconds'`,
+          AND created_at BETWEEN $3::timestamptz - interval '60 seconds'
+                             AND $3::timestamptz + interval '60 seconds'`,
       [batchId, c.folder_id, c.created_at],
     );
   }
