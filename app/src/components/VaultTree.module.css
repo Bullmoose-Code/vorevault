@@ -19,3 +19,9 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .link:hover { text-decoration: underline; }
+
+.dropTarget {
+  outline: 2px dashed var(--vv-accent);
+  outline-offset: 2px;
+  border-radius: var(--vv-radius-sm);
+}
