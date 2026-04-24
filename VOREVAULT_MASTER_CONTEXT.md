@@ -584,6 +584,26 @@ DNS inside the compose network uses Docker's embedded resolver. If your Docker b
 
 The reference setup terminates TLS at Cloudflare via a tunnel, so Caddy runs HTTP-only and the host never opens port 443. If you'd rather expose directly, change Caddy to listen on `:443` with `auto_https` — Let's Encrypt issuance is one-line in a Caddyfile.
 
+### Migration scripts
+
+#### One-time migration: upload batches + uploader auto-tags
+
+After deploying the home-feed-and-tagging feature, run the backfill once from the
+app host:
+
+```bash
+# Inside the app container or host, with DATABASE_URL in env
+cd /path/to/repo/app
+npx tsx scripts/backfill-batches-and-tags.ts
+```
+
+The script is idempotent — safe to re-run if it fails partway. It:
+- Creates `upload_batches` rows for any top-level folder with 2+ files clustered
+  within 60s of the folder's `created_at`, then stamps the folder's descendants
+  and clustered files with the batch id.
+- Attaches an `#<uploader-username>` tag (normalized via `usernameToTag`) to
+  every live file that doesn't already have it.
+
 ### Operator runbook
 
 Host-specific operational detail (exact IPs, container IDs, bind-mount paths, shell commands for starting/stopping, backup cron, recovery procedures, known issues) belongs in an operator-local runbook, **not** this document. The `.ops-private/` directory in this repo is gitignored for that purpose — keep your site's runbook there, or in a separate private repository.
