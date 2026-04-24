@@ -1,8 +1,21 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { VaultTreeView } from "./VaultTreeView";
+import { ItemActionProvider } from "./ItemActionProvider";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+}));
+
+function renderTree(nodes: Parameters<typeof VaultTreeView>[0]["nodes"]) {
+  return render(
+    <ItemActionProvider>
+      <VaultTreeView nodes={nodes} />
+    </ItemActionProvider>,
+  );
+}
 
 afterEach(() => cleanup());
 
@@ -15,14 +28,14 @@ const FIXTURE = [
 
 describe("VaultTreeView", () => {
   it("renders top-level folders with collapse caret when they have children", () => {
-    render(<VaultTreeView nodes={FIXTURE} />);
+    renderTree(FIXTURE);
     expect(screen.getByText("stunts")).toBeInTheDocument();
     expect(screen.getByText("raids")).toBeInTheDocument();
     expect(screen.queryByText("epic")).not.toBeInTheDocument();
   });
 
   it("expands a node on caret click", () => {
-    render(<VaultTreeView nodes={FIXTURE} />);
+    renderTree(FIXTURE);
     fireEvent.click(screen.getByLabelText("expand stunts"));
     expect(screen.getByText("epic")).toBeInTheDocument();
     expect(screen.queryByText("deep")).not.toBeInTheDocument();
@@ -31,7 +44,7 @@ describe("VaultTreeView", () => {
   });
 
   it("renders folder names as links to /d/[id]", () => {
-    render(<VaultTreeView nodes={FIXTURE} />);
+    renderTree(FIXTURE);
     expect(screen.getByText("stunts").closest("a")).toHaveAttribute("href", "/d/a");
   });
 });
