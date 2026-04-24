@@ -94,9 +94,11 @@ export function NewMenu({ currentFolderId }: { currentFolderId: string | null })
       if (batchRes.ok) {
         const batchData = await batchRes.json();
         batchId = (batchData as { batchId: string }).batchId ?? null;
+      } else {
+        console.warn("upload-batch create failed; uploads will not be grouped");
       }
     } catch {
-      // non-fatal — uploads still proceed without a batch id
+      console.warn("upload-batch create failed; uploads will not be grouped");
     }
 
     let map: Record<string, string> = {};

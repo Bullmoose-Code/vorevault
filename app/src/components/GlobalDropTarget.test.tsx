@@ -57,7 +57,7 @@ describe("GlobalDropTarget", () => {
     const pickBtn = await screen.findByText("pick-root");
     await act(async () => { pickBtn.click(); });
     await waitFor(() => expect(enqueueSpy).toHaveBeenCalledTimes(1));
-    expect(enqueueSpy).toHaveBeenCalledWith(f, null);
+    expect(enqueueSpy).toHaveBeenCalledWith(f, null, null);
   });
 
   it("passes currentFolderId as initialFolderId to the picker", async () => {
@@ -82,7 +82,7 @@ describe("GlobalDropTarget", () => {
     });
     const pickBtn = await screen.findByText("pick-dest");
     await act(async () => { pickBtn.click(); });
-    await waitFor(() => expect(enqueueSpy).toHaveBeenCalledWith(f, "dest-folder-id"));
+    await waitFor(() => expect(enqueueSpy).toHaveBeenCalledWith(f, "dest-folder-id", null));
   });
 
   it("ignores drags that don't carry Files", () => {

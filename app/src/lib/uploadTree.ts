@@ -38,8 +38,12 @@ export async function uploadItemsWithTree(opts: UploadTreeOptions): Promise<void
       if (batchRes.ok) {
         const { batchId: bid } = (await batchRes.json()) as { batchId?: string };
         batchId = bid ?? null;
+      } else {
+        console.warn("upload-batch create failed; uploads will not be grouped");
       }
-    } catch { /* non-fatal: proceed without batch */ }
+    } catch {
+      console.warn("upload-batch create failed; uploads will not be grouped");
+    }
   }
 
   let map: Record<string, string> = {};
