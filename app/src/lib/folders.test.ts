@@ -512,3 +512,68 @@ describe("restoreFolder", () => {
     await expect(restoreFolder({ id: a.id, actorId: uid })).rejects.toBeInstanceOf(FolderCollisionError);
   });
 });
+
+describe("folders — collectFolderTreeFiles", () => {
+  it("returns files with zip paths under a single folder", async () => {
+    const { createFolder, collectFolderTreeFiles } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("zip1");
+    const root = await createFolder({ name: "docs", parentId: null, createdBy: uid });
+    await insertFile({ uploaderId: uid, folderId: root.id, originalName: "a.pdf", mimeType: "application/pdf", sizeBytes: 10, storagePath: "/data/uploads/a" });
+    await insertFile({ uploaderId: uid, folderId: root.id, originalName: "b.txt", mimeType: "text/plain", sizeBytes: 5, storagePath: "/data/uploads/b" });
+
+    const entries = await collectFolderTreeFiles(root.id);
+    expect(entries.length).toBe(2);
+    expect(entries.map((e) => e.name).sort()).toEqual(["docs/a.pdf", "docs/b.txt"]);
+  });
+
+  it("preserves nested folder structure", async () => {
+    const { createFolder, collectFolderTreeFiles } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("zip2");
+    const root = await createFolder({ name: "root", parentId: null, createdBy: uid });
+    const sub = await createFolder({ name: "sub", parentId: root.id, createdBy: uid });
+    await insertFile({ uploaderId: uid, folderId: sub.id, originalName: "deep.pdf", mimeType: "application/pdf", sizeBytes: 1, storagePath: "/data/uploads/deep" });
+
+    const entries = await collectFolderTreeFiles(root.id);
+    expect(entries.map((e) => e.name)).toEqual(["root/sub/deep.pdf"]);
+  });
+
+  it("skips trashed files and trashed subfolders", async () => {
+    const { createFolder, collectFolderTreeFiles } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("zip3");
+    const root = await createFolder({ name: "root", parentId: null, createdBy: uid });
+    const kept = await createFolder({ name: "kept", parentId: root.id, createdBy: uid });
+    const trashed = await createFolder({ name: "trashed", parentId: root.id, createdBy: uid });
+    await insertFile({ uploaderId: uid, folderId: kept.id, originalName: "k.pdf", mimeType: "application/pdf", sizeBytes: 1, storagePath: "/data/uploads/k" });
+    const trashedFile = await insertFile({ uploaderId: uid, folderId: kept.id, originalName: "t.pdf", mimeType: "application/pdf", sizeBytes: 1, storagePath: "/data/uploads/t" });
+
+    await pg.pool.query(`UPDATE folders SET deleted_at = now() WHERE id = $1`, [trashed.id]);
+    await pg.pool.query(`UPDATE files SET deleted_at = now() WHERE id = $1`, [trashedFile.id]);
+
+    const entries = await collectFolderTreeFiles(root.id);
+    expect(entries.map((e) => e.name)).toEqual(["root/kept/k.pdf"]);
+  });
+
+  it("throws FolderNotFoundError for missing / trashed root", async () => {
+    const { collectFolderTreeFiles, FolderNotFoundError } = await import("./folders");
+    await expect(collectFolderTreeFiles("00000000-0000-0000-0000-000000000000")).rejects.toBeInstanceOf(FolderNotFoundError);
+  });
+
+  it("replaces '/' in folder and file names", async () => {
+    const { collectFolderTreeFiles } = await import("./folders");
+    const { insertFile } = await import("./files");
+    const uid = await makeUser("zip5");
+    // Insert folder with a slash directly — bypasses createFolder validation.
+    const { rows } = await pg.pool.query(
+      `INSERT INTO folders (name, parent_id, created_by) VALUES ($1, NULL, $2) RETURNING *`,
+      ["a/b", uid],
+    );
+    const root = rows[0];
+    await insertFile({ uploaderId: uid, folderId: root.id, originalName: "c/d.txt", mimeType: "text/plain", sizeBytes: 1, storagePath: "/data/uploads/cd" });
+
+    const entries = await collectFolderTreeFiles(root.id);
+    expect(entries.map((e) => e.name)).toEqual(["a_b/c_d.txt"]);
+  });
+});
