@@ -21,7 +21,7 @@ export type ActiveUpload = {
 
 type Ctx = {
   uploads: ActiveUpload[];
-  enqueue: (file: File, folderId: string | null) => void;
+  enqueue: (file: File, folderId: string | null, batchId?: string | null) => void;
   cancel: (id: string) => void;
   clearCompleted: () => void;
 };
@@ -39,7 +39,7 @@ export function useUploadProgress(): Ctx {
   return v;
 }
 
-type QueuedJob = { id: string; file: File; folderId: string | null };
+type QueuedJob = { id: string; file: File; folderId: string | null; batchId: string | null };
 
 export function UploadProgressProvider({ children }: { children: React.ReactNode }) {
   const [uploads, setUploads] = useState<ActiveUpload[]>([]);
@@ -51,19 +51,21 @@ export function UploadProgressProvider({ children }: { children: React.ReactNode
   const pumpRef = useRef<() => void>(() => {});
 
   const startOne = useCallback((job: QueuedJob) => {
-    const { id, file, folderId } = job;
+    const { id, file, folderId, batchId } = job;
     setUploads((s) =>
       s.map((u) => (u.id === id ? { ...u, status: "uploading" as const } : u)),
     );
+    const metadata: Record<string, string> = {
+      filename: file.name,
+      filetype: file.type || "application/octet-stream",
+      ...(folderId ? { folderId } : {}),
+    };
+    if (batchId) metadata.upload_batch_id = batchId;
     const upload = new tus.Upload(file, {
       endpoint: "/files/",
       retryDelays: [0, 1000, 3000, 5000],
       chunkSize: 64 * 1024 * 1024,
-      metadata: {
-        filename: file.name,
-        filetype: file.type || "application/octet-stream",
-        ...(folderId ? { folderId } : {}),
-      },
+      metadata,
       onError: (err) => {
         setUploads((s) =>
           s.map((u) => (u.id === id ? { ...u, status: "error", error: String(err) } : u)),
@@ -99,7 +101,7 @@ export function UploadProgressProvider({ children }: { children: React.ReactNode
   }, [startOne]);
   pumpRef.current = pump;
 
-  const enqueue = useCallback((file: File, folderId: string | null) => {
+  const enqueue = useCallback((file: File, folderId: string | null, batchId: string | null = null) => {
     const id = crypto.randomUUID();
     const row: ActiveUpload = {
       id,
@@ -111,7 +113,7 @@ export function UploadProgressProvider({ children }: { children: React.ReactNode
       status: "pending",
     };
     setUploads((prev) => [...prev, row]);
-    pendingQueue.current.push({ id, file, folderId });
+    pendingQueue.current.push({ id, file, folderId, batchId });
     pump();
   }, [pump]);
 

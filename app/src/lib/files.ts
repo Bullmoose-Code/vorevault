@@ -16,6 +16,7 @@ export type FileRow = {
   width: number | null;
   height: number | null;
   folder_id: string | null;
+  upload_batch_id: string | null;
   created_at: Date;
   deleted_at: Date | null;
 };
@@ -31,19 +32,20 @@ export type InsertFileArgs = {
   durationSec?: number | null;
   width?: number | null;
   height?: number | null;
+  uploadBatchId?: string | null;
 };
 
 export async function insertFile(args: InsertFileArgs): Promise<FileRow> {
   const { rows } = await pool.query<FileRow>(
     `INSERT INTO files
        (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path,
-        thumbnail_path, duration_sec, width, height)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        thumbnail_path, duration_sec, width, height, upload_batch_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      RETURNING *`,
     [
       args.uploaderId, args.folderId ?? null, args.originalName, args.mimeType, args.sizeBytes,
       args.storagePath, args.thumbnailPath ?? null, args.durationSec ?? null,
-      args.width ?? null, args.height ?? null,
+      args.width ?? null, args.height ?? null, args.uploadBatchId ?? null,
     ],
   );
   return rows[0];
@@ -441,6 +443,7 @@ function mapTopLevelRow(r: Record<string, unknown>): TopLevelItem {
     width: (r.width as number) ?? null,
     height: (r.height as number) ?? null,
     folder_id: null,
+    upload_batch_id: (r.upload_batch_id as string) ?? null,
     created_at: r.created_at as Date,
     deleted_at: null,
   };

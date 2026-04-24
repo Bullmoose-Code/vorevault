@@ -99,6 +99,7 @@ describe("POST /api/folders/tree", () => {
       parentId: null,
       paths: ["A", "A/B"],
       actorId: "u1",
+      batchId: null,
     });
   });
 

@@ -112,6 +112,12 @@ async function postFinish(body: HookBody) {
   if (typeof rawFolderId === "string" && uuidRegex.test(rawFolderId)) {
     if (await folderExists(rawFolderId)) folderId = rawFolderId;
   }
+
+  const rawBatchId = body.Event.Upload.MetaData?.upload_batch_id;
+  let uploadBatchId: string | null = null;
+  if (typeof rawBatchId === "string" && uuidRegex.test(rawBatchId)) {
+    uploadBatchId = rawBatchId;
+  }
   // No explicit folder (or explicit folder was invalid): drop the file into the
   // user's home folder, creating it on first upload so their username acts as
   // a personal root. Leading-dot usernames (e.g. ".ryan") are stored verbatim
@@ -145,6 +151,7 @@ async function postFinish(body: HookBody) {
     durationSec: meta?.durationSec ?? null,
     width: meta?.width ?? null,
     height: meta?.height ?? null,
+    uploadBatchId,
   });
   await finalizeUploadSession(tusId, inserted.id);
   if (!mimeType.startsWith("video/")) {

@@ -7,6 +7,7 @@ export type CreateFolderTreeArgs = {
   /** Must be produced by `normalizePaths` — parents-before-children, deduped. */
   paths: string[];
   actorId: string;
+  batchId?: string | null;
 };
 
 export async function createFolderTree(
@@ -58,9 +59,9 @@ export async function createFolderTree(
       }
 
       const { rows } = await client.query<{ id: string }>(
-        `INSERT INTO folders (name, parent_id, created_by)
-         VALUES ($1, $2, $3) RETURNING id`,
-        [name, parentId, args.actorId],
+        `INSERT INTO folders (name, parent_id, created_by, upload_batch_id)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [name, parentId, args.actorId, args.batchId ?? null],
       );
       map[path] = rows[0].id;
     }
