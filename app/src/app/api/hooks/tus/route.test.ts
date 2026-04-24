@@ -131,7 +131,7 @@ describe("POST /api/hooks/tus pre-create", () => {
   it("rejects when file size exceeds limit", async () => {
     getSessionUser.mockResolvedValueOnce({ id: "u1" });
     const res = await POST(hookReq("pre-create", {
-      Event: { Upload: { Size: 11 * 1024 ** 3, MetaData: { filename: "a.mp4" } },
+      Event: { Upload: { Size: 101 * 1024 ** 3, MetaData: { filename: "a.mp4" } },
                HTTPRequest: { Header: { Cookie: ["vv_session=ok"] } } },
     }));
     const body = await res.json();
