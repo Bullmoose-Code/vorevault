@@ -55,4 +55,30 @@ describe("files schema", () => {
     );
     expect(rows[0].transcode_status).toBe("pending");
   });
+
+  it("files table has upload_batch_id column", async () => {
+    const { rows } = await pg.pool.query<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'files' AND column_name = 'upload_batch_id'`,
+    );
+    expect(rows).toHaveLength(1);
+  });
+
+  it("folders table has upload_batch_id column", async () => {
+    const { rows } = await pg.pool.query<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'folders' AND column_name = 'upload_batch_id'`,
+    );
+    expect(rows).toHaveLength(1);
+  });
+
+  it("upload_batches table exists with required columns", async () => {
+    const { rows } = await pg.pool.query<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'upload_batches' ORDER BY ordinal_position`,
+    );
+    expect(rows.map(r => r.column_name)).toEqual(
+      expect.arrayContaining(["id", "uploader_id", "top_folder_id", "created_at"]),
+    );
+  });
 });
