@@ -15,11 +15,11 @@ vi.mock("next/navigation", () => ({
 
 function Seed({ items }: { items: SelectedItem[] }) {
   const sel = useSelection();
-  const seeded = React.useRef(false);
-  if (!seeded.current && items.length > 0) {
-    seeded.current = true;
+  React.useEffect(() => {
     items.forEach((it) => sel.toggle(it));
-  }
+    // run once on mount — subsequent re-renders should not re-seed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return null;
 }
 
