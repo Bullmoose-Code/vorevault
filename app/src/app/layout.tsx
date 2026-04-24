@@ -46,7 +46,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4ead5",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4ead5" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a0f08" },
+  ],
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -58,6 +61,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="en"
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
+      <head>
+        <script src="/theme-init.js" />
+      </head>
       <body>
         <SWRegister />
         {children}

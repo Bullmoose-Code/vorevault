@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import styles from "./UserChip.module.css";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function UserChip({
   username,
@@ -57,6 +58,7 @@ export function UserChip({
       {open && (
         <div className={styles.menu} role="menu">
           <div className={styles.header}>@{username}</div>
+          <ThemeToggle />
           <div className={styles.divider} />
           <form action="/api/auth/logout" method="post" className={styles.logoutForm}>
             <button type="submit" className={styles.item} role="menuitem">
