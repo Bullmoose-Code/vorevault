@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelection, type SelectedItem } from "./SelectionContext";
 import { useItemActions } from "./ItemActionProvider";
+import { moveItems, type BatchMoveResult } from "@/lib/moveItems";
 import { Button } from "./Button";
 import { ConfirmDialog } from "./Dialogs";
 import { Modal } from "./Modal";
 import { FolderPicker } from "./FolderPicker";
 import styles from "./SelectionToolbar.module.css";
 
-type BatchResult = { succeeded: number; failed: number };
-
-async function batchTrash(items: SelectedItem[]): Promise<BatchResult> {
+async function batchTrash(items: SelectedItem[]): Promise<BatchMoveResult> {
   let succeeded = 0;
   let failed = 0;
   for (const it of items) {
@@ -31,34 +30,6 @@ async function batchTrash(items: SelectedItem[]): Promise<BatchResult> {
   return { succeeded, failed };
 }
 
-async function batchMove(
-  items: SelectedItem[],
-  folderId: string | null,
-): Promise<BatchResult> {
-  let succeeded = 0;
-  let failed = 0;
-  for (const it of items) {
-    try {
-      const res =
-        it.kind === "file"
-          ? await fetch(`/api/files/${it.id}/move`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ folderId }),
-            })
-          : await fetch(`/api/folders/${it.id}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ parentId: folderId }),
-            });
-      if (res.ok) succeeded++;
-      else failed++;
-    } catch {
-      failed++;
-    }
-  }
-  return { succeeded, failed };
-}
 
 const MAX_ZIP = 50;
 
@@ -125,7 +96,7 @@ export function SelectionToolbar() {
   async function runMove() {
     setMoving(true);
     try {
-      const result = await batchMove(selection.items, moveTarget);
+      const result = await moveItems(selection.items, moveTarget);
       setMoveOpen(false);
       setMoveTarget(null);
       selection.clear();
