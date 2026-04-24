@@ -407,15 +407,29 @@ export async function listTopLevelItems(
   `;
 
   // Branch B — loose files (not part of a folder upload).
+  // Aliases match branchBatch so the tag-filter-only path (standalone branchFile)
+  // still produces correctly-named result columns for mapTopLevelRow.
   // tags literal is '{}'::text[] for now; Task 6 will replace with real join.
   const branchFile = `
     SELECT
-      'file'::text, ff.id::text, NULL::text,
-      ff.original_name, ff.mime_type, ff.thumbnail_path,
-      u.username, ff.uploader_id::text, ff.created_at,
-      NULL::int, NULL::int,
-      ff.size_bytes, ff.storage_path, ff.transcode_status, ff.transcoded_path,
-      ff.duration_sec, ff.width, ff.height,
+      'file'::text AS kind,
+      ff.id::text AS id,
+      NULL::text AS name,
+      ff.original_name AS original_name,
+      ff.mime_type AS mime_type,
+      ff.thumbnail_path AS thumbnail_path,
+      u.username AS uploader_name,
+      ff.uploader_id::text AS created_by,
+      ff.created_at AS created_at,
+      NULL::int AS direct_file_count,
+      NULL::int AS direct_subfolder_count,
+      ff.size_bytes AS size_bytes,
+      ff.storage_path AS storage_path,
+      ff.transcode_status AS transcode_status,
+      ff.transcoded_path AS transcoded_path,
+      ff.duration_sec AS duration_sec,
+      ff.width AS width,
+      ff.height AS height,
       '{}'::text[] AS tags
     FROM files ff
     JOIN users u ON u.id = ff.uploader_id
