@@ -50,7 +50,7 @@ services:
       - "-hooks-http=http://app:3000/api/hooks/tus"
       - "-hooks-http-forward-headers=cookie"
       - "-hooks-enabled-events=pre-create,post-finish"
-      - "-max-size=10737418240"
+      - "-max-size=107374182400"
     volumes:
       - /data:/data
     depends_on:

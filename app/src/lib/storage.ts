@@ -6,7 +6,7 @@ export const THUMBS_DIR = `${DATA_ROOT}/thumbs`;
 export const TRANSCODED_DIR = `${DATA_ROOT}/transcoded`;
 export const TUSD_TMP_DIR = `${DATA_ROOT}/tusd-tmp`;
 
-export const MAX_FILE_BYTES = 10n * 1024n * 1024n * 1024n; // 10 GiB
+export const MAX_FILE_BYTES = 100n * 1024n * 1024n * 1024n; // 100 GiB
 export const MIN_FREE_BYTES = 10n * 1024n * 1024n * 1024n; // refuse uploads below 10 GiB free
 
 export async function freeBytes(dir: string): Promise<bigint> {
