@@ -71,4 +71,57 @@ describe("FolderTile", () => {
     expect(linkA.className).toMatch(/selected/);
     expect(linkB.className).toMatch(/selected/);
   });
+
+  it("is draggable when canManage is true", () => {
+    const { container } = renderIt({ createdBy: "u" });
+    const a = container.querySelector("a")!;
+    expect(a.getAttribute("draggable")).toBe("true");
+  });
+
+  it("is NOT draggable when canManage is false", () => {
+    const { container } = renderIt({ createdBy: "someone-else" });
+    const a = container.querySelector("a")!;
+    expect(a.getAttribute("draggable")).toBe("false");
+  });
+
+  it("onDrop calls fetch to move the dragged file into this folder", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const { container } = renderIt({ id: "target-folder" });
+      const a = container.querySelector("a")!;
+      const dt = new DataTransfer();
+      dt.setData(
+        "application/x-vorevault-drag",
+        JSON.stringify([{ kind: "file", id: "dragged-file", name: "x", canManage: true, folderId: null }]),
+      );
+      a.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+      await new Promise((r) => setTimeout(r, 0));
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/files/dragged-file/move",
+        expect.objectContaining({ method: "POST" }),
+      );
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("drop on self is rejected (no fetch call)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const { container } = renderIt({ id: "fo-self" });
+      const a = container.querySelector("a")!;
+      const dt = new DataTransfer();
+      dt.setData(
+        "application/x-vorevault-drag",
+        JSON.stringify([{ kind: "folder", id: "fo-self", name: "x", canManage: true, parentId: null }]),
+      );
+      a.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+      await new Promise((r) => setTimeout(r, 0));
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
 });

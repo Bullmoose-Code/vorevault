@@ -50,3 +50,12 @@
   background: var(--vv-accent);
   color: var(--vv-bg);
 }
+
+.dragging {
+  opacity: 0.4;
+}
+
+.dropTarget {
+  outline: 3px dashed var(--vv-accent);
+  outline-offset: 2px;
+}
