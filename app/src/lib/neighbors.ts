@@ -58,10 +58,13 @@ export async function getNeighbors(
   currentFileId: string,
   ctx: NeighborContext,
 ): Promise<Neighbors> {
-  if (ctx.kind === "folder") {
-    return getFolderNeighbors(currentFileId, ctx.folderId);
+  switch (ctx.kind) {
+    case "folder":  return getFolderNeighbors(currentFileId, ctx.folderId);
+    case "recent":  return getRecentNeighbors(currentFileId);
+    case "mine":    return getMineNeighbors(currentFileId, ctx.uploaderId);
+    case "starred": return getStarredNeighbors(currentFileId, ctx.userId);
+    case "tagged":  return getTaggedNeighbors(currentFileId, ctx.tagId);
   }
-  throw new Error(`getNeighbors: ${ctx.kind} not yet implemented`);
 }
 
 async function getFolderNeighbors(
@@ -98,4 +101,114 @@ async function getFolderNeighbors(
     prev: prevR.rows[0] ?? null,
     next: nextR.rows[0] ?? null,
   };
+}
+
+async function getRecentNeighbors(currentFileId: string): Promise<Neighbors> {
+  const PREV_SQL = `
+    WITH cur AS (SELECT created_at FROM files WHERE id = $1)
+    SELECT f.id FROM files f, cur
+    WHERE f.deleted_at IS NULL
+      AND f.folder_id IS NULL
+      AND (f.created_at > cur.created_at
+           OR (f.created_at = cur.created_at AND f.id > $1))
+    ORDER BY f.created_at ASC, f.id ASC LIMIT 1
+  `;
+  const NEXT_SQL = `
+    WITH cur AS (SELECT created_at FROM files WHERE id = $1)
+    SELECT f.id FROM files f, cur
+    WHERE f.deleted_at IS NULL
+      AND f.folder_id IS NULL
+      AND (f.created_at < cur.created_at
+           OR (f.created_at = cur.created_at AND f.id < $1))
+    ORDER BY f.created_at DESC, f.id DESC LIMIT 1
+  `;
+  const [p, n] = await Promise.all([
+    pool.query<{ id: string }>(PREV_SQL, [currentFileId]),
+    pool.query<{ id: string }>(NEXT_SQL, [currentFileId]),
+  ]);
+  return { prev: p.rows[0] ?? null, next: n.rows[0] ?? null };
+}
+
+async function getMineNeighbors(currentFileId: string, uploaderId: string): Promise<Neighbors> {
+  const PREV_SQL = `
+    WITH cur AS (SELECT created_at FROM files WHERE id = $1)
+    SELECT f.id FROM files f, cur
+    WHERE f.deleted_at IS NULL
+      AND f.uploader_id = $2
+      AND (f.created_at > cur.created_at
+           OR (f.created_at = cur.created_at AND f.id > $1))
+    ORDER BY f.created_at ASC, f.id ASC LIMIT 1
+  `;
+  const NEXT_SQL = `
+    WITH cur AS (SELECT created_at FROM files WHERE id = $1)
+    SELECT f.id FROM files f, cur
+    WHERE f.deleted_at IS NULL
+      AND f.uploader_id = $2
+      AND (f.created_at < cur.created_at
+           OR (f.created_at = cur.created_at AND f.id < $1))
+    ORDER BY f.created_at DESC, f.id DESC LIMIT 1
+  `;
+  const [p, n] = await Promise.all([
+    pool.query<{ id: string }>(PREV_SQL, [currentFileId, uploaderId]),
+    pool.query<{ id: string }>(NEXT_SQL, [currentFileId, uploaderId]),
+  ]);
+  return { prev: p.rows[0] ?? null, next: n.rows[0] ?? null };
+}
+
+async function getStarredNeighbors(currentFileId: string, userId: string): Promise<Neighbors> {
+  // /starred orders by BOOKMARK created_at, not file created_at.
+  // The cursor is the bookmark for (userId, currentFileId).
+  const PREV_SQL = `
+    WITH cur AS (
+      SELECT created_at FROM bookmarks WHERE user_id = $1 AND file_id = $2
+    )
+    SELECT b.file_id AS id FROM bookmarks b, cur
+    WHERE b.user_id = $1
+      AND (b.created_at > cur.created_at
+           OR (b.created_at = cur.created_at AND b.file_id > $2))
+    ORDER BY b.created_at ASC, b.file_id ASC LIMIT 1
+  `;
+  const NEXT_SQL = `
+    WITH cur AS (
+      SELECT created_at FROM bookmarks WHERE user_id = $1 AND file_id = $2
+    )
+    SELECT b.file_id AS id FROM bookmarks b, cur
+    WHERE b.user_id = $1
+      AND (b.created_at < cur.created_at
+           OR (b.created_at = cur.created_at AND b.file_id < $2))
+    ORDER BY b.created_at DESC, b.file_id DESC LIMIT 1
+  `;
+  const [p, n] = await Promise.all([
+    pool.query<{ id: string }>(PREV_SQL, [userId, currentFileId]),
+    pool.query<{ id: string }>(NEXT_SQL, [userId, currentFileId]),
+  ]);
+  return { prev: p.rows[0] ?? null, next: n.rows[0] ?? null };
+}
+
+async function getTaggedNeighbors(currentFileId: string, tagId: string): Promise<Neighbors> {
+  const PREV_SQL = `
+    WITH cur AS (SELECT created_at FROM files WHERE id = $1)
+    SELECT f.id FROM files f
+    JOIN file_tags ft ON ft.file_id = f.id, cur
+    WHERE f.deleted_at IS NULL
+      AND ft.tag_id = $2
+      AND (f.created_at > cur.created_at
+           OR (f.created_at = cur.created_at AND f.id > $1))
+    ORDER BY f.created_at ASC, f.id ASC LIMIT 1
+  `;
+  const NEXT_SQL = `
+    WITH cur AS (SELECT created_at FROM files WHERE id = $1)
+    SELECT f.id FROM files f
+    JOIN file_tags ft ON ft.file_id = f.id, cur
+    WHERE f.deleted_at IS NULL
+      AND ft.tag_id = $2
+      AND (f.created_at < cur.created_at
+           OR (f.created_at = cur.created_at AND f.id < $1))
+    ORDER BY f.created_at DESC, f.id DESC LIMIT 1
+  `;
+  const [p, n] = await Promise.all([
+    pool.query<{ id: string }>(PREV_SQL, [currentFileId, tagId]),
+    pool.query<{ id: string }>(NEXT_SQL, [currentFileId, tagId]),
+  ]);
+  return { prev: p.rows[0] ?? null, next: n.rows[0] ?? null };
 }
