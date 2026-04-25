@@ -14,6 +14,9 @@ import { FileTagsEditor } from "@/components/FileTagsEditor";
 import { FileActions } from "./FileActions";
 import { isPreviewableTextMime } from "@/lib/text-preview";
 import { TextPreview } from "@/components/TextPreview";
+import { parseFromParam, getNeighbors } from "@/lib/neighbors";
+import { PrevNextNav } from "@/components/PrevNextNav";
+import { PrevNextKeys } from "@/components/PrevNextKeys";
 import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +34,12 @@ function formatDuration(sec: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-type Props = { params: Promise<{ id: string }> };
+type Props = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string; tag?: string }>;
+};
 
-export default async function FilePage({ params }: Props) {
+export default async function FilePage({ params, searchParams }: Props) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
@@ -46,6 +52,15 @@ export default async function FilePage({ params }: Props) {
     isBookmarked(user.id, file.id),
     listTagsForFile(file.id),
   ]);
+
+  const sp = await searchParams;
+  const ctx = parseFromParam(sp.from, sp.tag, user.id);
+  const neighbors = ctx ? await getNeighbors(file.id, ctx) : null;
+  // Build the verbatim from-query suffix to preserve across prev/next links.
+  // Only built when ctx is non-null — avoids an empty `?` on direct-link navigation.
+  const fromQuery = ctx
+    ? (sp.from === "tagged" ? `from=tagged&tag=${sp.tag}` : `from=${sp.from}`)
+    : "";
 
   const back = backLinkForFile(breadcrumbs);
 
@@ -65,6 +80,13 @@ export default async function FilePage({ params }: Props) {
       <div className={styles.back}><a href={back.href}>← {back.label}</a></div>
       {breadcrumbs.length > 0 && (
         <Breadcrumbs crumbs={breadcrumbs.map(f => ({ id: f.id, name: f.name }))} />
+      )}
+
+      {neighbors && (
+        <>
+          <PrevNextNav prev={neighbors.prev} next={neighbors.next} fromQuery={fromQuery} />
+          <PrevNextKeys prev={neighbors.prev} next={neighbors.next} fromQuery={fromQuery} />
+        </>
       )}
 
       <div className={styles.content}>

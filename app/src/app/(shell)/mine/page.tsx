@@ -22,7 +22,7 @@ export default async function MinePage({ searchParams }: { searchParams: Promise
         <h1 className="vv-greeting">your uploads</h1>
       </div>
       <div className={styles.grid}>
-        {data.files.map((f) => <FileCard key={f.id} file={f} />)}
+        {data.files.map((f) => <FileCard key={f.id} file={f} fromQuery="from=mine" />)}
       </div>
       {totalPages > 1 && (
         <div className={styles.pagination}>

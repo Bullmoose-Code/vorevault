@@ -20,7 +20,7 @@ export default async function StarredPage() {
         <p className={styles.empty}>nothing starred yet. tap ★ on any file to pin it here.</p>
       ) : (
         <div className={styles.grid}>
-          {items.map((b) => <FileCard key={b.file.id} file={b.file} />)}
+          {items.map((b) => <FileCard key={b.file.id} file={b.file} fromQuery="from=starred" />)}
         </div>
       )}
     </>

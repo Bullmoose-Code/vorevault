@@ -54,7 +54,7 @@ export default async function FolderPage({ params }: { params: Promise<{ id: str
         <>
           <h2 className={`vv-section-label ${styles.sectionLabel}`}>Files in this folder</h2>
           <div className={styles.fileGrid}>
-            {children.files.map((f) => <FileCard key={f.id} file={f} />)}
+            {children.files.map((f) => <FileCard key={f.id} file={f} fromQuery={`from=folder/${folder.id}`} />)}
           </div>
         </>
       )}
