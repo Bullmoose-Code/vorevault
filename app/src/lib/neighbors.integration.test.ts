@@ -109,15 +109,42 @@ describe("getNeighbors — recent context", () => {
     expect((await getNeighbors(topIds[2], { kind: "recent" })).prev).toBeNull();
     expect((await getNeighbors(topIds[0], { kind: "recent" })).next).toBeNull();
   });
+
+  it("excludes files inside a batch folder (upload_batch_id NOT NULL)", async () => {
+    // Create an upload batch + its folder + a file inside it. The file shares
+    // a timestamp range with the existing top-level files but should be
+    // unreachable from /recent because the batch tile represents it.
+    const batchId = (await fx.pool.query<{ id: string }>(
+      `INSERT INTO upload_batches (uploader_id) VALUES ($1) RETURNING id`,
+      [userId],
+    )).rows[0].id;
+    const batchFolderId = (await fx.pool.query<{ id: string }>(
+      `INSERT INTO folders (name, parent_id, created_by, upload_batch_id)
+       VALUES ('Batched', NULL, $1, $2) RETURNING id`,
+      [userId, batchId],
+    )).rows[0].id;
+    await fx.pool.query(
+      `UPDATE upload_batches SET top_folder_id = $1 WHERE id = $2`,
+      [batchFolderId, batchId],
+    );
+    // Insert a batched file with a timestamp BETWEEN topIds[0] and topIds[1]
+    // (which are 2026-04-10T00:00:00Z and 2026-04-10T00:00:01Z) so a buggy
+    // query would return it as the neighbor of topIds[1].
+    await fx.pool.query(
+      `INSERT INTO files (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path, upload_batch_id, created_at)
+       VALUES ($1, $2, 'batched.mp4', 'video/mp4', 1, '/x', $3, '2026-04-10T00:00:00.5Z')`,
+      [userId, batchFolderId, batchId],
+    );
+    // From topIds[1] (visually-middle), next should still be topIds[0],
+    // jumping over the batched file (since /recent doesn't show it).
+    const r = await getNeighbors(topIds[1], { kind: "recent" });
+    expect(r.next?.id).toBe(topIds[0]);
+  });
 });
 
 describe("getNeighbors — mine context", () => {
-  let otherUserId: string;
   const mineIds: string[] = [];
   beforeAll(async () => {
-    otherUserId = (await fx.pool.query<{ id: string }>(
-      `INSERT INTO users (discord_id, username) VALUES ('d-nbr-other','bob') RETURNING id`,
-    )).rows[0].id;
     for (let i = 0; i < 2; i++) {
       const ts = `2026-04-15T00:00:0${i}Z`;
       const r = await fx.pool.query<{ id: string }>(
@@ -127,6 +154,10 @@ describe("getNeighbors — mine context", () => {
       );
       mineIds.push(r.rows[0].id);
     }
+    // Create bob inline; we never need his id again after this insert.
+    const otherUserId = (await fx.pool.query<{ id: string }>(
+      `INSERT INTO users (discord_id, username) VALUES ('d-nbr-other','bob') RETURNING id`,
+    )).rows[0].id;
     await fx.pool.query(
       `INSERT INTO files (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path, created_at)
        VALUES ($1, NULL, 'bobs.mp4', 'video/mp4', 1, '/x', '2026-04-15T00:00:00.5Z')`,
@@ -199,5 +230,36 @@ describe("getNeighbors — tagged context", () => {
     const r = await getNeighbors(taggedIds[1], { kind: "tagged", tagId });
     expect(r.prev?.id).toBe(taggedIds[2]); // newer
     expect(r.next?.id).toBe(taggedIds[0]); // older — skips the untagged file
+  });
+
+  it("excludes tagged files inside a batch folder", async () => {
+    // Create a batch + folder + a tagged file inside it, with a timestamp
+    // between taggedIds[0] and taggedIds[1] so a buggy query would return it.
+    const batchId = (await fx.pool.query<{ id: string }>(
+      `INSERT INTO upload_batches (uploader_id) VALUES ($1) RETURNING id`,
+      [userId],
+    )).rows[0].id;
+    const batchFolderId = (await fx.pool.query<{ id: string }>(
+      `INSERT INTO folders (name, parent_id, created_by, upload_batch_id)
+       VALUES ('TaggedBatch', NULL, $1, $2) RETURNING id`,
+      [userId, batchId],
+    )).rows[0].id;
+    await fx.pool.query(
+      `UPDATE upload_batches SET top_folder_id = $1 WHERE id = $2`,
+      [batchFolderId, batchId],
+    );
+    const f = await fx.pool.query<{ id: string }>(
+      `INSERT INTO files (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path, upload_batch_id, created_at)
+       VALUES ($1, $2, 'batched-tagged.mp4', 'video/mp4', 1, '/x', $3, '2026-04-22T00:00:00.5Z') RETURNING id`,
+      [userId, batchFolderId, batchId],
+    );
+    await fx.pool.query(
+      `INSERT INTO file_tags (file_id, tag_id, created_by) VALUES ($1, $2, $3)`,
+      [f.rows[0].id, tagId, userId],
+    );
+    // From taggedIds[1] (middle), next should be taggedIds[0], jumping
+    // over the batched-tagged file.
+    const r = await getNeighbors(taggedIds[1], { kind: "tagged", tagId });
+    expect(r.next?.id).toBe(taggedIds[0]);
   });
 });

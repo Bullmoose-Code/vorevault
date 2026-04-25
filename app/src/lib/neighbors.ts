@@ -104,11 +104,15 @@ async function getFolderNeighbors(
 }
 
 async function getRecentNeighbors(currentFileId: string): Promise<Neighbors> {
+  // Mirrors `branchFile` in listTopLevelItems (app/src/lib/files.ts): the
+  // /recent grid filters by `upload_batch_id IS NULL`, NOT folder_id. Files
+  // in legacy folders are visible there; files inside a batch folder are
+  // represented by the batch tile and must be excluded here.
   const PREV_SQL = `
     WITH cur AS (SELECT created_at FROM files WHERE id = $1)
     SELECT f.id FROM files f, cur
     WHERE f.deleted_at IS NULL
-      AND f.folder_id IS NULL
+      AND f.upload_batch_id IS NULL
       AND (f.created_at > cur.created_at
            OR (f.created_at = cur.created_at AND f.id > $1))
     ORDER BY f.created_at ASC, f.id ASC LIMIT 1
@@ -117,7 +121,7 @@ async function getRecentNeighbors(currentFileId: string): Promise<Neighbors> {
     WITH cur AS (SELECT created_at FROM files WHERE id = $1)
     SELECT f.id FROM files f, cur
     WHERE f.deleted_at IS NULL
-      AND f.folder_id IS NULL
+      AND f.upload_batch_id IS NULL
       AND (f.created_at < cur.created_at
            OR (f.created_at = cur.created_at AND f.id < $1))
     ORDER BY f.created_at DESC, f.id DESC LIMIT 1
@@ -186,12 +190,16 @@ async function getStarredNeighbors(currentFileId: string, userId: string): Promi
 }
 
 async function getTaggedNeighbors(currentFileId: string, tagId: string): Promise<Neighbors> {
+  // Tagged home grid also flows through `branchFile` in listTopLevelItems
+  // (with an EXISTS clause for the tag), so it shares the same
+  // `upload_batch_id IS NULL` constraint.
   const PREV_SQL = `
     WITH cur AS (SELECT created_at FROM files WHERE id = $1)
     SELECT f.id FROM files f
     JOIN file_tags ft ON ft.file_id = f.id, cur
     WHERE f.deleted_at IS NULL
       AND ft.tag_id = $2
+      AND f.upload_batch_id IS NULL
       AND (f.created_at > cur.created_at
            OR (f.created_at = cur.created_at AND f.id > $1))
     ORDER BY f.created_at ASC, f.id ASC LIMIT 1
@@ -202,6 +210,7 @@ async function getTaggedNeighbors(currentFileId: string, tagId: string): Promise
     JOIN file_tags ft ON ft.file_id = f.id, cur
     WHERE f.deleted_at IS NULL
       AND ft.tag_id = $2
+      AND f.upload_batch_id IS NULL
       AND (f.created_at < cur.created_at
            OR (f.created_at = cur.created_at AND f.id < $1))
     ORDER BY f.created_at DESC, f.id DESC LIMIT 1
