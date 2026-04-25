@@ -16,10 +16,23 @@ beforeAll(async () => {
     `INSERT INTO users (discord_id, username) VALUES ('d-nbr','alice') RETURNING id`,
   )).rows[0].id;
 
-  folderId = (await fx.pool.query<{ id: string }>(
-    `INSERT INTO folders (name, parent_id, created_by) VALUES ('Apex', NULL, $1) RETURNING id`,
+  // Make the Apex folder a proper batch folder so its files have
+  // upload_batch_id NOT NULL — this matches the most common real-world data
+  // shape (batch uploads) and keeps the folder's files correctly excluded
+  // from /recent's walk (which filters upload_batch_id IS NULL).
+  const apexBatchId = (await fx.pool.query<{ id: string }>(
+    `INSERT INTO upload_batches (uploader_id) VALUES ($1) RETURNING id`,
     [userId],
   )).rows[0].id;
+  folderId = (await fx.pool.query<{ id: string }>(
+    `INSERT INTO folders (name, parent_id, created_by, upload_batch_id)
+     VALUES ('Apex', NULL, $1, $2) RETURNING id`,
+    [userId, apexBatchId],
+  )).rows[0].id;
+  await fx.pool.query(
+    `UPDATE upload_batches SET top_folder_id = $1 WHERE id = $2`,
+    [folderId, apexBatchId],
+  );
 
   // Insert 5 files into the folder with explicit, monotonically-increasing
   // created_at so the grid order is fully deterministic.
@@ -27,9 +40,9 @@ beforeAll(async () => {
   for (let i = 0; i < 5; i++) {
     const ts = `2026-04-01T00:00:0${i}Z`;
     const r = await fx.pool.query<{ id: string }>(
-      `INSERT INTO files (uploader_id, folder_id, original_name, mime_type, size_bytes, storage_path, created_at)
-       VALUES ($1, $2, $3, 'video/mp4', 1, '/x', $4) RETURNING id`,
-      [userId, folderId, `clip-${i}.mp4`, ts],
+      `INSERT INTO files (uploader_id, folder_id, upload_batch_id, original_name, mime_type, size_bytes, storage_path, created_at)
+       VALUES ($1, $2, $3, $4, 'video/mp4', 1, '/x', $5) RETURNING id`,
+      [userId, folderId, apexBatchId, `clip-${i}.mp4`, ts],
     );
     fileIds.push(r.rows[0].id);
   }
