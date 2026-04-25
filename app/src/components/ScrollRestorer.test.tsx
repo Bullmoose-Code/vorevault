@@ -43,16 +43,11 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function flushRaf() {
-  return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-}
-
 describe("ScrollRestorer", () => {
   it("on first mount with no saved value, leaves scrollTop at 0", async () => {
     const main = document.getElementById("vv-main-scroll")!;
     main.scrollTop = 0;
     render(<ScrollRestorer />);
-    await flushRaf();
     expect(main.scrollTop).toBe(0);
   });
 
@@ -61,7 +56,6 @@ describe("ScrollRestorer", () => {
     const main = document.getElementById("vv-main-scroll")!;
     main.scrollTop = 0;
     render(<ScrollRestorer />);
-    await flushRaf();
     expect(main.scrollTop).toBe(500);
   });
 
@@ -73,7 +67,6 @@ describe("ScrollRestorer", () => {
     navState.pathname = "/a";
     navState.search = "";
     const { rerender } = render(<ScrollRestorer />);
-    await flushRaf();
 
     // User scrolls.
     main.scrollTop = 750;
@@ -82,7 +75,6 @@ describe("ScrollRestorer", () => {
     navState.pathname = "/b";
     navState.search = "";
     rerender(<ScrollRestorer />);
-    await flushRaf();
 
     // Old URL's position was saved.
     expect(sessionStorage.getItem("vv:scroll:/a?")).toBe("750");
@@ -95,12 +87,10 @@ describe("ScrollRestorer", () => {
 
     navState.pathname = "/a";
     const { rerender } = render(<ScrollRestorer />);
-    await flushRaf();
     main.scrollTop = 600;
 
     navState.pathname = "/b";
     rerender(<ScrollRestorer />);
-    await flushRaf();
 
     expect(main.scrollTop).toBe(0);
   });
@@ -111,29 +101,25 @@ describe("ScrollRestorer", () => {
     navState.pathname = "/";
     navState.search = "page=1";
     const { rerender } = render(<ScrollRestorer />);
-    await flushRaf();
     main.scrollTop = 400;
 
     navState.search = "page=2";
     rerender(<ScrollRestorer />);
-    await flushRaf();
 
     expect(sessionStorage.getItem("vv:scroll:/?page=1")).toBe("400");
     expect(main.scrollTop).toBe(0);
   });
 
-  it("does nothing when the .main element is missing", async () => {
+  it("does nothing when the #vv-main-scroll element is missing", async () => {
     document.getElementById("vv-main-scroll")?.remove();
     sessionStorage.setItem("vv:scroll:/?", "500");
     expect(() => render(<ScrollRestorer />)).not.toThrow();
-    await flushRaf();
     // No errors logged.
   });
 
   it("swallows sessionStorage.setItem errors on cleanup", async () => {
     const main = document.getElementById("vv-main-scroll")!;
     render(<ScrollRestorer />);
-    await flushRaf();
     main.scrollTop = 100;
 
     // Stub setItem to throw.
@@ -142,6 +128,7 @@ describe("ScrollRestorer", () => {
     });
 
     expect(() => cleanup()).not.toThrow();
+    expect(setItemSpy).toHaveBeenCalled();
     setItemSpy.mockRestore();
   });
 
@@ -155,8 +142,8 @@ describe("ScrollRestorer", () => {
     });
 
     expect(() => render(<ScrollRestorer />)).not.toThrow();
-    await flushRaf();
     expect(main.scrollTop).toBe(0); // falls back to reset
+    expect(getItemSpy).toHaveBeenCalled();
     getItemSpy.mockRestore();
   });
 
@@ -165,7 +152,6 @@ describe("ScrollRestorer", () => {
 
     navState.pathname = "/keep";
     const { unmount } = render(<ScrollRestorer />);
-    await flushRaf();
     main.scrollTop = 333;
 
     unmount();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const SCROLL_KEY_PREFIX = "vv:scroll:";
@@ -15,32 +15,36 @@ const SCROLL_KEY_PREFIX = "vv:scroll:";
  * on forward navigation, which the persistent shell layout would
  * otherwise let leak between unrelated pages.
  *
- * Mount once inside the shell layout. Renders nothing.
+ * Uses useLayoutEffect (not useEffect+rAF) so the scroll restore happens
+ * before the browser paints — assigning scrollTop forces a synchronous
+ * layout flush, so the restored value uses post-layout geometry without
+ * a one-frame flicker at the top.
+ *
+ * Mount once inside the shell layout, wrapped in a <Suspense> boundary
+ * because useSearchParams forces a CSR bailout otherwise.
  */
 export function ScrollRestorer(): null {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const key = `${SCROLL_KEY_PREFIX}${pathname}?${searchParams?.toString() ?? ""}`;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const main = document.getElementById("vv-main-scroll");
     if (!main) return;
 
-    // Wait one frame so the new server-rendered content is in place
-    // before applying the saved scroll position (or the reset to 0).
-    const raf = requestAnimationFrame(() => {
-      let saved: string | null = null;
-      try {
-        saved = sessionStorage.getItem(key);
-      } catch {
-        /* storage blocked — fall through to the reset path */
-      }
-      main.scrollTop = saved ? parseInt(saved, 10) : 0;
-    });
+    let saved: string | null = null;
+    try {
+      saved = sessionStorage.getItem(key);
+    } catch {
+      /* storage blocked — fall through to the reset path */
+    }
+    const n = saved ? parseInt(saved, 10) : 0;
+    // Guard against malformed values (manually-edited sessionStorage,
+    // future format changes) — NaN would silently coerce to 0 anyway,
+    // but being explicit keeps the intent clear.
+    main.scrollTop = Number.isFinite(n) ? n : 0;
 
     return () => {
-      cancelAnimationFrame(raf);
-      // Save the current scroll position under the OUTGOING URL.
       try {
         sessionStorage.setItem(key, String(main.scrollTop));
       } catch {

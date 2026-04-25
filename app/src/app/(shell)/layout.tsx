@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -41,7 +42,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <ItemActionProvider>
               <SelectionProvider>
                 <SelectionChrome />
-                <ScrollRestorer />
+                <Suspense fallback={null}>
+                  <ScrollRestorer />
+                </Suspense>
                 <GridChromeGate>
                   <GridKeyboard />
                   <GridMarquee />
