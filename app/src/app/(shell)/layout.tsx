@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
@@ -16,6 +17,7 @@ import { GridMarquee } from "@/components/GridMarquee";
 import { SelectionToolbar } from "@/components/SelectionToolbar";
 import { GlobalDropTarget } from "@/components/GlobalDropTarget";
 import { GridChromeGate } from "@/components/GridChromeGate";
+import { ScrollRestorer } from "@/components/ScrollRestorer";
 import styles from "./shell.module.css";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +42,9 @@ export default async function ShellLayout({ children }: { children: React.ReactN
             <ItemActionProvider>
               <SelectionProvider>
                 <SelectionChrome />
+                <Suspense fallback={null}>
+                  <ScrollRestorer />
+                </Suspense>
                 <GridChromeGate>
                   <GridKeyboard />
                   <GridMarquee />
@@ -49,7 +54,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
                   <TopBar username={user.username} avatarUrl={user.avatar_url} isAdmin={user.is_admin} />
                   <div className={styles.body}>
                     <Sidebar isAdmin={user.is_admin} currentFolderId={currentFolderId} />
-                    <main className={styles.main}>
+                    <main id="vv-main-scroll" className={styles.main}>
                       <GridChromeGate>
                         <SelectionToolbar />
                       </GridChromeGate>
