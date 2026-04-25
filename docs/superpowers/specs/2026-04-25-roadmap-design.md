@@ -41,13 +41,13 @@ The biggest new bet on the roadmap. Pulls VoreVault out of the browser so clip u
 
 Small fixes that compound. Mostly S-sized; pick one or two for each PR. **Recommended next focus** because items are quick wins and they fix the user's stated current pain.
 
-| # | Item | Size | Why |
-|---|---|---|---|
-| 2.1 | **Contextual back button on file detail** — "Back to *Apex Clips*" when the user came from a folder, "Back to vault" otherwise. Track origin via `?from=folder/<id>` in the URL or referrer. | S | Stated current pain — back button always dumps to vault root |
-| 2.2 | **Prev/next navigation inside file detail** — `←/→` keys + on-screen buttons to jump to the next file in the current grid (folder, search, recent). | S | Lets users binge a folder without re-clicking grid → file → back |
-| 2.3 | **Folder breadcrumb on file detail header** — show `Vault › Clips › Apex › <filename>` so context is always visible. | S | Removes ambiguity about which folder a file belongs to |
-| 2.4 | **URL-state for filters/sort/search** — current filter, sort order, and search query encoded in the URL so views are bookmarkable and shareable in Discord chat. | M | "Hey check out this filter" becomes a real link |
-| 2.5 | **Scroll-position restore on browser back** — verify the pagination focus restore from PR #58 also restores scroll, not just focus. Audit and fix gaps. | S | Already mostly works; finishing the job |
+| # | Item | Size | Status | Why |
+|---|---|---|---|---|
+| 2.1 | **Contextual back button on file detail** — "Back to *Apex Clips*" when the user came from a folder, "Back to vault" otherwise. | S | ✅ shipped 2026-04-25 (PR #68) | Stated current pain — back button always dumps to vault root |
+| 2.2 | **Prev/next navigation inside file detail** — `←/→` keys + on-screen buttons to jump to the next file in the current grid (folder, recent, mine, starred, tagged home). | S | ✅ shipped 2026-04-25 (PR #69) | Lets users binge a folder without re-clicking grid → file → back |
+| 2.3 | **Folder breadcrumb on file detail header** — show `Vault › Clips › Apex › <filename>` so context is always visible. | S | ✅ already implemented (file detail page already renders `<Breadcrumbs>` when the file is in a folder) | Removes ambiguity about which folder a file belongs to |
+| 2.4 | ~~**URL-state for filters/sort/search**~~ — explicitly dropped 2026-04-25. Filter (`?tag=`), pagination (`?page=`), and search query (`?q=`) are already URL-stateful via existing `FilterBar` / `SearchBar` / page searchParams, and shareable in Discord today. Sort UI doesn't exist and wasn't a concrete product ask; revisit only if a real need arises. | — | ❌ dropped (already delivered) | Original framing turned out to be already live |
+| 2.5 | **Scroll-position restore on browser back** — verify the pagination focus restore from PR #58 also restores scroll, not just focus. Audit and fix gaps. | S | open | Already mostly works; finishing the job |
 
 ---
 
