@@ -15,11 +15,9 @@ describe("PrevNextNav", () => {
         fromQuery="from=folder/abc"
       />
     );
-    const prev = screen.getByText("← prev");
-    const next = screen.getByText("next →");
-    expect(prev.tagName).toBe("A");
+    const prev = screen.getByRole("link", { name: "previous file" });
+    const next = screen.getByRole("link", { name: "next file" });
     expect(prev).toHaveAttribute("href", "/f/prev-id?from=folder/abc");
-    expect(next.tagName).toBe("A");
     expect(next).toHaveAttribute("href", "/f/next-id?from=folder/abc");
   });
 
@@ -28,6 +26,7 @@ describe("PrevNextNav", () => {
     const prev = screen.getByText("← prev");
     expect(prev.tagName).toBe("SPAN");
     expect(prev).toHaveAttribute("aria-disabled", "true");
+    expect(prev).toHaveAttribute("aria-label", "previous file");
   });
 
   it("renders next as disabled span when next is null", () => {
@@ -35,6 +34,7 @@ describe("PrevNextNav", () => {
     const next = screen.getByText("next →");
     expect(next.tagName).toBe("SPAN");
     expect(next).toHaveAttribute("aria-disabled", "true");
+    expect(next).toHaveAttribute("aria-label", "next file");
   });
 
   it("renders both as disabled spans when both are null", () => {
@@ -51,9 +51,14 @@ describe("PrevNextNav", () => {
         fromQuery="from=tagged&tag=tag-uuid"
       />
     );
-    expect(screen.getByText("← prev")).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "previous file" })).toHaveAttribute(
       "href",
       "/f/p?from=tagged&tag=tag-uuid",
     );
+  });
+
+  it("the nav element has an aria-label", () => {
+    render(<PrevNextNav prev={{ id: "p" }} next={{ id: "n" }} fromQuery="from=recent" />);
+    expect(screen.getByRole("navigation", { name: "file navigation" })).toBeInTheDocument();
   });
 });
