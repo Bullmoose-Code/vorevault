@@ -5,6 +5,7 @@ import { getActiveShareLink } from "@/lib/share-links";
 import { loadEnv } from "@/lib/env";
 import { getBreadcrumbs } from "@/lib/folders";
 import { isBookmarked } from "@/lib/bookmarks";
+import { backLinkForFile } from "@/lib/back-link";
 import { listTagsForFile } from "@/lib/tags";
 import { MetaPanel, StatusPill } from "@/components/MetaPanel";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -46,6 +47,8 @@ export default async function FilePage({ params }: Props) {
     listTagsForFile(file.id),
   ]);
 
+  const back = backLinkForFile(breadcrumbs);
+
   const isOwnerOrAdmin = file.uploader_id === user.id || user.is_admin;
   const env = loadEnv();
   const activeLink = await getActiveShareLink(file.id);
@@ -59,7 +62,7 @@ export default async function FilePage({ params }: Props) {
 
   return (
     <>
-      <div className={styles.back}><a href="/">← back to vault</a></div>
+      <div className={styles.back}><a href={back.href}>← {back.label}</a></div>
       {breadcrumbs.length > 0 && (
         <Breadcrumbs crumbs={breadcrumbs.map(f => ({ id: f.id, name: f.name }))} />
       )}
