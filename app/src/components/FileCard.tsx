@@ -41,9 +41,11 @@ function relativeTime(date: Date | string): string {
 export function FileCard({
   file,
   isShared,
+  fromQuery,
 }: {
   file: FileWithUploader;
   isShared?: boolean;
+  fromQuery?: string;
 }) {
   const user = useCurrentUser();
   const selection = useSelection();
@@ -105,7 +107,7 @@ export function FileCard({
 
   return (
     <FileContextMenu file={file}>
-      <a href={`/f/${file.id}`} className={className} onClick={handleClick} draggable={canManage} onDragStart={handleDragStart} onDragEnd={handleDragEnd} aria-pressed={selected} data-nav-item data-nav-descriptor={JSON.stringify(descriptor)} tabIndex={0}>
+      <a href={fromQuery ? `/f/${file.id}?${fromQuery}` : `/f/${file.id}`} className={className} onClick={handleClick} draggable={canManage} onDragStart={handleDragStart} onDragEnd={handleDragEnd} aria-pressed={selected} data-nav-item data-nav-descriptor={JSON.stringify(descriptor)} tabIndex={0}>
         <div className={styles.thumb}>
           {hasThumb ? (
             <img src={`/api/thumbs/${file.id}`} alt="" loading="lazy" />

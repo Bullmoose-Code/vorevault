@@ -97,7 +97,11 @@ export default async function Home({
                 fileCount={it.direct_file_count} subfolderCount={it.direct_subfolder_count}
                 createdBy={it.created_by} parentId={null} />
             ) : (
-              <FileCard key={`x-${it.id}`} file={it} />
+              <FileCard
+                key={`x-${it.id}`}
+                file={it}
+                fromQuery={tagId ? `from=tagged&tag=${tagId}` : undefined}
+              />
             ))}
           </div>
           {totalPages > 1 && (

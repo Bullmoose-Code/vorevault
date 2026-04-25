@@ -28,7 +28,7 @@ export default async function RecentPage({ searchParams }: { searchParams: Promi
             fileCount={it.direct_file_count} subfolderCount={it.direct_subfolder_count}
             createdBy={it.created_by} parentId={null} />
         ) : (
-          <FileCard key={`x-${it.id}`} file={it} />
+          <FileCard key={`x-${it.id}`} file={it} fromQuery="from=recent" />
         ))}
       </div>
       {totalPages > 1 && (
