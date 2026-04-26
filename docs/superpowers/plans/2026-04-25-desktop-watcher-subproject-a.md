@@ -748,6 +748,17 @@ If any check fails, revert the merge and investigate. Phase 2 cannot proceed unt
 
 > **Prerequisite:** Phase 1 deployed to production. Confirm `https://vault.bullmoosefn.com/api/auth/me` responds before starting Phase 2.
 
+> ## ⚠️ PKCE upgrade notice (2026-04-25)
+>
+> Phase 1 shipped a PKCE-style code-exchange flow per RFC 7636 (PR #71), not the simpler session-token-in-URL flow originally written in this plan's Task 9 / Task 10 code blocks. The desktop side must follow the **PKCE flow** documented in the spec at `docs/superpowers/specs/2026-04-25-desktop-watcher-subproject-a-design.md` Section "OAuth flow (PKCE-style code exchange via vault-mediated loopback)". Concretely:
+>
+> - **Task 6 Cargo deps:** ADD `sha2 = "0.10"` to `src-tauri/Cargo.toml`'s `[dependencies]` for the PKCE S256 transform.
+> - **Task 9 (auth.rs URL building):** Replace the `generate_csrf` function with TWO functions: `generate_code_verifier` (32-byte base64url, 43 chars) and `compute_code_challenge` (SHA256 base64url of the verifier, 43 chars). The `build_init_url` helper passes `&code_challenge=` instead of `&csrf=`. Add a unit test for the SHA256 transform that uses the RFC 7636 §4.2 example vector (`dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk` → `E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM`).
+> - **Task 10 (auth.rs sign_in):** After capturing `?code=<auth_code>` from the localhost callback (NOT `?session=`), POST `{code, code_verifier}` as JSON to `https://vault.bullmoosefn.com/api/auth/desktop-exchange`. Read `session_token` from the JSON response body. Then store the `session_token` in keychain. Map all error responses (400, 401, network failures) to `AuthError::ExchangeFailed(String)`.
+> - **Task 11 (current_state, sign_out):** Unchanged — they still read the session token from keychain and call `/api/auth/me` and `/api/auth/logout`.
+>
+> The shape of the data the desktop hands to keychain is unchanged (still a session UUID), so keychain.rs / tray.rs / main.rs need no changes from the original plan.
+
 ## Task 6: Create new repo + Tauri scaffold + Cargo dependencies
 
 **Files:** all new — Tauri project scaffolding.

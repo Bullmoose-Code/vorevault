@@ -38,10 +38,15 @@ No frontend framework. No webview window. The only HTML is `success.html`, serve
 
 ### Cross-repo dependency
 
-The web repo (`vorevault`) gains three small additive changes:
+The web repo (`vorevault`) gains the following additive changes (all shipped in **PR #71**, merged 2026-04-25):
+
 - New `GET /api/auth/desktop-init` route
-- Extension to existing `GET /api/auth/discord/callback` route (single new conditional branch)
 - New `GET /api/auth/me` route
+- New `POST /api/auth/desktop-exchange` route
+- Extension to existing `GET /api/auth/discord/callback` route (single new conditional branch)
+- New `app/src/lib/desktop-state.ts` — state encoding helpers
+- New `app/src/lib/auth-codes.ts` — single-use auth code helpers + PKCE S256 transform
+- New `db/init/09-auth-codes.sql` migration — `auth_codes` table
 
 Web changes ship first as their own PR (backwards-compatible — does not affect browser flow). Desktop app PR follows once the web change is deployed.
 
@@ -52,62 +57,52 @@ Web changes ship first as their own PR (backwards-compatible — does not affect
 - **`tiny_http`** for the OAuth loopback listener — synchronous, runs ~30 s once per sign-in
 - **`reqwest`** with `rustls-tls` for HTTP client (no OpenSSL on Win)
 - **`tauri-plugin-opener`** to launch the system browser
+- **`sha2` + `base64` crates** for the PKCE code_challenge transform on the desktop side
 
-## OAuth flow (vault-mediated loopback)
+## OAuth flow (PKCE-style code exchange via vault-mediated loopback)
+
+> **Updated 2026-04-25** during code review of PR #71: changed from session-token-in-URL to PKCE-style code exchange per RFC 7636. The session credential never enters a URL or browser history — only a short-lived single-use auth code does.
 
 1. User clicks "Sign in" in tray menu
-2. Desktop generates 32-byte base64url `csrf`, binds `tiny_http` listener on `127.0.0.1:0`, OS assigns a free port `PORT`
-3. Desktop opens system browser to `https://vault.bullmoosefn.com/api/auth/desktop-init?port=PORT&csrf=CSRF`
-4. Vault `desktop-init` validates inputs, sets `vv_oauth_state` cookie to `desktop:PORT:CSRF`, redirects browser to Discord OAuth with the same value as `state` and the existing redirect URI
-5. User signs in on Discord, approves
-6. Discord redirects browser to the existing vault callback (`/api/auth/discord/callback?code=...&state=...`)
-7. Vault callback runs the existing flow (state cookie verification, code exchange, role check, user upsert, session creation), then branches:
-   - If `state` starts with `desktop:` and the parsed port is in `[1024, 65535]` → `307` redirect to `http://127.0.0.1:PORT/?session=<sessionId>`, set `vv_session` cookie (harmless), clear `vv_oauth_state`
+2. Desktop generates a `code_verifier` (32 bytes base64url-encoded → 43 chars), keeps it secret
+3. Desktop computes `code_challenge = base64url(SHA256(code_verifier))` (also 43 chars per PKCE S256)
+4. Desktop binds `tiny_http` listener on `127.0.0.1:0`; OS assigns free port `PORT`
+5. Desktop opens system browser to `https://vault.bullmoosefn.com/api/auth/desktop-init?port=PORT&code_challenge=CHALLENGE`
+6. Vault `desktop-init` validates inputs, sets `vv_oauth_state` cookie to `desktop:PORT:CHALLENGE`, redirects browser to Discord OAuth with the same value as `state`
+7. User signs in on Discord, approves
+8. Discord redirects browser to `https://vault.bullmoosefn.com/api/auth/discord/callback?code=...&state=...`
+9. Vault callback runs existing flow (state cookie verification, Discord code exchange, role check, user upsert, session creation), then branches:
+   - If `state` matches the desktop format → mints a single-use auth code via `createAuthCode(session.id, code_challenge)` (60-second TTL), redirects browser to `http://127.0.0.1:PORT/?code=<auth_code>`. Still sets `vv_session` cookie so the same browser stays signed in to the web app.
    - Otherwise → existing redirect to `/`
-8. Browser hits `localhost:PORT/`, the Tauri listener captures `?session=<id>`, stores it in keychain, serves `success.html`, shuts down
-9. Desktop polls keychain back via the worker thread, refreshes tray menu
+10. Browser hits `localhost:PORT/`. Tauri listener captures `?code=<auth_code>`, serves `success.html`, shuts down
+11. Desktop POSTs `{code, code_verifier}` to `https://vault.bullmoosefn.com/api/auth/desktop-exchange`
+12. Vault `desktop-exchange`: validates body, calls `exchangeAuthCode(code, code_verifier)` which atomically `UPDATE...WHERE used_at IS NULL AND expires_at > now() AND code_challenge = SHA256($verifier)...RETURNING session_id`. On success, returns `{session_token: <session_id>}`
+13. Desktop stores `session_token` in OS keychain
+14. Tray menu refreshes to "Signed in as @<username>"
 
-State encoding: `desktop:<port>:<csrf>`. Browser flow never produces a state with this prefix, so the prefix is a clean discriminator.
+**State encoding:** `desktop:<port>:<code_challenge>` — port + 43-char base64url challenge. Browser flow never produces a state starting with `desktop:`, so the prefix is a clean discriminator.
+
+**Why PKCE rather than the simpler token-in-URL:** the session UUID is a 30-day bearer credential. Putting it in a redirect URL leaks it to browser history (loopback URLs are saved like any other URL). The PKCE flow keeps the session token out of every URL — only the short-lived (60s, single-use) auth code lands in browser history, and the auth code is useless without the verifier (which only the desktop process ever sees).
 
 ## Web-side changes (in `vorevault`)
 
-### `GET /api/auth/desktop-init` (new)
+All endpoints shipped in PR #71. Files:
 
-Validates `port` (integer, 1024–65535) and `csrf` (base64url 20–64 chars). Sets `vv_oauth_state` cookie to `desktop:PORT:CSRF` (httpOnly, secure, sameSite=lax, 10-min maxAge). Redirects to Discord OAuth with the same value as `state` and the existing `DISCORD_REDIRECT_URI`. On any validation failure, returns 400 plain text.
+| Path | Status | Responsibility |
+|---|---|---|
+| `db/init/09-auth-codes.sql` | new | `auth_codes` table: `code` PK, `code_challenge text`, `session_id uuid REFERENCES sessions ON DELETE CASCADE`, `expires_at timestamptz`, `used_at timestamptz`. Plus index on `expires_at`. |
+| `app/src/lib/desktop-state.ts` | new | `formatDesktopState`, `parseDesktopState`, `validateDesktopState` |
+| `app/src/lib/auth-codes.ts` | new | `createAuthCode(sessionId, codeChallenge)`, `exchangeAuthCode(code, codeVerifier)`, `sha256Base64Url` |
+| `app/src/app/api/auth/desktop-init/route.ts` | new | `GET` — validates port + code_challenge, sets state cookie, redirects to Discord |
+| `app/src/app/api/auth/discord/callback/route.ts` | modified | desktop branch added before existing browser redirect: mints auth code via `createAuthCode`, redirects to `localhost:PORT/?code=<auth_code>` |
+| `app/src/app/api/auth/desktop-exchange/route.ts` | new | `POST` — zod-validated `{code, code_verifier}` body, returns `{session_token}` or 401 |
+| `app/src/app/api/auth/me/route.ts` | new | `GET` — returns current user from `vv_session` cookie or 401 |
 
-### `GET /api/auth/discord/callback` (extended)
+**Single-use enforcement** in `exchangeAuthCode` is via a single SQL `UPDATE ... SET used_at = now() WHERE code = $1 AND code_challenge = $2 AND used_at IS NULL AND expires_at > now() RETURNING session_id`. Atomic: concurrent redemption attempts serialize at row level; the loser sees zero rows and returns null. Also folds the verifier-binding check into the same query (`code_challenge = $2` where `$2 = sha256Base64Url(code_verifier)`).
 
-After the existing session creation, before the existing `redirect to /`, add a single branch:
+**Opportunistic cleanup**: `createAuthCode` runs a probabilistic (~1%) `DELETE` of expired/used rows older than 24 hours, so the table stays bounded without needing cron infrastructure.
 
-```
-if (stateInUrl?.startsWith("desktop:")) {
-  const parts = stateInUrl.split(":");
-  const port = parseInt(parts[1] ?? "", 10);
-  if (Number.isInteger(port) && port >= 1024 && port <= 65535) {
-    // Redirect to localhost listener with session id in the URL.
-    const localUrl = `http://127.0.0.1:${port}/?session=${session.id}`;
-    const res = NextResponse.redirect(localUrl, { status: 307 });
-    res.cookies.set("vv_session", session.id, /* same opts as existing */);
-    res.cookies.set("vv_oauth_state", "", { maxAge: 0 });
-    return res;
-  }
-  // Malformed → fall through to existing browser redirect
-}
-```
-
-The browser flow is unchanged — adds a conditional branch that only fires when `state` starts with `desktop:`. Existing tests stay green; one new test added for the desktop branch.
-
-### `GET /api/auth/me` (new)
-
-```
-const user = await getCurrentUser();
-if (!user) return NextResponse.json({ user: null }, { status: 401 });
-return NextResponse.json({
-  user: { id: user.id, username: user.username, is_admin: user.is_admin },
-});
-```
-
-Reads the `vv_session` cookie via the existing `getCurrentUser` helper. Used by the desktop on launch to confirm the keychain-stored session is still valid. Also incidentally useful for any future client-side "who am I" lookup.
+**Migration**: deployed manually via psql on LXC 105 per `.ops-private/RUNBOOK.md`. The migration is idempotent (`CREATE TABLE IF NOT EXISTS`).
 
 ## Desktop-side modules
 
@@ -135,7 +130,7 @@ pub fn sign_out(vault_url: &str) -> Result<(), AuthError>;
 ```
 
 - `current_state`: load token from keychain → if none, return `{username: None}`. If some, `GET {vault_url}/api/auth/me` with `Cookie: vv_session=<token>` header. 200 → `{username: Some(...)}`. 401 → delete keychain, return `{username: None}`. Other errors → return last-known state without modifying keychain.
-- `sign_in`: bind localhost listener, open browser, block on `recv()` with 5-min timeout, validate the request (`GET /` with `?session=<uuid>`), serve `success.html`, store token, return username via `current_state` re-call. Holds a process-wide mutex so two sign-in clicks don't race.
+- `sign_in`: generate `code_verifier` (32 bytes base64url, kept secret) + `code_challenge` (SHA256(verifier) base64url). Bind localhost listener, open browser to `desktop-init?port=PORT&code_challenge=CHALLENGE`. Block on `recv()` with 5-min timeout. Validate the request (`GET /` with `?code=<auth_code>`), serve `success.html`. POST `{code, code_verifier}` to `desktop-exchange` over HTTPS. Store the returned `session_token` in keychain. Return username via `current_state` re-call. Holds a process-wide mutex so two sign-in clicks don't race.
 - `sign_out`: load token, best-effort `POST {vault_url}/api/auth/logout` (ignore errors), delete keychain.
 
 ### `tray.rs`
@@ -171,9 +166,12 @@ That's it. v0.1A has no other configuration.
 
 | Layer | Type | Coverage |
 |---|---|---|
-| `auth::sign_in` URL building | Rust unit | Given vault URL + port + csrf, builds the expected `desktop-init` URL |
-| `parseDesktopState("desktop:42876:abc")` (web side) | Vitest unit | Returns `{port, csrf}`; rejects malformed |
-| `desktop-init` route | Vitest route test | Validates port range, csrf format, sets state cookie, redirects to Discord |
+| `auth::sign_in` URL building (Rust) | Rust unit | Given vault URL + port + code_challenge, builds the expected `desktop-init` URL |
+| `auth::sha256_base64url` (Rust) | Rust unit | Matches RFC 7636 §4.2 example vector |
+| `parseDesktopState("desktop:42876:<challenge>")` (web side) | Vitest unit | Returns `{port, code_challenge}`; rejects malformed |
+| `desktop-init` route | Vitest route test | Validates port range, code_challenge format, sets state cookie, redirects to Discord |
+| `desktop-exchange` route | Vitest route test | Validates body, returns 200 `{session_token}` on valid exchange, 401 on bad code/verifier |
+| `auth-codes` (web side) | Vitest integration (testcontainers) | Round-trip, wrong verifier, single-use replay (concurrent), expired, unknown code |
 | Extended `discord/callback` | Vitest route test | Browser flow regression + new desktop-branch test (valid state → localhost redirect; malformed → fallthrough) |
 | `me` route | Vitest route test | Returns user when valid; 401 otherwise |
 | `keychain` wrapper | Manual smoke per dev machine | Store/load/delete cycle |
