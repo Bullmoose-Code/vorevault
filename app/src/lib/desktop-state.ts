@@ -49,7 +49,13 @@ export function validateDesktopState(
 ): DesktopState | null {
   if (typeof port !== "number" && typeof port !== "string") return null;
   if (typeof code_challenge !== "string") return null;
-  const portNum = typeof port === "string" ? parseInt(port, 10) : port;
+  let portNum: number;
+  if (typeof port === "string") {
+    if (!PORT_RE.test(port)) return null;
+    portNum = parseInt(port, 10);
+  } else {
+    portNum = port;
+  }
   if (!Number.isInteger(portNum) || portNum < 1024 || portNum > 65535) return null;
   if (!CODE_CHALLENGE_RE.test(code_challenge)) return null;
   return { port: portNum, code_challenge };

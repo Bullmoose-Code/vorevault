@@ -108,4 +108,11 @@ describe("validateDesktopState", () => {
     expect(validateDesktopState(null, CHALLENGE)).toBeNull();
     expect(validateDesktopState({}, CHALLENGE)).toBeNull();
   });
+
+  it("rejects string port with trailing junk (consistency with parseDesktopState)", () => {
+    expect(validateDesktopState("42876abc", CHALLENGE)).toBeNull();
+    expect(validateDesktopState("42876.5", CHALLENGE)).toBeNull();
+    expect(validateDesktopState(" 42876", CHALLENGE)).toBeNull();
+    expect(validateDesktopState("42876 ", CHALLENGE)).toBeNull();
+  });
 });

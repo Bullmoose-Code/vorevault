@@ -43,27 +43,27 @@ describe("POST /api/auth/desktop-exchange", () => {
 
   it("400s when code_verifier is missing", async () => {
     const { POST } = await getRoute();
-    const r = await POST(jsonReq({ code: "some-code-1234567890" }));
+    const r = await POST(jsonReq({ code: "some-code-1234567890ABCDEFGHIJKLMNOPQRSTUVW" }));
     expect(r.status).toBe(400);
   });
 
   it("400s when code_verifier is too short", async () => {
     const { POST } = await getRoute();
-    const r = await POST(jsonReq({ code: "some-code-1234567890", code_verifier: "short" }));
+    const r = await POST(jsonReq({ code: "some-code-1234567890ABCDEFGHIJKLMNOPQRSTUVW", code_verifier: "short" }));
     expect(r.status).toBe(400);
   });
 
   it("401s when exchangeAuthCode returns null", async () => {
     const { POST, exchangeAuthCode } = await getRoute();
     exchangeAuthCode.mockResolvedValue(null);
-    const r = await POST(jsonReq({ code: "some-code-1234567890", code_verifier: VERIFIER }));
+    const r = await POST(jsonReq({ code: "some-code-1234567890ABCDEFGHIJKLMNOPQRSTUVW", code_verifier: VERIFIER }));
     expect(r.status).toBe(401);
   });
 
   it("returns 200 with session_token on success", async () => {
     const { POST, exchangeAuthCode } = await getRoute();
     exchangeAuthCode.mockResolvedValue({ sessionId: "session-uuid-1" });
-    const r = await POST(jsonReq({ code: "some-code-1234567890", code_verifier: VERIFIER }));
+    const r = await POST(jsonReq({ code: "some-code-1234567890ABCDEFGHIJKLMNOPQRSTUVW", code_verifier: VERIFIER }));
     expect(r.status).toBe(200);
     const body = await r.json();
     expect(body).toEqual({ session_token: "session-uuid-1" });
@@ -72,7 +72,7 @@ describe("POST /api/auth/desktop-exchange", () => {
   it("passes the code and verifier through to exchangeAuthCode verbatim", async () => {
     const { POST, exchangeAuthCode } = await getRoute();
     exchangeAuthCode.mockResolvedValue({ sessionId: "s1" });
-    await POST(jsonReq({ code: "some-code-1234567890", code_verifier: VERIFIER }));
-    expect(exchangeAuthCode).toHaveBeenCalledWith("some-code-1234567890", VERIFIER);
+    await POST(jsonReq({ code: "some-code-1234567890ABCDEFGHIJKLMNOPQRSTUVW", code_verifier: VERIFIER }));
+    expect(exchangeAuthCode).toHaveBeenCalledWith("some-code-1234567890ABCDEFGHIJKLMNOPQRSTUVW", VERIFIER);
   });
 });

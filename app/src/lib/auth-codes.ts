@@ -18,6 +18,16 @@ export async function createAuthCode(
      VALUES ($1, $2, $3, $4)`,
     [code, codeChallenge, sessionId, expiresAt],
   );
+  // Opportunistic cleanup: ~1% of inserts also sweep expired+used rows.
+  // Keeps the table from growing forever without needing cron infrastructure.
+  // The auth_codes_expires_at_idx makes this O(deleted_rows).
+  if (Math.random() < 0.01) {
+    await pool.query(
+      `DELETE FROM auth_codes
+        WHERE expires_at < now() - interval '1 day'
+           OR (used_at IS NOT NULL AND used_at < now() - interval '1 day')`,
+    );
+  }
   return code;
 }
 

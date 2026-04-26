@@ -66,4 +66,21 @@ describe("createAuthCode + exchangeAuthCode", () => {
     const result = await exchangeAuthCode("nonexistent-code-zzzzzzzzzzzzzzzzz", "any");
     expect(result).toBeNull();
   });
+
+  it("only one of two concurrent redeems succeeds (single-use enforced atomically)", async () => {
+    const verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+    const challenge = sha256Base64Url(verifier);
+    const code = await createAuthCode(sessionId, challenge);
+    // Fire two redemptions in parallel; the SQL UPDATE...WHERE used_at IS
+    // NULL serializes them via row-level locking, so exactly one wins.
+    const [a, b] = await Promise.all([
+      exchangeAuthCode(code, verifier),
+      exchangeAuthCode(code, verifier),
+    ]);
+    const successes = [a, b].filter((r) => r !== null);
+    const failures = [a, b].filter((r) => r === null);
+    expect(successes).toHaveLength(1);
+    expect(failures).toHaveLength(1);
+    expect(successes[0]).toEqual({ sessionId });
+  });
 });
