@@ -29,6 +29,10 @@ vi.mock("@/lib/sessions", () => ({
   SESSION_TTL_SEC: 30 * 24 * 60 * 60,
 }));
 
+vi.mock("@/lib/auth-codes", () => ({
+  createAuthCode: vi.fn(async () => "fake-auth-code"),
+}));
+
 import { GET } from "./route";
 
 function reqWithStateCookie(stateInUrl: string, stateInCookie: string, code = "abc") {
@@ -92,5 +96,55 @@ describe("GET /api/auth/discord/callback", () => {
     expect(setCookie).toMatch(/Secure/i);
     expect(setCookie).toMatch(/SameSite=Lax/i);
     expect(setCookie).toMatch(/vv_oauth_state=;/);
+  });
+});
+
+describe("GET /api/auth/discord/callback (desktop branch)", () => {
+  const CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+
+  function happyMocks() {
+    exchange.mockResolvedValueOnce("token");
+    fetchMember.mockResolvedValueOnce({
+      profile: { id: "u1", username: "ryan", avatar: null },
+      hasRequiredRole: true,
+    });
+    upsertUser.mockResolvedValueOnce({ id: "user-uuid", username: "ryan" });
+    createSession.mockResolvedValueOnce({ id: "session-uuid-1" });
+  }
+
+  async function callWithState(state: string) {
+    happyMocks();
+    return GET(reqWithStateCookie(state, state));
+  }
+
+  it("redirects to localhost with an auth CODE (not session token)", async () => {
+    const r = await callWithState(`desktop:42876:${CHALLENGE}`);
+    expect(r.status).toBe(307);
+    expect(r.headers.get("location")).toBe("http://127.0.0.1:42876/?code=fake-auth-code");
+  });
+
+  it("creates an auth code bound to the session and the code_challenge", async () => {
+    const auth = await import("@/lib/auth-codes");
+    const create = vi.mocked(auth.createAuthCode);
+    create.mockClear();
+    await callWithState(`desktop:42876:${CHALLENGE}`);
+    expect(create).toHaveBeenCalledWith("session-uuid-1", CHALLENGE);
+  });
+
+  it("still sets the session cookie on the desktop redirect", async () => {
+    const r = await callWithState(`desktop:42876:${CHALLENGE}`);
+    expect(r.cookies.get("vv_session")?.value).toBe("session-uuid-1");
+  });
+
+  it("clears the oauth state cookie", async () => {
+    const r = await callWithState(`desktop:42876:${CHALLENGE}`);
+    expect(r.cookies.get("vv_oauth_state")?.value).toBe("");
+    expect(r.cookies.get("vv_oauth_state")?.maxAge).toBe(0);
+  });
+
+  it("falls through to browser redirect when desktop state is malformed", async () => {
+    const r = await callWithState("desktop:99:short");
+    expect(r.status).toBe(307);
+    expect(r.headers.get("location")).toBe("https://app.test/");
   });
 });
