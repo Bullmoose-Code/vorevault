@@ -3,6 +3,7 @@ import { loadEnv } from "@/lib/env";
 import { exchangeCodeForToken, fetchGuildMember } from "@/lib/discord";
 import { upsertUserFromDiscord } from "@/lib/users";
 import { createSession, SESSION_TTL_SEC } from "@/lib/sessions";
+import { parseDesktopState } from "@/lib/desktop-state";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,35 @@ export async function GET(req: NextRequest) {
   const user = await upsertUserFromDiscord(member.profile);
   const userAgent = req.headers.get("user-agent");
   const session = await createSession(user.id, userAgent);
+
+  // Desktop OAuth branch: when state encodes a desktop port, redirect
+  // the browser to the desktop's localhost listener with the session id
+  // in the URL. The desktop client captures it and stores it in the OS
+  // keychain. See docs/superpowers/specs/2026-04-25-desktop-watcher-subproject-a-design.md.
+  const desktopState = parseDesktopState(stateInUrl);
+  if (desktopState) {
+    const localUrl = `http://127.0.0.1:${desktopState.port}/?session=${session.id}`;
+    const desktopRes = NextResponse.redirect(localUrl, { status: 307 });
+    desktopRes.cookies.set({
+      name: SESSION_COOKIE,
+      value: session.id,
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_SEC,
+    });
+    desktopRes.cookies.set({
+      name: STATE_COOKIE,
+      value: "",
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+    return desktopRes;
+  }
 
   const res = NextResponse.redirect(`${env.APP_PUBLIC_URL}/`, { status: 307 });
   res.cookies.set({

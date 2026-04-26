@@ -94,3 +94,56 @@ describe("GET /api/auth/discord/callback", () => {
     expect(setCookie).toMatch(/vv_oauth_state=;/);
   });
 });
+
+describe("GET /api/auth/discord/callback (desktop branch)", () => {
+  const CSRF = "abcdef1234567890ABCDEF_-";
+
+  function happyMocks() {
+    exchange.mockResolvedValueOnce("token");
+    fetchMember.mockResolvedValueOnce({
+      profile: { id: "u1", username: "ryan", avatar: null },
+      hasRequiredRole: true,
+    });
+    upsertUser.mockResolvedValueOnce({ id: "user-uuid", username: "ryan" });
+    createSession.mockResolvedValueOnce({ id: "session-uuid-1" });
+  }
+
+  it("redirects to localhost when state encodes a desktop port", async () => {
+    happyMocks();
+    const state = `desktop:42876:${CSRF}`;
+    const res = await GET(reqWithStateCookie(state, state));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("Location")).toBe(
+      "http://127.0.0.1:42876/?session=session-uuid-1",
+    );
+  });
+
+  it("still sets the session cookie on the desktop redirect", async () => {
+    happyMocks();
+    const state = `desktop:42876:${CSRF}`;
+    const res = await GET(reqWithStateCookie(state, state));
+    const setCookie = res.headers.get("Set-Cookie") ?? "";
+    expect(setCookie).toMatch(/vv_session=session-uuid-1/);
+    expect(setCookie).toMatch(/HttpOnly/i);
+    expect(setCookie).toMatch(/Secure/i);
+    expect(setCookie).toMatch(/SameSite=Lax/i);
+  });
+
+  it("clears the oauth state cookie", async () => {
+    happyMocks();
+    const state = `desktop:42876:${CSRF}`;
+    const res = await GET(reqWithStateCookie(state, state));
+    const setCookie = res.headers.get("Set-Cookie") ?? "";
+    expect(setCookie).toMatch(/vv_oauth_state=;/);
+    expect(setCookie).toMatch(/Max-Age=0/i);
+  });
+
+  it("falls through to browser redirect when desktop state is malformed", async () => {
+    happyMocks();
+    // "desktop:" prefix but bad port → parseDesktopState returns null
+    const state = "desktop:99:short";
+    const res = await GET(reqWithStateCookie(state, state));
+    expect(res.status).toBe(307);
+    expect(res.headers.get("Location")).toBe("https://app.test/");
+  });
+});
