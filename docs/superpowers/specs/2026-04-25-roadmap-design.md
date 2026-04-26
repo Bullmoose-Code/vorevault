@@ -29,7 +29,7 @@ The biggest new bet on the roadmap. Pulls VoreVault out of the browser so clip u
 
 | # | Item | Size | Why |
 |---|---|---|---|
-| 1.1 | **Tray watcher app** (cross-platform, Win + Mac). Silent auto-upload from one watched folder. Sign in once via system-browser Discord OAuth, store session token in OS keychain. Tray toast on each upload with "view in vault" link. Uses the existing tus endpoint, so nothing changes server-side. | L | Core "capture-clip-during-game → it's in the vault" flow |
+| 1.1 | **Tray watcher app** (cross-platform, Win + Mac). Silent auto-upload from one watched folder. Sign in once via system-browser Discord OAuth, store session token in OS keychain. Tray toast on each upload with "view in vault" link. Uses the existing tus endpoint, so nothing changes server-side. **In progress, decomposed into 5 sub-projects:** A (scaffold + auth + keychain) ✅ shipped 2026-04-26 as v0.1.0 of `vorevault-desktop`; B (watcher + upload pipeline), C (native notifications), D (settings window), E (signed installers + releases) remain. | L | Core "capture-clip-during-game → it's in the vault" flow |
 | 1.2 | **Per-watched-folder destination & tags** (follow-up to 1.1). User can configure "this folder uploads to *Apex* with tags `apex,clips`" — multiple watched folders, each with its own routing. | M | Lets people organize at the source, not after |
 | 1.3 | **`vorevault://` deep-link protocol handler** registered by the watcher app. Tray toasts and Discord links open straight to the file detail page in the user's default browser. | S | Closes the loop from "uploaded" → "watch it" |
 
