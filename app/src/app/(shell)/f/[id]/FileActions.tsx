@@ -6,7 +6,6 @@ import { Button } from "@/components/Button";
 import { ConfirmDialog, PromptDialog } from "@/components/Dialogs";
 import { FolderPicker } from "@/components/FolderPicker";
 import { ShareBanner } from "@/components/ShareBanner";
-import { buildDesktopLink } from "@/lib/desktop-link";
 import styles from "./FileActions.module.css";
 
 type Props = {
@@ -29,18 +28,6 @@ export function FileActions({
   const [moving, setMoving] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [copiedDesktopLink, setCopiedDesktopLink] = useState(false);
-
-  async function handleCopyDesktopLink() {
-    const url = buildDesktopLink(fileId);
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopiedDesktopLink(true);
-      setTimeout(() => setCopiedDesktopLink(false), 2000);
-    } catch {
-      setError(`Couldn't copy — copy manually: ${url}`);
-    }
-  }
 
   async function handleMoveSave() {
     setMoving(true);
@@ -99,30 +86,6 @@ export function FileActions({
           disabled={sharing}
         >
           {sharing ? "…" : shareUrl ? "Revoke public link" : "✦ Create public link"}
-        </Button>
-        <Button
-          type="button"
-          onClick={handleCopyDesktopLink}
-          aria-label="Copy desktop link"
-          title="Copy a vorevault:// link that opens this file in the user's browser via the desktop app"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            style={{ verticalAlign: "-2px", marginRight: "6px" }}
-          >
-            <rect x="1.5" y="2" width="11" height="7.5" rx="1" />
-            <line x1="5" y1="12" x2="9" y2="12" />
-            <line x1="7" y1="9.5" x2="7" y2="12" />
-          </svg>
-          {copiedDesktopLink ? "Copied" : "Copy desktop link"}
         </Button>
         {isOwnerOrAdmin && (
           <>
