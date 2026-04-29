@@ -1,8 +1,0 @@
-(function () {
-  try {
-    var t = localStorage.getItem("vv:theme");
-    if (t === "light" || t === "dark") {
-      document.documentElement.setAttribute("data-theme", t);
-    }
-  } catch (e) { /* storage blocked — noop */ }
-})();
