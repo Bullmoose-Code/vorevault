@@ -37,7 +37,6 @@ export default async function PublicViewPage({ params }: Props) {
       {isVideo && (
         <video
           controls
-          autoPlay
           playsInline
           preload="metadata"
           src={streamUrl}

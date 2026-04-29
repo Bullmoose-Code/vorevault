@@ -62,7 +62,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <head>
-        <script src="/theme-init.js" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              `(function(){try{var t=localStorage.getItem("vv:theme");` +
+              `if(t==="light"||t==="dark"){` +
+              `document.documentElement.setAttribute("data-theme",t);` +
+              `}}catch(e){}})()`,
+          }}
+        />
       </head>
       <body>
         <SWRegister />
