@@ -94,7 +94,6 @@ export default async function FilePage({ params, searchParams }: Props) {
           {isVideo && (
             <video
               controls
-              autoPlay
               playsInline
               preload="metadata"
               src={`/api/stream/${file.id}`}
