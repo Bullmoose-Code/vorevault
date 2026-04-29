@@ -50,9 +50,15 @@ vi.mock("@/lib/users", () => ({
 }));
 
 const attachTagToFile = vi.fn();
-vi.mock("@/lib/tags", () => ({
-  attachTagToFile: (...a: unknown[]) => attachTagToFile(...a),
-}));
+vi.mock("@/lib/tags", () => {
+  class TagNameError extends Error {
+    constructor(message: string) { super(message); this.name = "TagNameError"; }
+  }
+  return {
+    attachTagToFile: (...a: unknown[]) => attachTagToFile(...a),
+    TagNameError,
+  };
+});
 
 const generateThumbnail = vi.fn();
 vi.mock("@/lib/thumbnails", () => ({
@@ -311,5 +317,125 @@ describe("POST /api/hooks/tus post-finish", () => {
     expect(insertFile).toHaveBeenCalledWith(
       expect.objectContaining({ folderId: null }),
     );
+  });
+
+  it("attaches user-supplied tags from MetaData.tags alongside the auto-username tag", async () => {
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-tags-1", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("home-folder-id");
+    insertFile.mockResolvedValueOnce({ id: "file-tags-1" });
+    attachTagToFile.mockImplementation(async (_fileId: string, name: string) =>
+      ({ id: `tag-${name}`, name, created_at: new Date() }));
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-tags-1",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-tags-1" },
+          MetaData: { filename: "clip.mp4", tags: "apex,clips" },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    const attachedNames = attachTagToFile.mock.calls.map((c) => c[1]).sort();
+    expect(attachedNames).toEqual(["apex", "clips", "ryan"]);
+    for (const call of attachTagToFile.mock.calls) {
+      expect(call[0]).toBe("file-tags-1");
+      expect(call[2]).toBe("u1");
+    }
+  });
+
+  it("attaches no extra tags when MetaData.tags is absent (only auto-username tag)", async () => {
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-tags-2", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("home-folder-id");
+    insertFile.mockResolvedValueOnce({ id: "file-tags-2" });
+    attachTagToFile.mockImplementation(async (_fileId: string, name: string) =>
+      ({ id: `tag-${name}`, name, created_at: new Date() }));
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-tags-2",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-tags-2" },
+          MetaData: { filename: "clip.mp4" },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    const attachedNames = attachTagToFile.mock.calls.map((c) => c[1]).sort();
+    expect(attachedNames).toEqual(["ryan"]);
+  });
+
+  it("skips invalid tag tokens but still attaches valid ones (and the upload succeeds)", async () => {
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-tags-3", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("home-folder-id");
+    insertFile.mockResolvedValueOnce({ id: "file-tags-3" });
+    // Real attachTagToFile would throw TagNameError on "APEX!"; emulate that
+    // here so the route's per-token try/catch is what's actually under test.
+    attachTagToFile.mockImplementation(async (_fileId: string, name: string) => {
+      const lower = name.trim().toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(lower)) {
+        throw new Error("TagNameError: invalid tag token");
+      }
+      return { id: `tag-${lower}`, name: lower, created_at: new Date() };
+    });
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-tags-3",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-tags-3" },
+          MetaData: { filename: "clip.mp4", tags: "apex,APEX!" },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    const attemptedNames = attachTagToFile.mock.calls.map((c) => c[1]).sort();
+    // Both the valid "apex" token and the invalid "APEX!" token are passed
+    // through to attachTagToFile (which normalizes/throws); the auto-username
+    // "ryan" tag is also attached. The invalid token is logged + skipped.
+    expect(attemptedNames).toEqual(["APEX!", "apex", "ryan"]);
+  });
+
+  it("trims whitespace from tag tokens (apex, clips )", async () => {
+    getUploadSession.mockResolvedValueOnce({ tus_id: "tus-tags-4", user_id: "u1", file_id: null });
+    execFileMock.mockImplementationOnce((_cmd: string, _args: string[], cb: Function) => cb(null, "video/mp4\n"));
+    getUserById.mockResolvedValueOnce({ id: "u1", username: "ryan" });
+    getOrCreateUserHomeFolder.mockResolvedValueOnce("home-folder-id");
+    insertFile.mockResolvedValueOnce({ id: "file-tags-4" });
+    // Mirror real normalizeTagName trimming so the assertion below can sort
+    // on the post-normalization names.
+    attachTagToFile.mockImplementation(async (_fileId: string, name: string) => {
+      const lower = name.trim().toLowerCase();
+      return { id: `tag-${lower}`, name: lower, created_at: new Date() };
+    });
+    generateThumbnail.mockResolvedValueOnce(null);
+
+    const res = await POST(hookReq("post-finish", {
+      Event: {
+        Upload: {
+          ID: "tus-tags-4",
+          Size: 512,
+          Storage: { Type: "filestore", Path: "/data/tusd-tmp/tus-tags-4" },
+          MetaData: { filename: "clip.mp4", tags: "apex, clips " },
+        },
+      },
+    }));
+    expect(res.status).toBe(200);
+    const attachedNames = attachTagToFile.mock.calls
+      .map((c) => (c[1] as string).trim().toLowerCase())
+      .sort();
+    expect(attachedNames).toEqual(["apex", "clips", "ryan"]);
   });
 });

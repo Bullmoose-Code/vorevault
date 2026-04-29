@@ -14,7 +14,7 @@ import { insertFile, updateTranscodeStatus } from "@/lib/files";
 import { folderExists, getOrCreateUserHomeFolder } from "@/lib/folders";
 import { getUserById } from "@/lib/users";
 import { generateThumbnail } from "@/lib/thumbnails";
-import { attachTagToFile } from "@/lib/tags";
+import { attachTagToFile, TagNameError } from "@/lib/tags";
 import { usernameToTag } from "@/lib/username-to-tag";
 
 export const dynamic = "force-dynamic";
@@ -168,6 +168,24 @@ async function postFinish(body: HookBody) {
         await attachTagToFile(inserted.id, tagName, owner.id);
       } catch (err) {
         console.error(`auto-tag failed for ${inserted.id} (${tagName}):`, err);
+      }
+    }
+  }
+
+  const rawTags = body.Event.Upload.MetaData?.tags;
+  if (typeof rawTags === "string" && rawTags.length > 0) {
+    for (const raw of rawTags.split(",")) {
+      try {
+        await attachTagToFile(inserted.id, raw, session.user_id);
+      } catch (err) {
+        // Log + skip; don't fail the whole upload.
+        // TagNameError = client sent an invalid token (expected, low severity).
+        // Anything else = infrastructure issue (DB hiccup, etc.); log loud.
+        if (err instanceof TagNameError) {
+          console.warn(`tus tag rejected for ${inserted.id} (${raw}):`, err.message);
+        } else {
+          console.error(`tus tag attach failed for ${inserted.id} (${raw}):`, err);
+        }
       }
     }
   }
