@@ -298,7 +298,7 @@ vorevault://open<path>[?<query>][#<fragment>]
 | `vorevault://open:8080/x` | `Err(HasPort)` | rejected |
 | `vorevault://open` (no path) | `Err(BadPath)` | path doesn't start with `/` |
 | `notvorevault://open/files/abc` | `Err(BadScheme)` | rejected (OS would never route this anyway) |
-| `vorevault://OPEN/files/abc` | `https://vault.bullmoosefn.com/files/abc` | the `url` crate lowercases hosts during parsing, so by the time we compare against the literal `"open"` the input has been normalized — case-insensitive in practice |
+| `vorevault://OPEN/files/abc` | `https://vault.bullmoosefn.com/files/abc` | the `url` crate lowercases the SCHEME during parsing but NOT the host (host normalization only applies to special schemes — http, https, ftp, file, ws, wss). `vorevault` is non-special, so we lowercase the host explicitly via `to_ascii_lowercase()` before comparing against `"open"`. End result: case-insensitive. |
 | `not a url` | `Err(Parse(_))` | parse failure |
 
 ### Security model
@@ -318,11 +318,13 @@ The desktop does **not** maintain a path-prefix whitelist. That tightening only 
 | Scenario | Behavior |
 |---|---|
 | App not running, user clicks `vorevault://...` | OS launches `VoreVault.exe` / VoreVault.app. Tauri runtime starts, plugins initialize, `setup` runs, `tray::install` runs (tray icon appears), `deep_link().on_open_url` listener fires with the URL, `dispatch` opens the target in the browser. |
-| App already running, user clicks `vorevault://...` | OS spawns a second process. `tauri-plugin-single-instance` callback in the second process detects the lock held by the first, sends the second process's `argv` (containing the URL) to the first process via the plugin's IPC, then exits the second process before any tray icon is registered. The first process's callback runs `dispatch`. |
-| Two `vorevault://` URLs delivered in rapid succession | `on_open_url` event carries `Vec<Url>`; the listener iterates and dispatches each. The second-instance callback also iterates `argv` and dispatches each. Browser stacks them in tabs. |
-| User invokes the app's executable directly (no URL) | `argv` contains no `vorevault://` entries; the for-loop in the single-instance callback is a no-op. App launches normally. |
+| App already running, user clicks `vorevault://...` | OS spawns a second process. `tauri-plugin-single-instance` (with the `deep-link` feature enabled — see `Cargo.toml`) detects the lock held by the first process and forwards the second process's argv URLs through `tauri-plugin-deep-link`'s internal IPC. The second process exits before any tray icon is registered. The first process's `on_open_url` listener fires with the URL and runs `dispatch`. The single-instance plugin's user callback is intentionally a no-op for URL handling — the `deep-link` feature already routes URLs to `on_open_url`, so duplicating the dispatch in the callback would fire `dispatch` twice for every URL. |
+| Two `vorevault://` URLs delivered in rapid succession | `on_open_url` event carries `Vec<Url>`; the listener iterates and dispatches each. Browser stacks them in tabs. |
+| User invokes the app's executable directly (no URL) | `argv` contains no `vorevault://` entries; the deep-link plugin's argv-scan finds nothing, no `on_open_url` fires. App launches normally. |
 
 The single-instance plugin must be registered **before** any other plugin that allocates singleton state (tray icon, file watchers, etc.); otherwise a second-launched process briefly registers a duplicate before realizing it's the second instance. Standard Tauri pattern.
+
+The user-supplied callback to `tauri_plugin_single_instance::init` should NOT call `crate::deeplink::dispatch` itself when the `deep-link` feature is enabled — both mechanisms would fire and dispatch the same URL twice. Leave it empty (or use it for unrelated work like focusing the settings window).
 
 ## Vault-side companion (separate vault-repo PR)
 
