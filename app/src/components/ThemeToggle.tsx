@@ -20,7 +20,14 @@ export function ThemeToggle() {
   const [choice, setChoice] = useState<ThemeChoice>("system");
 
   useEffect(() => {
-    setChoice(readStored());
+    // Read the stored preference, sync local state, AND re-apply data-theme.
+    // The inline theme-init script in <head> sets data-theme during HTML
+    // parsing; React's hydration sometimes removes it (when "hydration
+    // repair" recreates parts of the tree). Re-applying here makes the
+    // attribute survive any hydration churn.
+    const stored = readStored();
+    setChoice(stored);
+    applyChoice(stored);
   }, []);
 
   function onClick() {
